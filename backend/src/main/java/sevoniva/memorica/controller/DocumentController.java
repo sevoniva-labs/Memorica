@@ -2,27 +2,32 @@ package sevoniva.memorica.controller;
 
 import sevoniva.memorica.dto.*;
 import sevoniva.memorica.service.DocumentService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-
 @RestController
-@RequestMapping("/api/documents")
+@RequestMapping("/api/v1/documents")
 public class DocumentController {
 
-    @Autowired
-    private DocumentService documentService;
+    private final DocumentService documentService;
+
+    public DocumentController(DocumentService documentService) {
+        this.documentService = documentService;
+    }
 
     @GetMapping("/my")
-    public ApiResponse<List<DocumentResponse>> listMy() {
-        return documentService.listMyDocuments();
+    public ApiResponse<Page<DocumentResponse>> listMy(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return documentService.listMyDocuments(page, size);
     }
 
     @GetMapping("/public")
-    public ApiResponse<List<DocumentResponse>> listPublic() {
-        return documentService.listPublicDocuments();
+    public ApiResponse<Page<DocumentResponse>> listPublic(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return documentService.listPublicDocuments(page, size);
     }
 
     @GetMapping("/{id}")
@@ -31,34 +36,34 @@ public class DocumentController {
     }
 
     @PostMapping
-    public ApiResponse<DocumentResponse> create(@RequestBody Map<String, String> body) {
-        return documentService.createDocument(body.get("title"));
+    public ApiResponse<DocumentResponse> create(@Valid @RequestBody CreateDocumentRequest body) {
+        return documentService.createDocument(body.getTitle());
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<?> update(@PathVariable String id, @RequestBody Map<String, Object> body) {
-        String title = body.containsKey("title") ? (String) body.get("title") : null;
-        Boolean isPublic = body.containsKey("isPublic") ? (Boolean) body.get("isPublic") : null;
-        return documentService.updateDocumentMeta(id, title, isPublic);
+    public ApiResponse<DocumentResponse> update(@PathVariable String id,
+                                                 @Valid @RequestBody UpdateDocumentRequest body) {
+        return documentService.updateDocumentMeta(id, body.getTitle(), body.getIsPublic());
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<?> delete(@PathVariable String id) {
+    public ApiResponse<Void> delete(@PathVariable String id) {
         return documentService.deleteDocument(id);
     }
 
     @PostMapping("/{id}/versions")
-    public ApiResponse<?> saveVersion(@PathVariable String id, @RequestBody Map<String, Object> body) {
-        String contentJson = (String) body.get("contentJson");
-        String snapshotHtml = (String) body.get("snapshotHtml");
-        Integer wordCount = body.get("wordCount") != null ? ((Number) body.get("wordCount")).intValue() : 0;
-        Integer charCount = body.get("charCount") != null ? ((Number) body.get("charCount")).intValue() : 0;
-        return documentService.saveVersion(id, contentJson, snapshotHtml, wordCount, charCount);
+    public ApiResponse<?> saveVersion(@PathVariable String id,
+                                       @Valid @RequestBody SaveVersionRequest body) {
+        return documentService.saveVersion(id, body.getContentJson(), body.getSnapshotHtml(),
+                body.getWordCount(), body.getCharCount());
     }
 
     @GetMapping("/{id}/versions")
-    public ApiResponse<?> listVersions(@PathVariable String id) {
-        return documentService.listVersions(id);
+    public ApiResponse<Page<DocumentVersionResponse>> listVersions(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return documentService.listVersions(id, page, size);
     }
 
     @GetMapping("/versions/{versionId}")

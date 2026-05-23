@@ -8,7 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/files")
+@RequestMapping("/api/v1/files")
 public class FileController {
 
     private final FileService fileService;
@@ -24,9 +24,9 @@ public class FileController {
             String url = fileService.getFileUrl(objectName);
             return ApiResponse.success(Map.of("objectName", objectName, "url", url));
         } catch (IllegalArgumentException e) {
-            return ApiResponse.error(e.getMessage());
+            throw e;
         } catch (Exception e) {
-            return ApiResponse.error("上传失败: " + e.getMessage());
+            throw new RuntimeException("上传失败: " + e.getMessage());
         }
     }
 
@@ -36,7 +36,7 @@ public class FileController {
             String url = fileService.getFileUrl(objectName);
             return ApiResponse.success(Map.of("url", url));
         } catch (Exception e) {
-            return ApiResponse.error("获取链接失败: " + e.getMessage());
+            throw new RuntimeException("获取链接失败: " + e.getMessage());
         }
     }
 }

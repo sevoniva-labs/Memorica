@@ -2,6 +2,8 @@ package sevoniva.memorica.service;
 
 import sevoniva.memorica.dto.*;
 import sevoniva.memorica.entity.User;
+import sevoniva.memorica.exception.BadRequestException;
+import sevoniva.memorica.exception.ResourceNotFoundException;
 import sevoniva.memorica.repository.UserRepository;
 import sevoniva.memorica.security.JwtUtil;
 import sevoniva.memorica.security.UserDetailsImpl;
@@ -39,10 +41,10 @@ public class AuthService {
 
     public ApiResponse<?> register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            return ApiResponse.error("邮箱已被注册");
+            throw new BadRequestException("邮箱已被注册");
         }
         if (userRepository.existsByUsername(request.getUsername())) {
-            return ApiResponse.error("用户名已被使用");
+            throw new BadRequestException("用户名已被使用");
         }
 
         User user = User.builder()
@@ -89,8 +91,8 @@ public class AuthService {
     }
 
     public ApiResponse<?> me(Long userId) {
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null) return ApiResponse.error("用户不存在");
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
         return ApiResponse.success(Map.of(
             "id", user.getId(),
             "username", user.getUsername(),
