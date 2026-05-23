@@ -1,0 +1,396 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========== Notion-style Editor ========== */
+
+/* 基础 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  background: #ffffff;
+  color: #37352f;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 编辑器容器 */
+.notion-editor {
+  outline: none;
+  min-height: 60vh;
+  caret-color: #37352f;
+}
+
+.notion-editor > * {
+  position: relative;
+  padding: 3px 2px;
+  margin: 1px 0;
+  border-radius: 3px;
+  transition: background-color 0.1s ease;
+}
+
+/* 块悬停效果 */
+.notion-editor > *:hover {
+  background-color: rgba(55, 53, 47, 0.02);
+}
+
+/* 段落 */
+.notion-editor p {
+  font-size: 16px;
+  line-height: 1.5;
+  color: #37352f;
+  margin: 0;
+  min-height: 1.5em;
+}
+
+/* 标题 */
+.notion-editor h1 {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0.5em 0 0.2em;
+  color: #37352f;
+  letter-spacing: -0.01em;
+}
+
+.notion-editor h2 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0.8em 0 0.2em;
+  color: #37352f;
+}
+
+.notion-editor h3 {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0.6em 0 0.15em;
+  color: #37352f;
+}
+
+/* 列表 */
+.notion-editor ul,
+.notion-editor ol {
+  padding-left: 1.5em;
+  margin: 0;
+}
+
+.notion-editor ul {
+  list-style-type: disc;
+}
+
+.notion-editor ol {
+  list-style-type: decimal;
+}
+
+.notion-editor li {
+  padding: 3px 0;
+  line-height: 1.5;
+}
+
+.notion-editor li > p {
+  margin: 0;
+  padding: 0;
+}
+
+/* 任务列表 */
+.notion-editor ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.notion-editor ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 0;
+}
+
+.notion-editor ul[data-type="taskList"] li > label {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.notion-editor ul[data-type="taskList"] input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #2563eb;
+}
+
+.notion-editor ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+/* 引用块 */
+.notion-editor blockquote {
+  border-left: 3px solid #e3e2e0;
+  padding-left: 14px;
+  margin: 4px 0;
+  color: #9ca3af;
+  font-style: normal;
+  line-height: 1.5;
+}
+
+/* 代码 */
+.notion-editor code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 85%;
+  background: #f5f5f4;
+  color: #eb5757;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.notion-editor pre {
+  background: #f7f6f3;
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin: 8px 0;
+  overflow-x: auto;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.notion-editor pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* 链接 */
+.notion-editor a {
+  color: #2563eb;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(37, 99, 235, 0.2);
+  transition: border-color 0.15s;
+}
+
+.notion-editor a:hover {
+  border-bottom-color: #2563eb;
+}
+
+/* 图片 */
+.notion-editor img.notion-image {
+  max-width: 100%;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+/* 高亮 */
+.notion-editor mark {
+  background: #fef3c7;
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+/* 上标/下标 */
+.notion-editor sub,
+.notion-editor sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+.notion-editor sup {
+  top: -0.5em;
+}
+
+.notion-editor sub {
+  bottom: -0.25em;
+}
+
+/* 文字颜色 & 字体 */
+.notion-editor span[style] {
+  border-radius: 1px;
+}
+
+/* 分隔线 */
+.notion-editor hr {
+  border: none;
+  border-top: 1px solid #e3e2e0;
+  margin: 16px 0;
+}
+
+/* 表格 */
+.notion-editor table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.notion-editor th,
+.notion-editor td {
+  border: 1px solid #e3e2e0;
+  padding: 8px 12px;
+  text-align: left;
+  min-width: 80px;
+}
+
+.notion-editor th {
+  background: #f7f6f3;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.notion-editor tr:nth-child(even) td {
+  background: #fafaf9;
+}
+
+/* YouTube 嵌入 */
+.notion-editor .youtube-embed {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  margin: 8px 0;
+  border: none;
+}
+
+/* 数学公式 */
+.notion-editor .math-inline {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  padding: 0 2px;
+}
+
+.notion-editor .math-block {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  margin: 8px 0;
+  background: #f7f6f3;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+/* 表情符号 */
+.notion-editor .emoji {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+/* @提及 */
+.notion-editor .mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.95em;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.notion-editor .mention:hover {
+  background: #dbeafe;
+}
+
+.notion-editor .mention::before {
+  content: '@';
+  opacity: 0.7;
+}
+
+/* Placeholder */
+.notion-editor p.is-editor-empty:first-child::before,
+.notion-editor h1.is-editor-empty:first-child::before,
+.notion-editor h2.is-editor-empty:first-child::before,
+.notion-editor h3.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}
+
+/* 选中文本 */
+.notion-editor ::selection {
+  background: rgba(35, 131, 226, 0.14);
+}
+
+/* 光标 */
+.ProseMirror-focused {
+  outline: none;
+}
+
+/* 拖拽手柄 */
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 24px;
+  color: #b4b3b0;
+  cursor: grab;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.drag-handle:hover {
+  background-color: #f0efed;
+  color: #37352f;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* 协作光标 */
+.collaboration-cursor__caret {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 2px solid;
+  border-right: 2px solid;
+  word-break: normal;
+  pointer-events: none;
+}
+
+.collaboration-cursor__label {
+  position: absolute;
+  top: -1.4em;
+  left: -1px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px 4px 4px 0;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d1d1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b1b1b1;
+}

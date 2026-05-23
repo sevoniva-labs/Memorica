@@ -1,0 +1,140 @@
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { listVersions, getVersion, getDocument, type DocumentVersion, type DocumentItem } from '../api/client'
+import { ArrowLeft, FileText, Clock, User, RotateCcw } from 'lucide-react'
+
+export default function VersionHistoryPage() {
+  const { docId } = useParams<{ docId: string }>()
+  const navigate = useNavigate()
+  const [doc, setDoc] = useState<DocumentItem | null>(null)
+  const [versions, setVersions] = useState<DocumentVersion[]>([])
+  const [selectedVersion, setSelectedVersion] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!docId) return
+    Promise.all([getDocument(docId), listVersions(docId)])
+      .then(([d, v]) => {
+        setDoc(d)
+        setVersions(v || [])
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [docId])
+
+  const handleSelect = async (versionId: number) => {
+    const v = await getVersion(versionId)
+    setSelectedVersion(v)
+  }
+
+  const formatDate = (s: string) => {
+    if (!s) return ''
+    const d = new Date(s)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <span className="text-sm text-gray-400">加载中...</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigate(`/doc/${docId}`)} className="p-1 hover:bg-gray-100 rounded-md transition">
+              <ArrowLeft className="w-4 h-4 text-gray-500" />
+            </button>
+            <FileText className="w-5 h-5 text-blue-600" />
+            <span className="font-semibold text-gray-900 text-sm">{doc?.title || '文档'} — 历史版本</span>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">版本列表</h3>
+            <div className="space-y-2">
+              {versions.length === 0 && (
+                <p className="text-sm text-gray-400 py-4 text-center">暂无历史版本</p>
+              )}
+              {versions.map((v) => (
+                <button
+                  key={v.id}
+                  onClick={() => handleSelect(v.id)}
+                  className={`w-full text-left rounded-lg border p-3 transition ${
+                    selectedVersion?.id === v.id
+                      ? 'border-blue-300 bg-blue-50'
+                      : 'border-gray-100 bg-white hover:border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-gray-900">版本 {v.versionNumber}</span>
+                    <span className="text-xs text-gray-400">{v.wordCount} 词</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      {v.editorName}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatDate(v.createdAt)}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="lg:col-span-2">
+            {selectedVersion ? (
+              <div className="bg-white rounded-xl border border-gray-100 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900">版本 {selectedVersion.versionNumber}</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {selectedVersion.editorName} · {formatDate(selectedVersion.createdAt)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      // 回退到该版本：将 contentJson 写回编辑器（通过打开编辑器并替换内容）
+                      // 简化：复制内容提示
+                      navigator.clipboard.writeText(selectedVersion.contentJson).catch(() => {})
+                      alert('版本内容 JSON 已复制到剪贴板')
+                    }}
+                    className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    复制内容
+                  </button>
+                </div>
+                {selectedVersion.snapshotHtml ? (
+                  <div
+                    className="prose prose-sm max-w-none prose-headings:font-semibold prose-p:my-2"
+                    dangerouslySetInnerHTML={{ __html: selectedVersion.snapshotHtml }}
+                  />
+                ) : (
+                  <pre className="text-xs text-gray-600 bg-gray-50 rounded-lg p-4 overflow-auto max-h-[600px]">
+                    {JSON.stringify(JSON.parse(selectedVersion.contentJson || '{}'), null, 2)}
+                  </pre>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
+                <Clock className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                <p className="text-sm text-gray-400">在左侧选择一个版本查看详情</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
