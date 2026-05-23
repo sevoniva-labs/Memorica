@@ -12,25 +12,46 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    @Value("${app.jwt.secret}")
-    private String jwtSecret;
+    private final String jwtSecret;
+    private final long accessTokenExpirationMs;
+    private final long refreshTokenExpirationMs;
 
-    @Value("${app.jwt.expiration-ms}")
-    private long jwtExpirationMs;
+    public JwtUtil(
+            @Value("${app.jwt.secret}") String jwtSecret,
+            @Value("${app.jwt.access-token-expiration-ms}") long accessTokenExpirationMs,
+            @Value("${app.jwt.refresh-token-expiration-ms}") long refreshTokenExpirationMs) {
+        this.jwtSecret = jwtSecret;
+        this.accessTokenExpirationMs = accessTokenExpirationMs;
+        this.refreshTokenExpirationMs = refreshTokenExpirationMs;
+    }
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(Long userId, String email, String username) {
+    public String generateAccessToken(Long userId, String email, String username) {
+        return buildToken(userId, email, username, accessTokenExpirationMs);
+    }
+
+    public String generateRefreshToken(Long userId, String email, String username) {
+        return buildToken(userId, email, username, refreshTokenExpirationMs);
+    }
+
+    private String buildToken(Long userId, String email, String username, long expirationMs) {
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("email", email)
                 .claim("username", username)
+                .claim("type", expirationMs == accessTokenExpirationMs ? "access" : "refresh")
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
+    }
+
+    public long getTokenExpiration(String token) {
+        Claims claims = parseToken(token);
+        return claims.getExpiration().getTime();
     }
 
     public Long getUserIdFromToken(String token) {

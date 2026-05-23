@@ -5,7 +5,6 @@ import sevoniva.memorica.entity.User;
 import sevoniva.memorica.repository.UserRepository;
 import sevoniva.memorica.security.JwtUtil;
 import sevoniva.memorica.security.UserDetailsImpl;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -13,22 +12,25 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private AuthenticationManager authenticationManager;
-
-    @Autowired
-    private JwtUtil jwtUtil;
+    public AuthService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       AuthenticationManager authenticationManager,
+                       JwtUtil jwtUtil) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
+        this.jwtUtil = jwtUtil;
+    }
 
     private static final String[] COLORS = {
         "#ef4444", "#f97316", "#eab308", "#22c55e",
@@ -52,7 +54,7 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
-        String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getUsername());
+        String token = jwtUtil.generateAccessToken(user.getId(), user.getEmail(), user.getUsername());
 
         return ApiResponse.success(Map.of(
             "token", token,
@@ -72,7 +74,7 @@ public class AuthService {
         );
         UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
         User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
-        String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getUsername());
+        String token = jwtUtil.generateAccessToken(user.getId(), user.getEmail(), user.getUsername());
 
         return ApiResponse.success(Map.of(
             "token", token,
@@ -99,6 +101,6 @@ public class AuthService {
     }
 
     private String randomColor() {
-        return COLORS[new Random().nextInt(COLORS.length)];
+        return COLORS[ThreadLocalRandom.current().nextInt(COLORS.length)];
     }
 }
