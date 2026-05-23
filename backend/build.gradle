@@ -82,6 +82,11 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+// ── Build Info ───────────────────────────────────────────────────────────────
+springBoot {
+    buildInfo()
+}
+
 // ── Test ──────────────────────────────────────────────────────────────────────
 tasks.named('test') {
     useJUnitPlatform()
