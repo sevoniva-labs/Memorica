@@ -1,4 +1,4 @@
-.PHONY: help dev dev-down build test lint clean
+.PHONY: help dev dev-down build test lint clean db-backup db-restore setup
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -65,6 +65,19 @@ ci: lint test ## Run full CI pipeline locally
 lint: backend-lint frontend-lint ## Run all linters
 
 test: backend-test ## Run all tests
+
+# --- Database ---
+
+db-backup: ## Backup database to ./backups/
+	./scripts/backup-db.sh
+
+db-restore: ## Restore database from backup (usage: make db-restore FILE=backups/memorica_20260101_000000.sql.gz)
+	gunzip -c $(FILE) | psql -h localhost -U memorica -d memorica
+
+# --- Setup ---
+
+setup: ## One-command local dev environment setup
+	./scripts/dev-setup.sh
 
 # --- Cleanup ---
 
