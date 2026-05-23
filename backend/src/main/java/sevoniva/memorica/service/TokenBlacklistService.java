@@ -1,11 +1,13 @@
 package sevoniva.memorica.service;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 
 @Service
+@Profile("!test")
 public class TokenBlacklistService {
 
     private final RedisTemplate<String, String> redisTemplate;

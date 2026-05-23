@@ -30,7 +30,7 @@ public class AuthService {
                        PasswordEncoder passwordEncoder,
                        AuthenticationManager authenticationManager,
                        JwtUtil jwtUtil,
-                       TokenBlacklistService tokenBlacklistService) {
+                       @org.springframework.beans.factory.annotation.Autowired(required = false) TokenBlacklistService tokenBlacklistService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -90,7 +90,7 @@ public class AuthService {
         if (!jwtUtil.validateToken(refreshToken)) {
             throw new BadRequestException("Refresh token 无效或已过期");
         }
-        if (tokenBlacklistService.isBlacklisted(refreshToken)) {
+        if (tokenBlacklistService != null && tokenBlacklistService.isBlacklisted(refreshToken)) {
             throw new BadRequestException("Refresh token 已被撤销");
         }
 
@@ -99,7 +99,9 @@ public class AuthService {
         String username = jwtUtil.getUsernameFromToken(refreshToken);
 
         long oldExpiration = jwtUtil.getTokenExpiration(refreshToken);
-        tokenBlacklistService.blacklist(refreshToken, oldExpiration);
+        if (tokenBlacklistService != null) {
+            tokenBlacklistService.blacklist(refreshToken, oldExpiration);
+        }
 
         String newAccessToken = jwtUtil.generateAccessToken(userId, email, username);
         String newRefreshToken = jwtUtil.generateRefreshToken(userId, email, username);
@@ -111,8 +113,10 @@ public class AuthService {
     }
 
     public ApiResponse<?> logout(String token) {
-        long expiration = jwtUtil.getTokenExpiration(token);
-        tokenBlacklistService.blacklist(token, expiration);
+        if (tokenBlacklistService != null) {
+            long expiration = jwtUtil.getTokenExpiration(token);
+            tokenBlacklistService.blacklist(token, expiration);
+        }
         return ApiResponse.success(null);
     }
 
@@ -123,13 +127,13 @@ public class AuthService {
     }
 
     private Map<String, Object> userMap(User user) {
-        return Map.of(
-            "id", user.getId(),
-            "username", user.getUsername(),
-            "email", user.getEmail(),
-            "displayName", user.getDisplayName(),
-            "color", user.getColor()
-        );
+        var map = new java.util.HashMap<String, Object>();
+        map.put("id", user.getId());
+        map.put("username", user.getUsername());
+        map.put("email", user.getEmail());
+        map.put("displayName", user.getDisplayName());
+        map.put("color", user.getColor());
+        return map;
     }
 
     private String randomColor() {
