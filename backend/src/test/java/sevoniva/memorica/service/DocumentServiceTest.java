@@ -83,7 +83,6 @@ class DocumentServiceTest {
         Document doc = Document.builder()
                 .id("doc-1").title("Title").owner(otherOwner).ownerName("other").build();
         when(documentRepository.findById("doc-1")).thenReturn(Optional.of(doc));
-        when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
 
         assertThrows(AccessDeniedException.class,
                 () -> documentService.updateDocumentMeta("doc-1", "New Title", null));
@@ -95,7 +94,6 @@ class DocumentServiceTest {
                 .ownerName("Test User").wordCount(0).charCount(0).build();
         Page<Document> page = new PageImpl<>(List.of(doc));
         when(documentRepository.findByOwnerId(eq(1L), any(Pageable.class))).thenReturn(page);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
 
         var result = documentService.listMyDocuments(0, 20);
         assertEquals(1, result.getData().getTotalElements());

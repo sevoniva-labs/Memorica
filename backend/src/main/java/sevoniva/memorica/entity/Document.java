@@ -39,6 +39,9 @@ public class Document {
     @Column
     private String coverImage;
 
+    @Version
+    private Long version;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

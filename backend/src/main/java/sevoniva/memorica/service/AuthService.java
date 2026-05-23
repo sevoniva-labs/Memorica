@@ -87,7 +87,7 @@ public class AuthService {
     }
 
     public ApiResponse<?> refreshToken(String refreshToken) {
-        if (!jwtUtil.validateToken(refreshToken)) {
+        if (!jwtUtil.validateToken(refreshToken) || !jwtUtil.isRefreshToken(refreshToken)) {
             throw new BadRequestException("Refresh token 无效或已过期");
         }
         if (tokenBlacklistService != null && tokenBlacklistService.isBlacklisted(refreshToken)) {

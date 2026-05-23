@@ -36,6 +36,9 @@ public class User {
     @Column(nullable = false)
     private String color;
 
+    @Version
+    private Long version;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

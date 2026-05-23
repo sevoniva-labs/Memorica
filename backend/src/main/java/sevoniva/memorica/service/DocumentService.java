@@ -41,9 +41,9 @@ public class DocumentService {
     }
 
     public ApiResponse<Page<DocumentResponse>> listMyDocuments(int page, int size) {
-        User user = getCurrentUser();
+        Long userId = getCurrentUserId();
         PageRequest pr = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
-        Page<Document> docs = documentRepository.findByOwnerId(user.getId(), pr);
+        Page<Document> docs = documentRepository.findByOwnerId(userId, pr);
         return ApiResponse.success(docs.map(this::toResponse));
     }
 
@@ -168,15 +168,19 @@ public class DocumentService {
     }
 
     private void checkOwnership(Document doc) {
-        User currentUser = getCurrentUser();
-        if (!doc.getOwner().getId().equals(currentUser.getId())) {
+        Long currentUserId = getCurrentUserId();
+        if (!doc.getOwner().getId().equals(currentUserId)) {
             throw new AccessDeniedException("无权操作该文档");
         }
     }
 
-    private User getCurrentUser() {
+    private Long getCurrentUserId() {
         UserDetailsImpl details = (UserDetailsImpl) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
-        return userRepository.findById(details.getId()).orElseThrow();
+        return details.getId();
+    }
+
+    private User getCurrentUser() {
+        return userRepository.findById(getCurrentUserId()).orElseThrow();
     }
 }

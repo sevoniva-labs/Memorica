@@ -40,6 +40,9 @@ public class DocumentVersion {
     @Column
     private String editorName;
 
+    @Version
+    private Long version;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }
