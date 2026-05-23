@@ -1,0 +1,25 @@
+spring:
+  jpa:
+    show-sql: false
+  flyway:
+    clean-disabled: true
+
+server:
+  tomcat:
+    max-connections: 10000
+    threads:
+      max: 200
+      min-spare: 10
+    keep-alive-timeout: 60000
+
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+      roles: ADMIN
+
+logging:
+  level:
+    root: WARN
+    sevoniva.memorica: INFO
