@@ -6,6 +6,8 @@ import jakarta.validation.Valid;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
@@ -24,6 +26,20 @@ public class AuthController {
     @PostMapping("/login")
     public ApiResponse<?> login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/refresh")
+    public ApiResponse<?> refresh(@RequestBody Map<String, String> body) {
+        String refreshToken = body.get("refreshToken");
+        return authService.refreshToken(refreshToken);
+    }
+
+    @PostMapping("/logout")
+    public ApiResponse<?> logout(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authService.logout(authHeader.substring(7));
+        }
+        return ApiResponse.success(null);
     }
 
     @GetMapping("/me")

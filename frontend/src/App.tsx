@@ -1,15 +1,27 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useAuthStore } from './stores/authStore'
 import LoginPage from './pages/LoginPage'
 import DocumentListPage from './pages/DocumentListPage'
 import EditorPage from './pages/EditorPage'
 import VersionHistoryPage from './pages/VersionHistoryPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const token = localStorage.getItem('token')
-  return token ? <>{children}</> : <Navigate to="/login" replace />
+  const { isAuthenticated, isLoading } = useAuthStore()
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>
+  }
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
 }
 
 function App() {
+  const checkAuth = useAuthStore((s) => s.checkAuth)
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
+
   return (
     <BrowserRouter>
       <Routes>

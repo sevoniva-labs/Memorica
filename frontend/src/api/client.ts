@@ -8,7 +8,7 @@ export const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('accessToken')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -19,8 +19,8 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
       window.location.href = '/login'
     }
     return Promise.reject(err)
@@ -71,14 +71,14 @@ export async function getMe() {
   return res.data.data as User
 }
 
-export async function listMyDocuments() {
-  const res = await api.get('/documents/my')
-  return res.data.data as DocumentItem[]
+export async function listMyDocuments(page = 0, size = 20) {
+  const res = await api.get('/documents/my', { params: { page, size } })
+  return res.data.data
 }
 
-export async function listPublicDocuments() {
-  const res = await api.get('/documents/public')
-  return res.data.data as DocumentItem[]
+export async function listPublicDocuments(page = 0, size = 20) {
+  const res = await api.get('/documents/public', { params: { page, size } })
+  return res.data.data
 }
 
 export async function createDocument(title?: string) {
@@ -116,9 +116,9 @@ export async function saveVersion(
   return res.data.data
 }
 
-export async function listVersions(id: string) {
-  const res = await api.get(`/documents/${id}/versions`)
-  return res.data.data as DocumentVersion[]
+export async function listVersions(id: string, page = 0, size = 20) {
+  const res = await api.get(`/documents/${id}/versions`, { params: { page, size } })
+  return res.data.data
 }
 
 export async function getVersion(versionId: number) {

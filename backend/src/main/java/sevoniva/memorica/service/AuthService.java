@@ -10,6 +10,7 @@ import sevoniva.memorica.security.UserDetailsImpl;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -23,15 +24,18 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        AuthenticationManager authenticationManager,
-                       JwtUtil jwtUtil) {
+                       JwtUtil jwtUtil,
+                       TokenBlacklistService tokenBlacklistService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     private static final String[] COLORS = {
@@ -56,17 +60,13 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
-        String token = jwtUtil.generateAccessToken(user.getId(), user.getEmail(), user.getUsername());
+        String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail(), user.getUsername());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getEmail(), user.getUsername());
 
         return ApiResponse.success(Map.of(
-            "token", token,
-            "user", Map.of(
-                "id", user.getId(),
-                "username", user.getUsername(),
-                "email", user.getEmail(),
-                "displayName", user.getDisplayName(),
-                "color", user.getColor()
-            )
+            "accessToken", accessToken,
+            "refreshToken", refreshToken,
+            "user", userMap(user)
         ));
     }
 
@@ -76,30 +76,60 @@ public class AuthService {
         );
         UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
         User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
-        String token = jwtUtil.generateAccessToken(user.getId(), user.getEmail(), user.getUsername());
+        String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail(), user.getUsername());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getEmail(), user.getUsername());
 
         return ApiResponse.success(Map.of(
-            "token", token,
-            "user", Map.of(
-                "id", user.getId(),
-                "username", user.getUsername(),
-                "email", user.getEmail(),
-                "displayName", user.getDisplayName(),
-                "color", user.getColor()
-            )
+            "accessToken", accessToken,
+            "refreshToken", refreshToken,
+            "user", userMap(user)
         ));
+    }
+
+    public ApiResponse<?> refreshToken(String refreshToken) {
+        if (!jwtUtil.validateToken(refreshToken)) {
+            throw new BadRequestException("Refresh token 无效或已过期");
+        }
+        if (tokenBlacklistService.isBlacklisted(refreshToken)) {
+            throw new BadRequestException("Refresh token 已被撤销");
+        }
+
+        Long userId = jwtUtil.getUserIdFromToken(refreshToken);
+        String email = jwtUtil.getEmailFromToken(refreshToken);
+        String username = jwtUtil.getUsernameFromToken(refreshToken);
+
+        long oldExpiration = jwtUtil.getTokenExpiration(refreshToken);
+        tokenBlacklistService.blacklist(refreshToken, oldExpiration);
+
+        String newAccessToken = jwtUtil.generateAccessToken(userId, email, username);
+        String newRefreshToken = jwtUtil.generateRefreshToken(userId, email, username);
+
+        return ApiResponse.success(Map.of(
+            "accessToken", newAccessToken,
+            "refreshToken", newRefreshToken
+        ));
+    }
+
+    public ApiResponse<?> logout(String token) {
+        long expiration = jwtUtil.getTokenExpiration(token);
+        tokenBlacklistService.blacklist(token, expiration);
+        return ApiResponse.success(null);
     }
 
     public ApiResponse<?> me(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
-        return ApiResponse.success(Map.of(
+        return ApiResponse.success(userMap(user));
+    }
+
+    private Map<String, Object> userMap(User user) {
+        return Map.of(
             "id", user.getId(),
             "username", user.getUsername(),
             "email", user.getEmail(),
             "displayName", user.getDisplayName(),
             "color", user.getColor()
-        ));
+        );
     }
 
     private String randomColor() {

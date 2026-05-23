@@ -28,13 +28,16 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final DocumentVersionRepository documentVersionRepository;
     private final UserRepository userRepository;
+    private final PermissionService permissionService;
 
     public DocumentService(DocumentRepository documentRepository,
                            DocumentVersionRepository documentVersionRepository,
-                           UserRepository userRepository) {
+                           UserRepository userRepository,
+                           PermissionService permissionService) {
         this.documentRepository = documentRepository;
         this.documentVersionRepository = documentVersionRepository;
         this.userRepository = userRepository;
+        this.permissionService = permissionService;
     }
 
     public ApiResponse<Page<DocumentResponse>> listMyDocuments(int page, int size) {
@@ -63,6 +66,7 @@ public class DocumentService {
                 .isPublic(false)
                 .build();
         documentRepository.save(doc);
+        permissionService.grantOwner(doc, user);
         return ApiResponse.success(toResponse(doc));
     }
 

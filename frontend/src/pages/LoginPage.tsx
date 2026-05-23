@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login, register } from '../api/client'
+import { useAuthStore } from '../stores/authStore'
 import { FileText } from 'lucide-react'
 
 export default function LoginPage() {
@@ -12,6 +13,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
+  const storeLogin = useAuthStore((s) => s.login)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -20,11 +23,11 @@ export default function LoginPage() {
       const data = isLogin
         ? await login(username, password)
         : await register(username, password, email)
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      storeLogin(data.accessToken, data.refreshToken, data.user)
       navigate('/')
     } catch (err: any) {
-      setError(err.response?.data?.message || '操作失败')
+      const msg = err.response?.data?.message || err.response?.data?.error || '操作失败'
+      setError(msg)
     } finally {
       setLoading(false)
     }

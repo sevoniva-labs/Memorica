@@ -69,10 +69,10 @@ export default function CollabEditor({
 
   // 创建 Yjs Doc 和 Hocuspocus Provider
   const [yDoc] = useState(() => new Y.Doc())
-  const token = localStorage.getItem('token') || undefined
+  const token = localStorage.getItem('accessToken') || undefined
   const [provider] = useState(() => {
     return new HocuspocusProvider({
-      url: 'ws://localhost:1234',
+      url: import.meta.env.VITE_WS_URL || 'ws://localhost:1234',
       name: docId,
       document: yDoc,
       token: token,
