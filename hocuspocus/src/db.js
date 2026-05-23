@@ -6,22 +6,20 @@ const pool = new Pool({
 })
 
 async function getDoc(name) {
-  const { rows } = await pool.query('SELECT data FROM documents WHERE name = $1', [name])
-  return rows[0]?.data
+  const { rows } = await pool.query(
+    'SELECT state FROM document_states WHERE id = $1',
+    [name]
+  )
+  return rows[0]?.state
 }
 
 async function saveDoc(name, data) {
   await pool.query(
-    `INSERT INTO documents (name, data, updated_at)
+    `INSERT INTO document_states (id, state, updated_at)
      VALUES ($1, $2, NOW())
-     ON CONFLICT (name) DO UPDATE SET data = $2, updated_at = NOW()`,
+     ON CONFLICT (id) DO UPDATE SET state = $2, updated_at = NOW()`,
     [name, data]
   )
 }
 
-async function getUserById(id) {
-  const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [id])
-  return rows[0]
-}
-
-module.exports = { pool, getDoc, saveDoc, getUserById }
+module.exports = { pool, getDoc, saveDoc }

@@ -35,7 +35,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
         <div className="flex items-center justify-center gap-2 mb-6">
           <FileText className="w-7 h-7 text-blue-600" />
-          <h1 className="text-xl font-bold text-gray-900">协同文档</h1>
+          <h1 className="text-xl font-bold text-gray-900">Memorica</h1>
         </div>
         <h2 className="text-center text-sm text-gray-500 mb-6">
           {isLogin ? '登录您的账号' : '注册新账号'}

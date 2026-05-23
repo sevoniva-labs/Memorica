@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: collab-doc-api
+    name: memorica-api
   datasource:
     url: jdbc:postgresql://localhost:5432/collab
     username: collab
@@ -20,13 +20,13 @@ spring:
 
 app:
   jwt:
-    secret: collab-doc-jwt-secret-key-2026-very-long-and-secure
+    secret: memorica-jwt-secret-key-2026-very-long-and-secure
     expiration-ms: 86400000  # 24 hours
   minio:
     endpoint: http://localhost:9000
     access-key: minioadmin
     secret-key: minioadmin
-    bucket-name: collab-doc
+    bucket-name: memorica
   hocuspocus:
     webhook-secret: hocuspocus-webhook-secret
 

@@ -56,7 +56,7 @@ export default function DocumentListPage() {
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-blue-600" />
-            <span className="font-semibold text-gray-900 text-sm">协同文档</span>
+            <span className="font-semibold text-gray-900 text-sm">Memorica</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-500">{user.displayName || user.username}</span>

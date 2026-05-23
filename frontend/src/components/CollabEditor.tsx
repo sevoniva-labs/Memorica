@@ -172,7 +172,7 @@ export default function CollabEditor({
             <button onClick={() => navigate('/')} className="p-1 hover:bg-gray-100 rounded-md transition">
               <ArrowLeft className="w-4 h-4 text-gray-500" />
             </button>
-            <span className="font-medium text-gray-700">协同文档</span>
+            <span className="font-medium text-gray-700">Memorica</span>
             <span>/</span>
             <span className="truncate max-w-[200px]">{title}</span>
           </div>
