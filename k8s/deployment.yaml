@@ -1,0 +1,192 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memorica-api
+  namespace: memorica
+  labels:
+    app: memorica-api
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: memorica-api
+  template:
+    metadata:
+      labels:
+        app: memorica-api
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: api
+          image: memorica-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: memorica-config
+            - secretRef:
+                name: memorica-secrets
+          env:
+            - name: MINIO_ENDPOINT
+              value: "http://minio:9000"
+            - name: MINIO_BUCKET
+              value: "memorica"
+            - name: REDIS_HOST
+              value: "redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: JWT_ACCESS_EXPIRATION
+              value: "900000"
+            - name: JWT_REFRESH_EXPIRATION
+              value: "604800000"
+            - name: FILE_MAX_SIZE
+              value: "10485760"
+            - name: FILE_ALLOWED_TYPES
+              value: "image/jpeg,image/png,image/gif,image/webp,application/pdf"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 0
+            periodSeconds: 15
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memorica-hocuspocus
+  namespace: memorica
+  labels:
+    app: memorica-hocuspocus
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: memorica-hocuspocus
+  template:
+    metadata:
+      labels:
+        app: memorica-hocuspocus
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: hocuspocus
+          image: memorica-hocuspocus:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 1234
+              name: ws
+          env:
+            - name: PORT
+              value: "1234"
+            - name: DATABASE_URL
+              value: "postgresql://memorica:$(DB_PASSWORD)@postgres:5432/memorica"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: memorica-secrets
+                  key: JWT_SECRET
+            - name: REDIS_URL
+              value: "redis://redis:6379"
+            - name: MAX_CONNECTIONS
+              value: "1000"
+            - name: MAX_CONNECTIONS_PER_DOC
+              value: "50"
+            - name: MAX_DOCUMENT_SIZE
+              value: "10485760"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            tcpSocket:
+              port: 1234
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: 1234
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memorica-frontend
+  namespace: memorica
+  labels:
+    app: memorica-frontend
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: memorica-frontend
+  template:
+    metadata:
+      labels:
+        app: memorica-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: memorica-frontend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            periodSeconds: 10

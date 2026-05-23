@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: memorica-api
+  namespace: memorica
+  labels:
+    app: memorica-api
+spec:
+  type: ClusterIP
+  selector:
+    app: memorica-api
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: memorica-hocuspocus
+  namespace: memorica
+  labels:
+    app: memorica-hocuspocus
+spec:
+  type: ClusterIP
+  selector:
+    app: memorica-hocuspocus
+  ports:
+    - port: 1234
+      targetPort: 1234
+      name: ws
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: memorica-frontend
+  namespace: memorica
+  labels:
+    app: memorica-frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: memorica-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+      name: http

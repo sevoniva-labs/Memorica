@@ -1,0 +1,60 @@
+{
+  "title": "Memorica Overview",
+  "uid": "memorica-overview",
+  "panels": [
+    {
+      "title": "Request Rate",
+      "type": "graph",
+      "targets": [
+        { "expr": "rate(http_server_requests_seconds_count[1m])", "legendFormat": "{{method}} {{uri}}" }
+      ]
+    },
+    {
+      "title": "Error Rate",
+      "type": "graph",
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count[5m]))", "legendFormat": "5xx rate" }
+      ]
+    },
+    {
+      "title": "P95 Response Time",
+      "type": "graph",
+      "targets": [
+        { "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))", "legendFormat": "P95" }
+      ]
+    },
+    {
+      "title": "JVM Heap Usage",
+      "type": "graph",
+      "targets": [
+        { "expr": "jvm_memory_used_bytes{area=\"heap\"}", "legendFormat": "Used" },
+        { "expr": "jvm_memory_max_bytes{area=\"heap\"}", "legendFormat": "Max" }
+      ]
+    },
+    {
+      "title": "GC Activity",
+      "type": "graph",
+      "targets": [
+        { "expr": "rate(jvm_gc_pause_seconds_sum[1m])", "legendFormat": "GC pause rate" }
+      ]
+    },
+    {
+      "title": "DB Connection Pool",
+      "type": "graph",
+      "targets": [
+        { "expr": "hikaricp_connections_active", "legendFormat": "Active" },
+        { "expr": "hikaricp_connections_idle", "legendFormat": "Idle" },
+        { "expr": "hikaricp_connections_pending", "legendFormat": "Pending" }
+      ]
+    },
+    {
+      "title": "Business Metrics",
+      "type": "stat",
+      "targets": [
+        { "expr": "memorica_users_total", "legendFormat": "Users" },
+        { "expr": "memorica_documents_total", "legendFormat": "Documents" },
+        { "expr": "memorica_versions_total", "legendFormat": "Versions" }
+      ]
+    }
+  ]
+}

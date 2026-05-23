@@ -1,0 +1,48 @@
+groups:
+  - name: memorica
+    rules:
+      # Application health
+      - alert: MemoricaDown
+        expr: memorica_health == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Memorica API is down"
+          description: "Health check returned DOWN for > 1 minute"
+
+      # Error rate
+      - alert: HighErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) / rate(http_server_requests_seconds_count[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate (> 5%) over 5 minutes"
+
+      # Response time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 response time > 2s for 5 minutes"
+
+      # JVM heap
+      - alert: HighHeapUsage
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JVM heap usage > 90% for 10 minutes"
+
+      # DB connection pool
+      - alert: ConnectionPoolExhausted
+        expr: hikaricp_connections_pending{pool="HikariPool-1"} > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DB connection pool has pending requests"
