@@ -1,7 +1,11 @@
 package sevoniva.memorica.service;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import io.minio.*;
 import io.minio.http.Method;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,6 +16,8 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class FileService {
+
+    private static final Logger log = LoggerFactory.getLogger(FileService.class);
 
     private final MinioClient minioClient;
 
@@ -28,6 +34,8 @@ public class FileService {
         this.minioClient = minioClient;
     }
 
+    @CircuitBreaker(name = "minioUpload", fallbackMethod = "uploadFileFallback")
+    @Retry(name = "minioRetry")
     public String uploadFile(MultipartFile file) throws Exception {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("文件不能为空");
@@ -62,6 +70,12 @@ public class FileService {
         return objectName;
     }
 
+    public String uploadFileFallback(MultipartFile file, Throwable t) throws Exception {
+        log.error("MinIO upload failed (circuit open or retries exhausted): {}", t.getMessage());
+        throw new RuntimeException("文件上传服务暂时不可用，请稍后重试");
+    }
+
+    @CircuitBreaker(name = "minioGetUrl")
     public String getFileUrl(String objectName) throws Exception {
         return minioClient.getPresignedObjectUrl(
             GetPresignedObjectUrlArgs.builder()

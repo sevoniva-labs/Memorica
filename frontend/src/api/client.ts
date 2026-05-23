@@ -7,11 +7,16 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+function generateTraceId(): string {
+  return Math.random().toString(36).substring(2, 10)
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  config.headers['X-Trace-Id'] = generateTraceId()
   return config
 })
 

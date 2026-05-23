@@ -94,8 +94,9 @@ const server = new Server({
     }
   },
 
-  async onConnect({ documentName, context }) {
-    console.log(`[Connect] ${documentName} — ${context.user?.name || 'guest'} (${context.user?.id || 'anon'})`)
+  async onConnect({ documentName, context, request }) {
+    const sessionId = request.url ? new URL(request.url, 'http://localhost').searchParams.get('sessionId') : null
+    console.log(`[Connect] ${documentName} — ${context.user?.name || 'guest'} (${context.user?.id || 'anon'}) session=${sessionId || 'N/A'}`)
   },
 
   async onDisconnect({ documentName, context }) {
