@@ -3,8 +3,11 @@ spring:
     show-sql: false
   flyway:
     clean-disabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 
 server:
+  shutdown: graceful
   tomcat:
     max-connections: 10000
     threads:
