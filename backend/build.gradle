@@ -1,75 +1,128 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.5.0'
-	id 'io.spring.dependency-management' version '1.1.7'
-	id 'org.flywaydb.flyway' version '11.7.0'
+    id 'java'
+    id 'org.springframework.boot' version '3.5.0'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.flywaydb.flyway' version '11.7.0'
+    // Quality plugins — uncomment when network allows downloading:
+    // id 'jacoco'
+    // id 'com.diffplug.spotless' version '7.0.3'
+    // id 'org.owasp.dependencycheck' version '12.1.1'
 }
 
 group = 'sevoniva.memorica'
 version = '0.0.1-SNAPSHOT'
-description = 'Collab Doc API'
+description = 'Memorica API'
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 configurations {
-	compileOnly {
-		extendsFrom annotationProcessor
-	}
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	
-	// JWT
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
-	
-	// MinIO
-	implementation 'io.minio:minio:8.5.17'
-	
-	// PostgreSQL
-	runtimeOnly 'org.postgresql:postgresql'
+    // Spring Boot Starters
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
-	// Redis
-	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-	
-	// Flyway
-	implementation 'org.flywaydb:flyway-core'
-	implementation 'org.flywaydb:flyway-database-postgresql'
+    // JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-	// Lombok
-	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok'
-	
-	// OpenAPI / Swagger
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
+    // MinIO
+    implementation 'io.minio:minio:8.5.17'
 
-	// Observability
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+    // PostgreSQL
+    runtimeOnly 'org.postgresql:postgresql'
 
-	// Test
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.security:spring-security-test'
-	testImplementation 'com.h2database:h2'
-	testImplementation 'org.testcontainers:testcontainers:1.21.0'
-	testImplementation 'org.testcontainers:postgresql:1.21.0'
-	testImplementation 'org.testcontainers:junit-jupiter:1.21.0'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // Flyway
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // OpenAPI / Swagger
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
+
+    // Observability
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
+    // Cache
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+    // Resilience
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.3.0'
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'com.h2database:h2'
+    testImplementation 'org.testcontainers:testcontainers:1.21.0'
+    testImplementation 'org.testcontainers:postgresql:1.21.0'
+    testImplementation 'org.testcontainers:junit-jupiter:1.21.0'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+// ── Test ──────────────────────────────────────────────────────────────────────
 tasks.named('test') {
-	useJUnitPlatform()
+    useJUnitPlatform()
+    // finalizedBy jacocoTestReport  // enable with jacoco plugin
+}
+
+// ── JaCoCo (enable with jacoco plugin) ─────────────────────────────────────────
+// jacoco {
+//     toolVersion = '0.8.12'
+// }
+// jacocoTestReport {
+//     dependsOn test
+//     reports { xml.required = true; html.required = true }
+// }
+// jacocoTestCoverageVerification {
+//     violationRules { rule { limit { minimum = 0.50 } } }
+// }
+
+// ── Spotless (enable after running: ./gradlew spotlessApply) ───────────────────
+// spotless {
+//     java {
+//         target 'src/**/*.java'
+//         importOrder('java', 'javax', 'jakarta', 'org', 'com', 'sevoniva')
+//         removeUnusedImports()
+//         palantirJavaFormat('2.50.0').style('AOSP')
+//         formatAnnotations()
+//         trimTrailingWhitespace()
+//         endWithNewline()
+//     }
+// }
+
+// ── OWASP Dependency Check ────────────────────────────────────────────────────
+// dependencyCheck {
+//     formats = ['HTML', 'JSON']
+//     failBuildOnCVSS = 7.0f
+// }
+
+// ── Flyway ────────────────────────────────────────────────────────────────────
+flyway {
+    url = System.getenv('DB_URL') ?: 'jdbc:postgresql://localhost:5432/collab'
+    user = System.getenv('DB_USERNAME') ?: 'collab'
+    password = System.getenv('DB_PASSWORD') ?: 'collab123'
+    cleanDisabled = true
 }
