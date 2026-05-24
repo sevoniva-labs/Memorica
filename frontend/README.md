@@ -1,73 +1,85 @@
-# React + TypeScript + Vite
+# Memorica 前端
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 技术栈
 
-Currently, two official plugins are available:
+- React 19 + TypeScript + Vite
+- TipTap 3（ProseMirror）— 编辑器核心
+- Semi UI (`@douyinfe/semi-ui-19`) — 组件库
+- Yjs — 协作同步
+- lucide-react — 图标
+- Zustand — 状态管理
+- React Router — 路由
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+样式采用 BEM 命名 + 全局 CSS（`src/index.css`），未使用 Tailwind。
 
-## React Compiler
+## 开发
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# 安装依赖
+npm install
 
-## Expanding the ESLint configuration
+# 启动开发服务器
+npm run dev
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# 生产构建
+npm run build
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+# 代码检查
+npm run lint
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# E2E 测试
+npx playwright test
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+开发服务器默认运行在 `http://localhost:5173`，代理到后端 `http://localhost:8080`。配置见 `vite.config.ts`。
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 项目结构
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+src/
+├── api/client.ts          # Axios 封装，自动携带 Token 和 X-Trace-Id
+├── stores/
+│   └── authStore.ts       # Zustand：登录态、Token 刷新、登出
+├── contexts/
+│   └── SidebarContext.tsx # 全局 Sidebar 状态（最近文档、搜索、折叠）
+├── components/
+│   ├── AppLayout.tsx      # 全局布局：Sidebar + Main
+│   ├── CollabEditor.tsx   # 协作编辑器（TipTap + Yjs）
+│   ├── Toolbar.tsx        # 富文本工具栏
+│   ├── BubbleMenuBar.tsx  # 行内浮动菜单
+│   ├── SlashMenu.tsx      # / 命令菜单
+│   ├── AIAssistant.tsx    # AI 助手浮动面板
+│   ├── FindReplace.tsx    # 查找替换
+│   └── ShareSettingsPanel.tsx # 分享权限设置
+├── pages/
+│   ├── DocumentListPage.tsx   # 文档列表首页
+│   ├── EditorPage.tsx         # 编辑器页面
+│   └── VersionHistoryPage.tsx # 版本历史
+└── index.css              # 全局样式（BEM + 自定义变量）
+```
+
+## 编辑器架构
+
+`CollabEditor.tsx` 是核心组件：
+
+1. **TipTap** 提供编辑器实例（ProseMirror 封装）
+2. **Yjs** 将文档内容同步为 CRDT 结构
+3. **HocuspocusProvider** 通过 WebSocket 连接到 `ws://localhost:1234`，实现多人实时同步
+4. **CollaborationCaret** 显示其他用户的光标和选区
+
+编辑器支持两种模式：
+- **轻文档** — 类似 Notion 的块级编辑器，支持拖拽排序
+- **富文本** — 传统富文本编辑器，带固定工具栏
+
+## 协作状态同步
+
+- 标题修改通过 `updateDocumentMeta` API 异步保存，同时通过 `SidebarContext` 本地乐观更新 sidebar 列表
+- 文档内容通过 Yjs + Hocuspocus 自动同步，12 秒无操作后自动保存版本快照
+- `Ctrl+S` / `Cmd+S` 触发手动保存版本
+
+## 样式约定
+
+- 类名前缀：`memorica-`
+- 命名方式：BEM（`.memorica-block__element--modifier` 或简化为 `.memorica-block-element`）
+- 所有样式写在 `src/index.css`，按模块分节注释
+- 覆盖 Semi UI 样式时使用 `!important`（Semi UI 内部优先级极高）

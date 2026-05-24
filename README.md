@@ -1,241 +1,150 @@
 # Memorica
 
-Real-time collaborative document editor. Multi-user simultaneous editing with cursor presence, selection sync, and live content updates — built on a production-grade foundation.
+一个支持多人实时协作的在线文档编辑器。你可以创建文档、邀请他人同时编辑、查看光标位置和选区同步，文档内容通过 Yjs CRDT 自动合并冲突，无需手动解决。
 
-## Architecture
+![editor](docs/editor.png)
 
-```
-                    ┌──────────┐
-                    │  Browser │
-                    └────┬─────┘
-                         │
-              ┌──────────┴──────────┐
-              │    Nginx :80/:443   │  ← TLS termination, rate limiting, WebSocket upgrade
-              └──────────┬──────────┘
-                         │
-       ┌─────────────────┼─────────────────┐
-       │                 │                 │
-  ┌────┴────┐      ┌─────┴─────┐    ┌──────┴──────┐
-  │  React  │      │ Spring    │    │ Hocuspocus  │
-  │  SPA    │      │ Boot API  │    │ WS × N      │
-  │  :80    │      │ :8080     │    │ :1234       │
-  └─────────┘      └─────┬─────┘    └──────┬──────┘
-                         │                 │
-              ┌──────────┼──────────┐      │
-              │          │          │      │
-         ┌────┴───┐ ┌───┴────┐ ┌───┴──┐ ┌─┴───┐
-         │Postgres│ │ Redis  │ │MinIO │ │Redis│
-         │   :5432│ │  :6379 │ │ :9000│ │pub/ │
-         └────────┘ └────────┘ └──────┘ │sub  │
-                                        └─────┘
+## 功能
 
-Data flows:
-  REST:  Browser → Nginx → Spring Boot → PostgreSQL / Redis / MinIO
-  Real-time: Browser ↔ Nginx (WS upgrade) ↔ Hocuspocus ↔ Redis pub/sub ↔ Postgres (persist)
-  Collab sync: Yjs CRDT → Hocuspocus → Redis pub/sub → other Hocuspocus instances → other users
-```
+- **实时协作** — 多人同时编辑同一文档，光标和选区实时同步，基于 Yjs + Hocuspocus + WebSocket
+- **版本历史** — 手动保存版本快照，随时回退到之前的状态
+- **权限管理** — 文档可设为私有/公开，支持按用户授予查看/编辑权限
+- **文件夹** — 支持创建文件夹组织文档，支持嵌套
+- **AI 助手** — 集成 DeepSeek，支持续写、润色、总结等操作
+- **文件上传** — 图片和附件上传，存储在 MinIO
+- **审计日志** — 关键操作（登录、文档变更、权限调整）记录到审计表
 
-## Project Structure
+## 技术栈
 
-```
-Memorica-docs/
-├── backend/                          # Spring Boot 3.5 REST API
-│   ├── src/main/java/sevoniva/memorica/
-│   │   ├── config/                   # Security, MinIO, Redis, Cache, Async, Scheduling, Metrics, Health
-│   │   ├── controller/               # Auth, Document, File controllers (/api/v1/)
-│   │   ├── dto/                      # Request/response DTOs with Jakarta validation
-│   │   ├── entity/                   # User, Document, DocumentVersion, DocumentPermission, AuditLog
-│   │   ├── exception/                # GlobalExceptionHandler + custom exceptions
-│   │   ├── repository/               # Spring Data JPA repos with pagination
-│   │   ├── security/                 # JWT filter, JwtUtil (dual token), UserDetails
-│   │   ├── service/                  # Auth, Document, File, Permission, Audit, TokenBlacklist
-│   │   ├── task/                     # Scheduled cleanup tasks
-│   │   └── util/                     # Input sanitization
-│   ├── src/main/resources/
-│   │   ├── application.yml           # All values via ${ENV_VAR}
-│   │   ├── application-dev.yml       # Dev overrides
-│   │   ├── application-prod.yml      # Prod overrides (graceful shutdown, Tomcat tuning)
-│   │   ├── logback-spring.xml        # JSON structured logging + traceId
-│   │   └── db/migration/             # Flyway migrations (V001-V003)
-│   ├── src/test/                     # 20 tests: unit + ArchUnit + integration (Testcontainers)
-│   ├── Dockerfile                    # Multi-stage: jdk-alpine → jre-alpine
-│   └── build.gradle
-├── frontend/                         # React 19 + Tiptap editor
-│   ├── src/
-│   │   ├── api/client.ts             # Axios with X-Trace-Id, access/refresh tokens
-│   │   ├── stores/authStore.ts       # Zustand auth state (checkAuth, refresh, logout)
-│   │   ├── components/               # CollabEditor, Toolbar, BubbleMenu, SlashMenu, AI, FindReplace
-│   │   └── pages/                    # Login, DocumentList, Editor, VersionHistory
-│   ├── e2e/                          # Playwright smoke tests
-│   ├── Dockerfile                    # Multi-stage: node → nginx-alpine
-│   ├── nginx.conf                    # SPA with CSP, HSTS-ready, security headers
-│   ├── .env.development / .env.production
-│   └── playwright.config.ts
-├── hocuspocus/                       # WebSocket collaboration server
-│   ├── src/
-│   │   ├── server.js                 # Redis pub/sub, room permissions, connection limits
-│   │   └── db.js                     # PostgreSQL pool + checkDocumentAccess
-│   ├── Dockerfile                    # node:22-alpine
-│   └── .env.example
-├── docker/
-│   ├── docker-compose.yml            # Local dev: postgres + redis + minio + all services
-│   ├── docker-compose.prod.yml       # Prod overrides (replicas, resource limits)
-│   ├── nginx/nginx.conf              # Reverse proxy: rate limiting, JSON logging, WS upgrade
-│   ├── prometheus/                   # Prometheus config + alert rules
-│   ├── grafana/dashboards/           # Memorica Overview dashboard
-│   └── postgres/init/
-├── k8s/                              # Kubernetes manifests
-│   ├── namespace.yaml
-│   ├── configmap.yaml + secret
-│   ├── deployment.yaml               # API (2×), Hocuspocus (2×), Frontend (2×)
-│   └── service.yaml                  # ClusterIP for internal routing
-├── .github/
-│   ├── workflows/ci.yml              # CI: backend lint→test, frontend lint→build
-│   ├── PULL_REQUEST_TEMPLATE.md
-│   └── ISSUE_TEMPLATE/
-├── scripts/
-│   ├── dev-setup.sh                  # One-command local env bootstrap
-│   └── backup-db.sh                  # PostgreSQL backup with retention
-├── Makefile                          # make dev, test, lint, db-backup, setup
-├── .editorconfig
-└── .env.example                      # All environment variables with defaults
-```
+**前端**
+- React 19 + TypeScript + Vite
+- TipTap 3（ProseMirror）— 富文本编辑器核心
+- Semi UI — 组件库
+- Yjs — CRDT 协作算法
+- lucide-react — 图标
 
-## Tech Stack
+> 注：项目中安装了 Tailwind CSS 但未使用，样式采用 BEM + 全局 CSS 方案。
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 19, TypeScript 6, Vite 8, Tailwind CSS 3, Tiptap v3 |
-| Real-time | Yjs 13 (CRDT), Hocuspocus 4 (WebSocket), Redis pub/sub |
-| Backend | Spring Boot 3.5, Java 21, Spring Security, Spring Data JPA |
-| Auth | JWT (jjwt 0.12), Access 15min + Refresh 7d, Redis blacklist |
-| Database | PostgreSQL 16, Flyway migrations, HikariCP |
-| Cache | Redis 7 (token blacklist, Spring Cache, Hocuspocus pub/sub) |
-| Storage | MinIO (S3-compatible) |
-| Observability | Actuator, Prometheus, Micrometer, JSON structured logging, traceId |
-| Resilience | Resilience4j (circuit breaker, retry), graceful shutdown |
-| Container | Docker, docker-compose, Kubernetes manifests |
-| CI/CD | GitHub Actions |
-| Testing | JUnit 5, Mockito, ArchUnit, Testcontainers, Playwright |
-| Docs | SpringDoc OpenAPI / Swagger UI |
+**后端**
+- Spring Boot 3.5 + Java 21
+- Spring Security + JWT（Access 15min / Refresh 7d）
+- Spring Data JPA + PostgreSQL 16 + Flyway
+- Redis — Token 黑名单、缓存、Hocuspocus pub/sub
+- MinIO — 对象存储
 
-## Quick Start
+**协作服务**
+- Hocuspocus — WebSocket 协作服务器，Yjs 文档同步
+- Redis pub/sub — 多实例间广播
 
-### Prerequisites
+**运维**
+- Docker + docker-compose
+- Kubernetes  manifests
+- Prometheus + Grafana 监控
+- GitHub Actions CI
 
-- Java 21, Node.js 22, Docker
+## 快速开始
 
-### One-command setup
+需要：Java 21、Node.js 22、Docker
+
+### 一键启动
 
 ```bash
 ./scripts/dev-setup.sh
 ```
 
-### Manual setup
+### 手动启动
 
 ```bash
-# 1. Copy environment config
+# 1. 复制环境变量
 cp .env.example .env
 
-# 2. Start infrastructure + all services
+# 2. 启动基础设施（PostgreSQL + Redis + MinIO）和全部服务
 make dev
-
-# Or start individual services:
-cd backend && ./gradlew bootRun       # API at :8080
-cd hocuspocus && npm start            # WebSocket at :1234
-cd frontend && npm run dev            # SPA at :5173
 ```
 
-### URLs
-
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:5173 |
-| API | http://localhost:8080 |
-| Swagger UI | http://localhost:8080/swagger-ui.html |
-| Actuator | http://localhost:8080/actuator/health |
-| Prometheus metrics | http://localhost:8080/actuator/prometheus |
-| MinIO Console | http://localhost:9001 |
-| Hocuspocus | ws://localhost:1234 |
-
-## Configuration
-
-All configuration is via environment variables. See `.env.example` for the full list.
-
-Key variables:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DB_URL` | `jdbc:postgresql://localhost:5432/collab` | PostgreSQL JDBC URL |
-| `DB_USERNAME` / `DB_PASSWORD` | — | Database credentials |
-| `JWT_SECRET` | — | HMAC-SHA256 signing key (min 256 bits) |
-| `JWT_ACCESS_EXPIRATION` | `900000` | Access token TTL (ms) |
-| `JWT_REFRESH_EXPIRATION` | `604800000` | Refresh token TTL (ms) |
-| `MINIO_ENDPOINT` | `http://localhost:9000` | S3-compatible endpoint |
-| `REDIS_HOST` / `REDIS_PORT` | `localhost` / `6379` | Redis connection |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Comma-separated origins |
-| `FILE_MAX_SIZE` | `10485760` | Max upload size (bytes) |
-| `FILE_ALLOWED_TYPES` | `image/jpeg,image/png,...` | Allowed MIME types |
-
-Application profiles:
-- `dev` (default): SQL logging, debug levels
-- `prod`: WARN logging, Tomcat tuning, restricted health details, graceful shutdown
-
-## Development
+或者分别启动：
 
 ```bash
-make help          # Show all commands
+# 后端 API
+cd backend && ./gradlew bootRun
 
-make dev           # Start all services in Docker
-make dev-down      # Stop all services
-make test          # Run backend + frontend tests
-make lint          # Run all linters
-make db-backup     # Backup PostgreSQL to ./backups/
-make db-migrate    # Run Flyway migrations
+# 协作 WebSocket
+cd hocuspocus && npm start
 
-# Backend
+# 前端
+cd frontend && npm run dev
+```
+
+启动后访问：
+- 前端：http://localhost:5173
+- API：http://localhost:8080
+- Swagger UI：http://localhost:8080/swagger-ui.html
+- MinIO Console：http://localhost:9001
+
+## 项目结构
+
+```
+Memorica/
+├── backend/          # Spring Boot API
+│   ├── src/main/java/sevoniva/memorica/
+│   │   ├── controller/   # REST 接口
+│   │   ├── service/      # 业务逻辑
+│   │   ├── entity/       # JPA 实体
+│   │   ├── repository/   # 数据访问
+│   │   ├── security/     # JWT 认证
+│   │   └── service/ai/   # DeepSeek AI 集成
+│   └── src/main/resources/db/migration/  # Flyway 迁移脚本
+├── frontend/         # React SPA
+│   ├── src/
+│   │   ├── components/   # CollabEditor, Toolbar, AIAssistant 等
+│   │   ├── pages/        # 登录、文档列表、编辑器、版本历史
+│   │   ├── api/client.ts # Axios 封装
+│   │   └── stores/       # Zustand 状态管理
+│   └── e2e/              # Playwright 测试
+├── hocuspocus/       # WebSocket 协作服务器
+│   ├── server.js         # Hocuspocus + Redis pub/sub
+│   └── db.js             # 文档权限校验
+├── docker/           # Docker Compose 配置
+│   ├── docker-compose.yml      # 开发环境
+│   ├── docker-compose.prod.yml # 生产环境
+│   └── nginx/
+└── k8s/              # Kubernetes 部署配置
+```
+
+## 常用命令
+
+```bash
+# 查看所有可用命令
+make help
+
+# 开发
+make dev           # 启动所有服务
+make dev-down      # 停止所有服务
+make test          # 运行前后端测试
+make lint          # 运行代码检查
+make db-backup     # 备份 PostgreSQL
+
+# 后端
 cd backend
-./gradlew test                       # Run all tests (20)
-./gradlew bootRun                    # Start API
+./gradlew test     # 运行测试（约 20 个）
+./gradlew bootRun  # 启动 API
 
-# Frontend
+# 前端
 cd frontend
-npm run dev                          # Dev server
-npm run build                        # Production build
-npm run lint                         # ESLint
-npx playwright test                  # E2E tests
+npm run dev        # 开发服务器
+npm run build      # 生产构建
+npx playwright test # E2E 测试
 ```
 
-## Testing
-
-**20 tests, 0 failures**
-
-| Category | Count | Framework | Description |
-|----------|-------|-----------|-------------|
-| Unit | 9 | JUnit 5 + Mockito | AuthService, DocumentService (register, login, CRUD, ownership, permissions) |
-| Architecture | 6 | ArchUnit | Package location, dependency direction, layered architecture enforcement |
-| Integration | 5 | Testcontainers + PostgreSQL | Real DB: User + Document repository CRUD, pagination, public docs query |
-| E2E | 4 | Playwright | Login page, form toggle, validation, route guard |
-
-```bash
-# Run all
-cd backend && ./gradlew test
-
-# Run specific categories
-./gradlew test --tests "*AuthServiceTest*"
-./gradlew test --tests "*ArchitectureTest*"
-./gradlew test --tests "*RepositoryIntegrationTest*"
-```
-
-## Deployment
+## 部署
 
 ### Docker Compose
 
 ```bash
-# Development
+# 开发
 docker compose -f docker/docker-compose.yml up -d
 
-# Production
+# 生产
 docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d
 ```
 
@@ -248,82 +157,14 @@ kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 ```
 
-Production deployments use:
-- Rolling updates with `maxUnavailable: 0` for API and Hocuspocus
-- startup/liveness/readiness probes on all services
-- Resource requests and limits configured per service
+生产配置包含滚动更新（maxUnavailable: 0）、健康探针、资源限制。详见 `k8s/` 目录下的 YAML 文件。
 
-## Monitoring
+## 监控
 
-- **Health**: `/actuator/health` (liveness, readiness, DB probe)
-- **Metrics**: `/actuator/prometheus` (JVM, HTTP, HikariCP, business gauges)
-- **Logging**: JSON structured logs with traceId, log rotation (100MB × 30 days, 3GB cap)
-- **Alerts**: 5 Prometheus rules (health, error rate, P95 latency, heap, connection pool)
-- **Dashboard**: Grafana `memorica-overview` (request rate, errors, latency, JVM, DB pool, business metrics)
-- **Tracing**: `X-Trace-Id` header propagated Browser → API → Hocuspocus, returned in error responses
-
-### Business metrics (refreshed every 60s)
-
-- `memorica_users_total` — registered users
-- `memorica_documents_total` — active documents
-- `memorica_versions_total` — total version snapshots
-- `memorica_health` — 1 = UP, 0 = DOWN
-
-## API
-
-Base path: `/api/v1/`
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/auth/register` | No | Register new user |
-| POST | `/auth/login` | No | Login, returns access + refresh tokens |
-| POST | `/auth/refresh` | No | Rotate refresh token |
-| POST | `/auth/logout` | Yes | Revoke access token |
-| GET | `/auth/me` | Yes | Current user info |
-| GET | `/documents/my` | Yes | My documents (paged) |
-| GET | `/documents/public` | Yes | Public documents (paged) |
-| GET | `/documents/{id}` | Yes | Get document |
-| POST | `/documents` | Yes | Create document |
-| PUT | `/documents/{id}` | Yes | Update title/visibility |
-| DELETE | `/documents/{id}` | Yes | Delete document (owner only) |
-| POST | `/documents/{id}/versions` | Yes | Save version snapshot |
-| GET | `/documents/{id}/versions` | Yes | List versions (paged) |
-| GET | `/documents/versions/{vId}` | Yes | Get version detail |
-| POST | `/files/upload` | Yes | Upload file (type/size validated) |
-| GET | `/files/view/{name}` | No | Get presigned URL |
-
-Full API documentation: http://localhost:8080/swagger-ui.html
-
-## Database
-
-3 Flyway migrations managing 6 tables:
-
-| Table | Purpose |
-|-------|---------|
-| `users` | User accounts (with @Version optimistic locking) |
-| `documents` | Document metadata (with @Version) |
-| `document_permissions` | Access control (owner/editor/viewer per user) |
-| `document_versions` | Explicit snapshots (unique constraint on doc+version) |
-| `document_states` | Yjs CRDT binary state (Hocuspocus persistence) |
-| `audit_log` | Security audit trail (async write, 1-year retention) |
-
-All tables have appropriate indexes. Soft delete via `deleted_at` on users and documents.
-
-## Security
-
-- All credentials via environment variables (never in source)
-- JWT dual-token: Access (15min) + Refresh (7d) with type validation
-- Token revocation via Redis blacklist (TTL-aligned)
-- BCrypt(password, cost=12), minimum 8 chars with upper+lower+digit
-- CORS origin whitelist from config
-- Document ownership + permission checks at service layer
-- File upload: size limit, MIME type whitelist, random filenames (no path traversal)
-- CSP, X-Frame-Options, X-Content-Type-Options, Permissions-Policy, Referrer-Policy headers
-- Input sanitization utilities for XSS prevention
-- Rate limiting at nginx level (auth: 5/min, API: 60/min)
-- @Version optimistic locking on all entities
-- Audit log for compliance tracking
-- HSTS-ready (enable with TLS certificate)
+- **健康检查**：`/actuator/health`
+- **Prometheus 指标**：`/actuator/prometheus`
+- **日志**：JSON 结构化日志，带 traceId，支持按 `X-Trace-Id` 追踪全链路
+- **Grafana**：`docker/grafana/dashboards/` 下包含预设的 Memorica Overview 看板
 
 ## License
 
