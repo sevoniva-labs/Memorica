@@ -1,0 +1,16 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - img [ref=e6]
+    - heading "Memorica" [level=1] [ref=e9]
+  - heading "登录您的账号" [level=2] [ref=e10]
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - generic [ref=e13]: 用户名
+      - textbox "请输入用户名" [ref=e14]: admin
+    - generic [ref=e15]:
+      - generic [ref=e16]: 密码
+      - textbox "请输入密码" [ref=e17]
+    - button "登录" [ref=e18] [cursor=pointer]
+  - paragraph [ref=e19]:
+    - text: 还没有账号？
+    - button "立即注册" [ref=e20] [cursor=pointer]

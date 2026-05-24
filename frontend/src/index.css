@@ -5,17 +5,792 @@
 /* ========== Notion-style Editor ========== */
 
 /* 基础 */
+html, body, #root {
+  height: 100%;
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
-  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
   background: #ffffff;
-  color: #37352f;
+  color: #1f2329;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+.memorica-route-loading,
+.memorica-error-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #fff;
+}
+
+.memorica-route-loading {
+  gap: 10px;
+  color: #667085;
+  font-size: 13px;
+}
+
+.memorica-route-loading div {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #d0d5dd;
+  border-top-color: #245bdb;
+  border-radius: 999px;
+  animation: memorica-spin 0.8s linear infinite;
+}
+
+.memorica-error-page > div {
+  width: min(420px, calc(100vw - 32px));
+  padding: 28px;
+  border: 1px solid #eef0f3;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(16, 24, 40, 0.08);
+}
+
+.memorica-error-page span {
+  color: #245bdb;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.memorica-error-page h1 {
+  margin: 12px 0 8px;
+  color: #111827;
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.memorica-error-page p {
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.memorica-error-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.memorica-error-actions button,
+.memorica-error-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.memorica-error-actions button {
+  border: 0;
+  color: #fff;
+  background: #245bdb;
+  cursor: pointer;
+}
+
+.memorica-error-actions a {
+  border: 1px solid #d0d5dd;
+  color: #344054;
+  background: #fff;
+}
+
+@keyframes memorica-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== Memorica editor shell ========== */
+.memorica-editor-shell {
+  min-height: 100vh;
+  background: #fff;
+}
+
+/* ========== Global App Layout ========== */
+.memorica-app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #fff;
+}
+
+.memorica-app-sidebar {
+  flex: 0 0 auto;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  background: #1e40af;
+  border-right: 0;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: none;
+}
+
+.memorica-app-sidebar.collapsed {
+  width: 60px;
+}
+
+.memorica-app-sidebar.no-transition {
+  transition: none !important;
+}
+
+.memorica-app-sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  padding: 0 14px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.memorica-app-sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.75);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.memorica-app-sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.memorica-app-sidebar-brand {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.memorica-app-sidebar-search {
+  padding: 12px 14px;
+  flex-shrink: 0;
+}
+
+.memorica-app-sidebar-search-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.2s ease;
+}
+
+.memorica-app-sidebar-search-inner:focus-within {
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.memorica-app-sidebar-search-inner input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+}
+
+.memorica-app-sidebar-search-inner input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.memorica-app-sidebar-nav {
+  padding: 4px 10px;
+  flex-shrink: 0;
+}
+
+.memorica-app-sidebar-nav button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.memorica-app-sidebar-nav button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.memorica-app-sidebar-nav button.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-weight: 600;
+}
+
+.memorica-app-sidebar-divider {
+  height: 1px;
+  margin: 8px 14px;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.memorica-app-sidebar-section {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: none;
+  padding: 0 10px 12px;
+}
+
+.memorica-app-sidebar-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px 6px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.memorica-app-sidebar-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.memorica-app-sidebar-doc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.memorica-app-sidebar-doc:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.memorica-app-sidebar-doc.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-weight: 600;
+}
+
+.memorica-app-sidebar.collapsed .memorica-app-sidebar-doc {
+  justify-content: center;
+  padding: 0;
+}
+
+.memorica-app-sidebar.collapsed .memorica-app-sidebar-nav button {
+  justify-content: center;
+  padding: 0;
+}
+
+.memorica-app-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.memorica-editor-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid #eef0f3;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.memorica-editor-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 56px;
+  padding: 0 24px;
+}
+
+/* 左侧：返回 + 标题 */
+.memorica-editor-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.memorica-editor-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 6px;
+  color: #5f6672;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.memorica-editor-icon-btn:hover {
+  color: #1f2329;
+  background: #f2f3f5;
+}
+
+.memorica-editor-title-input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 8px;
+  color: #1f2329;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 500;
+  outline: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background-color 0.15s ease;
+}
+
+.memorica-editor-title-input:hover {
+  background: #f2f3f5;
+}
+
+.memorica-editor-title-input:focus {
+  background: #f2f3f5;
+}
+
+.memorica-editor-title-input::placeholder {
+  color: #98a2b3;
+}
+
+/* 中间：协作状态 */
+.memorica-editor-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.memorica-editor-collab-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid #edf0f4;
+  background: #fafbfc;
+  color: #667085;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.memorica-editor-collab-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.memorica-editor-collab-dot[data-status="connected"] .memorica-editor-collab-indicator {
+  background: #34d399;
+}
+
+.memorica-editor-collab-dot[data-status="connecting"] .memorica-editor-collab-indicator {
+  background: #fbbf24;
+}
+
+.memorica-editor-collab-dot[data-status="disconnected"] .memorica-editor-collab-indicator {
+  background: #f87171;
+}
+
+.memorica-editor-collab-text {
+  display: inline;
+}
+
+/* 右侧：按钮组 */
+.memorica-editor-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.memorica-editor-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  color: #5f6672;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.memorica-editor-btn:hover {
+  color: #1f2329;
+  background: #f2f3f5;
+}
+
+.memorica-editor-btn.active {
+  color: #245bdb;
+  background: #eef3ff;
+}
+
+.memorica-editor-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  background: #3370ff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.memorica-editor-btn-primary:hover {
+  background: #2860e0;
+}
+
+.memorica-share-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(15, 23, 42, 0.14);
+}
+
+.memorica-share-panel {
+  width: min(460px, 100vw);
+  height: 100%;
+  overflow-y: auto;
+  border-left: 1px solid #e7eaf0;
+  background: #fff;
+  box-shadow: -24px 0 48px rgba(16, 24, 40, 0.14);
+}
+
+.memorica-share-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid #eef0f3;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.memorica-share-kicker {
+  display: block;
+  margin-bottom: 4px;
+  color: #667085;
+  font-size: 12px;
+}
+
+.memorica-share-head h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.memorica-share-head button,
+.memorica-share-member button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  color: #667085;
+  background: transparent;
+  cursor: pointer;
+}
+
+.memorica-share-head button {
+  width: 34px;
+  height: 34px;
+}
+
+.memorica-share-head button:hover,
+.memorica-share-member button:hover {
+  color: #1f2329;
+  background: #f5f6f8;
+}
+
+.memorica-share-loading,
+.memorica-share-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 20px 24px;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.memorica-share-loading {
+  color: #667085;
+  background: #f8f9fb;
+}
+
+.memorica-share-error {
+  color: #b42318;
+  background: #fff4f4;
+}
+
+.memorica-share-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.memorica-share-section.vertical {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.memorica-share-section-title {
+  display: flex;
+  min-width: 0;
+  gap: 12px;
+  color: #475467;
+}
+
+.memorica-share-section-title > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #245bdb;
+}
+
+.memorica-share-section-title div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.memorica-share-section-title strong {
+  color: #111827;
+  font-size: 14px;
+}
+
+.memorica-share-section-title span {
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.memorica-share-toggle,
+.memorica-share-form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  flex: 0 0 auto;
+  gap: 6px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #344054;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.memorica-share-toggle.active,
+.memorica-share-form button {
+  border-color: #245bdb;
+  color: #fff;
+  background: #245bdb;
+}
+
+.memorica-share-toggle:disabled,
+.memorica-share-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.memorica-share-form {
+  display: grid;
+  grid-template-columns: 1fr 108px auto;
+  gap: 8px;
+}
+
+.memorica-share-form input,
+.memorica-share-form select {
+  min-width: 0;
+  height: 36px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 0 10px;
+  color: #111827;
+  background: #fff;
+  font-size: 13px;
+  outline: none;
+}
+
+.memorica-share-form input:focus,
+.memorica-share-form select:focus {
+  border-color: #245bdb;
+  box-shadow: 0 0 0 3px rgba(36, 91, 219, 0.12);
+}
+
+.memorica-share-members,
+.memorica-audit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memorica-share-member {
+  display: grid;
+  grid-template-columns: 1fr auto 32px;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 12px;
+  border: 1px solid #eef0f3;
+  border-radius: 10px;
+  background: #fafbfc;
+}
+
+.memorica-share-member.workspace {
+  grid-template-columns: 1fr auto auto;
+  background: #fff;
+}
+
+.memorica-share-member div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.memorica-share-member strong,
+.memorica-audit-item strong {
+  overflow: hidden;
+  color: #111827;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memorica-share-member span,
+.memorica-audit-item span,
+.memorica-audit-item em {
+  overflow: hidden;
+  color: #667085;
+  font-size: 12px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memorica-share-member em {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #245bdb;
+  background: #eef3ff;
+  font-size: 12px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.memorica-share-member-note {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #178a4f !important;
+  background: #f3fbf6;
+  font-size: 12px !important;
+  white-space: nowrap;
+}
+
+.memorica-share-member button {
+  width: 32px;
+  height: 32px;
+}
+
+.memorica-audit-item {
+  display: grid;
+  grid-template-columns: 82px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid #f1f3f6;
 }
 
 /* 编辑器容器 */
@@ -393,4 +1168,657 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #b1b1b1;
+}
+
+/* ========== Memorica workspace shell ========== */
+.memorica-workspace {
+  --memo-blue: #2563eb;
+  --memo-blue-hover: #1d4ed8;
+  --memo-blue-bg: #eff6ff;
+  --memo-blue-soft: rgba(37, 99, 235, 0.06);
+  --memo-text: #111827;
+  --memo-secondary: #4b5563;
+  --memo-tertiary: #9ca3af;
+  --memo-line: #e5e7eb;
+  --memo-soft-line: #f3f4f6;
+  --memo-sidebar: #1e40af;
+  min-height: 100vh;
+  background: #fff;
+  color: var(--memo-text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+  font-feature-settings: "kern";
+}
+
+.memorica-workspace .semi-typography,
+.memorica-workspace .semi-button,
+.memorica-workspace .semi-input,
+.memorica-workspace .semi-table,
+.memorica-workspace .semi-tag {
+  font-family: inherit;
+}
+
+.memorica-workspace .semi-typography {
+  line-height: 1.45;
+}
+
+.memorica-workspace strong,
+.memorica-workspace .semi-typography strong {
+  font-weight: 600;
+}
+
+
+/* Placeholder for upcoming modules */
+.memorica-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 160px 20px;
+  animation: memorica-fade-in 0.4s ease;
+}
+
+.memorica-placeholder-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 24px;
+  border-radius: 20px;
+  background: #f3f4f6;
+  color: #d1d5db;
+}
+
+.memorica-placeholder-icon .semi-icon {
+  font-size: 32px;
+}
+
+.memorica-placeholder-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.memorica-placeholder-desc {
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+/* ===== Main ===== */
+.memorica-main {
+  min-width: 0;
+  background: #fff;
+}
+
+.memorica-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 56px;
+  padding: 0 32px;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.6);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.memorica-header-title {
+  margin: 0 !important;
+  color: var(--memo-text);
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em;
+}
+
+.memorica-header-actions {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.memorica-header-actions .semi-button {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: #6b7280;
+  transition: all 0.15s ease;
+}
+
+.memorica-header-actions .semi-icon {
+  font-size: 17px;
+}
+
+.memorica-header-actions .semi-button:hover {
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.memorica-header-avatar-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  transition: background 0.15s ease;
+}
+
+.memorica-header-avatar-wrap:hover {
+  background: #f3f4f6;
+}
+
+.memorica-header-avatar-wrap .semi-avatar {
+  width: 30px !important;
+  height: 30px !important;
+}
+
+.memorica-mobile-avatar {
+  display: inline-flex;
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 50%;
+  color: #fff !important;
+  background: #8b5cf6 !important;
+  box-shadow: none;
+}
+
+/* ===== Content ===== */
+.memorica-content {
+  padding: 24px 32px 64px;
+  overflow-x: hidden;
+}
+
+@keyframes memorica-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Quick Actions */
+.memorica-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.memorica-quick-button {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.memorica-quick-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 76px;
+  padding: 0 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.memorica-quick-button:hover .memorica-quick-card {
+  border-color: #d1d5db;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.memorica-quick-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  font-size: 18px;
+}
+
+.memorica-quick-icon .semi-icon {
+  font-size: 18px;
+}
+
+.memorica-quick-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.memorica-quick-title {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.memorica-quick-desc {
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.memorica-quick-chevron {
+  color: #d1d5db;
+  flex-shrink: 0;
+}
+
+/* Toolbar */
+.memorica-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.memorica-toolbar-left {
+  min-width: 0;
+}
+
+.memorica-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.memorica-toolbar-right .semi-button {
+  height: 32px;
+  border-radius: 7px;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.memorica-toolbar-right .semi-button:hover {
+  background: #f3f4f6;
+}
+
+.memorica-toolbar-right .semi-button-primary {
+  background: #2563eb !important;
+}
+
+.memorica-count-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding-left: 6px;
+  color: var(--memo-tertiary);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.memorica-breadcrumb {
+  margin-top: 2px;
+}
+
+.memorica-breadcrumb button {
+  border: 0;
+  padding: 0;
+  color: #6b7280;
+  background: transparent;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.memorica-breadcrumb button:hover {
+  color: var(--memo-blue);
+}
+
+/* Fly Tabs */
+.memorica-tabs-bar {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--memo-line);
+  margin-bottom: 4px;
+}
+
+.memorica-fly-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px 0 0;
+}
+
+.memorica-fly-tabs button {
+  position: relative;
+  padding: 8px 16px 10px;
+  border: 0;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0;
+}
+
+.memorica-fly-tabs button:hover {
+  color: #374151;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.memorica-fly-tabs button.active {
+  color: #2563eb;
+  font-weight: 600;
+  background: rgba(37, 99, 235, 0.04);
+}
+
+/* Table */
+.memorica-library-panel {
+  min-width: 0;
+}
+
+.memorica-table {
+  overflow: hidden;
+  min-height: 200px;
+  transition: opacity 0.2s ease;
+  table-layout: fixed !important;
+}
+
+.memorica-table.loading {
+  opacity: 0.5;
+}
+
+.memorica-table .semi-table-thead > .semi-table-row > .semi-table-row-head {
+  height: 40px;
+  border-bottom: 1px solid var(--memo-line);
+  color: #9ca3af;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.memorica-table .semi-table-tbody > .semi-table-row {
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.memorica-table .semi-table-tbody > .semi-table-row > .semi-table-row-cell {
+  height: 52px;
+  border-bottom: 1px solid var(--memo-soft-line);
+  background: #fff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 400;
+  transition: background-color 0.15s ease;
+}
+
+.memorica-table .semi-table-tbody > .semi-table-row:hover > .semi-table-row-cell {
+  background: #fafafa;
+}
+
+.memorica-table .semi-table-tbody > .semi-table-row:hover {
+  background: #fafafa;
+}
+
+.memorica-action-column .semi-button {
+  opacity: 0.6;
+  transition: all 0.15s ease;
+  border-radius: 5px;
+}
+
+.memorica-table .semi-table-tbody > .semi-table-row:hover .memorica-action-column .semi-button {
+  opacity: 1;
+}
+
+.memorica-action-column .semi-button:hover {
+  background: #f3f4f6;
+}
+
+.memorica-doc-title {
+  min-width: 0;
+}
+
+.memorica-file-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.memorica-file-icon.doc {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.memorica-file-icon.folder {
+  color: #f59e0b;
+  background: #fffbeb;
+}
+
+.memorica-table .semi-table-tbody > .semi-table-row:hover .memorica-file-icon {
+  color: #2563eb;
+}
+
+.memorica-file-icon .semi-icon {
+  font-size: 16px;
+}
+
+.memorica-title-text {
+  max-width: min(44vw, 560px);
+}
+
+.memorica-title-text .semi-typography {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 500 !important;
+  transition: color 0.15s ease;
+}
+
+.memorica-table .semi-table-tbody > .semi-table-row:hover .memorica-title-text .semi-typography {
+  color: var(--memo-blue);
+}
+
+.memorica-mobile-date {
+  display: none;
+}
+
+/* Empty State */
+.memorica-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  padding: 40px 20px;
+  text-align: center;
+  animation: memorica-fade-up 0.5s ease-out 0.1s both;
+}
+
+.memorica-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  color: #d1d5db;
+  background: #f3f4f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  animation: memorica-float 3s ease-in-out infinite;
+}
+
+@keyframes memorica-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.memorica-empty-icon .semi-icon {
+  font-size: 24px;
+}
+
+.memorica-empty-title {
+  color: #374151;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  animation: memorica-fade-up 0.4s ease-out 0.2s both;
+}
+
+.memorica-empty-desc {
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 400;
+  margin-bottom: 20px;
+  max-width: 280px;
+  animation: memorica-fade-up 0.4s ease-out 0.3s both;
+}
+
+.memorica-empty .semi-button {
+  height: 36px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  animation: memorica-fade-up 0.4s ease-out 0.4s both;
+}
+
+.memorica-skeleton {
+  padding-top: 24px;
+}
+
+.memorica-native-select {
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--semi-color-border);
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #1f2329;
+  background: #fff;
+  font-size: 14px;
+}
+
+/* Table end hint */
+.memorica-table-end {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px 0;
+  color: #d1d5db;
+  font-size: 13px;
+}
+
+.memorica-table-end::before,
+.memorica-table-end::after {
+  content: '';
+  width: 60px;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+@media (max-width: 900px) {
+  .memorica-editor-bar-inner {
+    gap: 10px;
+    padding: 10px 16px;
+    min-height: 48px;
+  }
+
+  .memorica-editor-center {
+    display: none;
+  }
+
+  .memorica-editor-collab-text {
+    display: none;
+  }
+
+  .memorica-editor-right .memorica-editor-btn span {
+    display: none;
+  }
+
+  .memorica-share-panel {
+    width: 100vw;
+    border-left: 0;
+  }
+
+  .memorica-share-form {
+    grid-template-columns: 1fr;
+  }
+
+  .memorica-audit-item {
+    grid-template-columns: 72px 1fr;
+  }
+
+  .memorica-audit-item em {
+    grid-column: 2;
+  }
+
+  .memorica-app-sidebar {
+    display: none;
+  }
+
+  .memorica-header {
+    height: auto;
+    align-items: stretch;
+    flex-direction: column;
+    padding: 12px 16px;
+  }
+
+  .memorica-header-actions {
+    width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+  }
+
+  .memorica-mobile-avatar {
+    display: inline-flex;
+    margin-left: auto;
+  }
+
+  .memorica-content {
+    padding: 16px 16px 48px;
+  }
+
+  .memorica-quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .memorica-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .memorica-table .semi-table-thead,
+  .memorica-table .memorica-owner-column,
+  .memorica-table .memorica-date-column,
+  .memorica-table .memorica-action-column {
+    display: none !important;
+  }
+
+  .memorica-table .semi-table,
+  .memorica-table .semi-table-container,
+  .memorica-table .semi-table-body,
+  .memorica-table table {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .memorica-table .semi-table-row-cell {
+    border-bottom: 1px solid var(--semi-color-border);
+  }
+
+  .memorica-title-text {
+    max-width: calc(100vw - 160px);
+  }
+
+  .memorica-mobile-date {
+    display: block;
+    margin-top: 2px;
+  }
 }

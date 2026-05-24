@@ -1,0 +1,123 @@
+- generic [ref=e21]:
+  - complementary [ref=e22]:
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - img "file" [ref=e26]:
+          - img [ref=e27]
+        - generic [ref=e29]:
+          - strong [ref=e31]: Memorica
+          - generic [ref=e32]: AI 文档工作台
+      - menu [ref=e37]:
+        - menuitem "file 我的文档" [ref=e38] [cursor=pointer]:
+          - img "file" [ref=e40]:
+            - img [ref=e41]
+          - generic [ref=e43]: 我的文档
+        - menuitem "globe_stroked 公开文档" [ref=e44] [cursor=pointer]:
+          - img "globe_stroked" [ref=e46]:
+            - img [ref=e47]
+          - generic [ref=e49]: 公开文档
+      - button "ai_stroked_level_2 AI 创作" [ref=e51] [cursor=pointer]:
+        - generic [ref=e52]:
+          - img "ai_stroked_level_2" [ref=e53]:
+            - img [ref=e54]
+          - generic [ref=e57]: AI 创作
+      - generic [ref=e58]:
+        - generic [ref=e59]:
+          - img "member" [ref=e61]:
+            - img [ref=e62]
+          - generic [ref=e64]:
+            - generic [ref=e65]: 当前空间
+            - strong [ref=e67]: Owner 1779574511 的空间
+        - generic [ref=e68]:
+          - 'generic "Tag: 所有者" [ref=e69]':
+            - generic [ref=e70]: 所有者
+          - generic [ref=e71]: 2 人
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - listitem [ref=e74]:
+              - img "O" [ref=e76]
+            - generic [ref=e77]: Owner 1779574511
+            - 'generic "Tag: 所有者" [ref=e78]':
+              - generic [ref=e79]: 所有者
+          - generic [ref=e80]:
+            - listitem [ref=e81]:
+              - img "C" [ref=e83]
+            - generic [ref=e84]: Collab 1779574511
+            - 'generic "Tag: 成员" [ref=e85]':
+              - generic [ref=e86]: 成员
+        - generic [ref=e87]:
+          - generic [ref=e88]:
+            - img "invite_stroked" [ref=e90]:
+              - img [ref=e91]
+            - textbox "用户名或邮箱" [ref=e94]
+          - generic [ref=e95]:
+            - button "成员" [ref=e96] [cursor=pointer]
+            - button "管理员" [ref=e97] [cursor=pointer]
+            - button "添加" [disabled] [ref=e98]:
+              - generic [ref=e99]: 添加
+      - generic [ref=e100]:
+        - generic [ref=e101]:
+          - listitem [ref=e102]:
+            - img "O" [ref=e104]
+          - generic [ref=e105]:
+            - strong [ref=e107]: Owner 1779574511
+            - generic [ref=e108]: 已登录
+        - button "quit 退出登录" [ref=e109] [cursor=pointer]:
+          - generic [ref=e110]:
+            - img "quit" [ref=e111]:
+              - img [ref=e112]
+            - generic [ref=e114]: 退出登录
+  - generic [ref=e115]:
+    - generic [ref=e116]:
+      - generic [ref=e117]:
+        - img "search" [ref=e119]:
+          - img [ref=e120]
+        - textbox "搜索文档" [ref=e122]
+      - generic [ref=e123]:
+        - button "plus 新建" [ref=e124] [cursor=pointer]:
+          - generic [ref=e125]:
+            - img "plus" [ref=e126]:
+              - img [ref=e127]
+            - generic [ref=e129]: 新建
+        - button "ai_stroked_level_2 AI 创作" [ref=e130] [cursor=pointer]:
+          - generic [ref=e131]:
+            - img "ai_stroked_level_2" [ref=e132]:
+              - img [ref=e133]
+            - generic [ref=e136]: AI 创作
+        - listitem [ref=e137]:
+          - img "O" [ref=e139]
+    - main [ref=e140]:
+      - generic [ref=e141]:
+        - generic [ref=e142]:
+          - generic [ref=e144]: 1 个文档
+          - heading "我的文档" [level=2] [ref=e145]
+          - generic [ref=e146]: 你的私人草稿、协作内容和 AI 创作入口。
+        - generic [ref=e147]:
+          - button "我的" [ref=e148] [cursor=pointer]:
+            - generic [ref=e149]: 我的
+          - button "公开" [ref=e150] [cursor=pointer]:
+            - generic [ref=e151]: 公开
+      - grid [ref=e158]:
+        - rowgroup [ref=e164]:
+          - row "名称 创建人 最近更新" [ref=e165]:
+            - columnheader "名称" [ref=e166]
+            - columnheader "创建人" [ref=e167]
+            - columnheader "最近更新" [ref=e168]
+            - columnheader [ref=e169]
+        - rowgroup [ref=e170]:
+          - row "file Workspace Smoke Test O Owner 1779574511 5月23日 22:15 删除文档" [ref=e171] [cursor=pointer]:
+            - gridcell "file Workspace Smoke Test" [ref=e172]:
+              - generic [ref=e173]:
+                - img "file" [ref=e175]:
+                  - img [ref=e176]
+                - strong [ref=e180]: Workspace Smoke Test
+            - gridcell "O Owner 1779574511" [ref=e181]:
+              - generic [ref=e182]:
+                - listitem [ref=e183]:
+                  - img "O" [ref=e185]
+                - generic [ref=e186]: Owner 1779574511
+            - gridcell "5月23日 22:15" [ref=e187]
+            - gridcell "删除文档" [ref=e188]:
+              - button "删除文档" [ref=e189]:
+                - img "delete_stroked" [ref=e191]:
+                  - img [ref=e192]

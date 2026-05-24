@@ -1,0 +1,119 @@
+- generic [ref=e21]:
+  - complementary [ref=e22]:
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - img "file" [ref=e26]:
+          - img [ref=e27]
+        - generic [ref=e29]:
+          - strong [ref=e31]: Memorica
+          - generic [ref=e32]: AI 文档工作台
+      - menu [ref=e37]:
+        - menuitem "member 空间文档" [ref=e38] [cursor=pointer]:
+          - img "member" [ref=e40]:
+            - img [ref=e41]
+          - generic [ref=e43]: 空间文档
+        - menuitem "file 我的文档" [ref=e44] [cursor=pointer]:
+          - img "file" [ref=e46]:
+            - img [ref=e47]
+          - generic [ref=e49]: 我的文档
+        - menuitem "globe_stroked 公开文档" [ref=e50] [cursor=pointer]:
+          - img "globe_stroked" [ref=e52]:
+            - img [ref=e53]
+          - generic [ref=e55]: 公开文档
+      - button "ai_stroked_level_2 AI 创作" [ref=e57] [cursor=pointer]:
+        - generic [ref=e58]:
+          - img "ai_stroked_level_2" [ref=e59]:
+            - img [ref=e60]
+          - generic [ref=e63]: AI 创作
+      - generic [ref=e64]:
+        - generic [ref=e65]:
+          - img "member" [ref=e67]:
+            - img [ref=e68]
+          - generic [ref=e70]:
+            - generic [ref=e71]: 当前空间
+            - strong [ref=e73]: Govern Owner 1779576007 的空间
+        - generic [ref=e74]:
+          - 'generic "Tag: 所有者" [ref=e75]':
+            - generic [ref=e76]: 所有者
+          - generic [ref=e77]: 1 人
+        - generic [ref=e79]:
+          - listitem [ref=e80]:
+            - img "G" [ref=e82]
+          - generic [ref=e83]: Govern Owner 1779576007
+          - 'generic "Tag: 所有者" [ref=e84]':
+            - generic [ref=e85]: 所有者
+        - generic [ref=e86]:
+          - generic [ref=e87]:
+            - img "invite_stroked" [ref=e89]:
+              - img [ref=e90]
+            - textbox "用户名或邮箱" [ref=e93]
+          - generic [ref=e94]:
+            - button "成员" [ref=e95] [cursor=pointer]
+            - button "管理员" [ref=e96] [cursor=pointer]
+            - button "添加" [disabled] [ref=e97]:
+              - generic [ref=e98]: 添加
+      - generic [ref=e99]:
+        - generic [ref=e100]:
+          - listitem [ref=e101]:
+            - img "G" [ref=e103]
+          - generic [ref=e104]:
+            - strong [ref=e106]: Govern Owner 1779576007
+            - generic [ref=e107]: 已登录
+        - button "quit 退出登录" [ref=e108] [cursor=pointer]:
+          - generic [ref=e109]:
+            - img "quit" [ref=e110]:
+              - img [ref=e111]
+            - generic [ref=e113]: 退出登录
+  - generic [ref=e114]:
+    - generic [ref=e115]:
+      - generic [ref=e116]:
+        - img "search" [ref=e118]:
+          - img [ref=e119]
+        - textbox "搜索文档" [ref=e121]
+      - generic [ref=e122]:
+        - button "plus 新建" [ref=e123] [cursor=pointer]:
+          - generic [ref=e124]:
+            - img "plus" [ref=e125]:
+              - img [ref=e126]
+            - generic [ref=e128]: 新建
+        - button "ai_stroked_level_2 AI 创作" [ref=e129] [cursor=pointer]:
+          - generic [ref=e130]:
+            - img "ai_stroked_level_2" [ref=e131]:
+              - img [ref=e132]
+            - generic [ref=e135]: AI 创作
+        - listitem [ref=e136]:
+          - img "G" [ref=e138]
+    - main [ref=e139]:
+      - generic [ref=e140]:
+        - generic [ref=e141]:
+          - generic [ref=e143]: 1 个文档
+          - heading "Govern Owner 1779576007 的空间" [level=2] [ref=e144]
+          - generic [ref=e145]: 当前空间内的团队文档，成员可访问，所有权和编辑权限仍按文档维度控制。
+        - generic [ref=e146]:
+          - button "空间" [ref=e147] [cursor=pointer]:
+            - generic [ref=e148]: 空间
+          - button "我的" [ref=e149] [cursor=pointer]:
+            - generic [ref=e150]: 我的
+          - button "公开" [ref=e151] [cursor=pointer]:
+            - generic [ref=e152]: 公开
+      - grid [ref=e159]:
+        - rowgroup [ref=e165]:
+          - row "名称 创建人 最近更新" [ref=e166]:
+            - columnheader "名称" [ref=e167]
+            - columnheader "创建人" [ref=e168]
+            - columnheader "最近更新" [ref=e169]
+            - columnheader [ref=e170]
+        - rowgroup [ref=e171]:
+          - row "file Governed Space Doc G Govern Owner 1779576007 5月23日 22:40" [ref=e172] [cursor=pointer]:
+            - gridcell "file Governed Space Doc" [ref=e173]:
+              - generic [ref=e174]:
+                - img "file" [ref=e176]:
+                  - img [ref=e177]
+                - strong [ref=e181]: Governed Space Doc
+            - gridcell "G Govern Owner 1779576007" [ref=e182]:
+              - generic [ref=e183]:
+                - listitem [ref=e184]:
+                  - img "G" [ref=e186]
+                - generic [ref=e187]: Govern Owner 1779576007
+            - gridcell "5月23日 22:40" [ref=e188]
+            - gridcell [ref=e189]

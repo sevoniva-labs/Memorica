@@ -36,6 +36,12 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("BAD_REQUEST", e.getMessage()));
     }
 
+    @ExceptionHandler(AiProviderUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleAiUnavailable(AiProviderUnavailableException e) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ErrorResponse.of("AI_UNAVAILABLE", e.getMessage()));
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

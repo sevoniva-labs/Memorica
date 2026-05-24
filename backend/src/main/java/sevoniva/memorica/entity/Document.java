@@ -16,6 +16,9 @@ import java.time.LocalDateTime;
 @Builder
 public class Document {
 
+    public static final String TYPE_DOCUMENT = "document";
+    public static final String TYPE_FOLDER = "folder";
+
     @Id
     @Column(nullable = false, unique = true)
     private String id;
@@ -29,6 +32,15 @@ public class Document {
 
     @Column(nullable = false)
     private String ownerName;
+
+    @Column(nullable = false)
+    private String workspaceId;
+
+    private String parentId;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private String itemType = TYPE_DOCUMENT;
 
     @Column(name = "word_count")
     private Integer wordCount;
@@ -47,6 +59,8 @@ public class Document {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    private LocalDateTime deletedAt;
 
     @Column(nullable = false)
     @Builder.Default

@@ -3,8 +3,8 @@ plugins {
     id 'org.springframework.boot' version '3.5.0'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'org.flywaydb.flyway' version '11.7.0'
-    // Quality plugins — uncomment when network allows downloading:
-    // id 'jacoco'
+    id 'jacoco'
+    // Quality plugins — enable after formatting baseline is agreed:
     // id 'com.diffplug.spotless' version '7.0.3'
     // id 'org.owasp.dependencycheck' version '12.1.1'
 }
@@ -90,20 +90,34 @@ springBoot {
 // ── Test ──────────────────────────────────────────────────────────────────────
 tasks.named('test') {
     useJUnitPlatform()
-    // finalizedBy jacocoTestReport  // enable with jacoco plugin
+    finalizedBy jacocoTestReport
 }
 
 // ── JaCoCo (enable with jacoco plugin) ─────────────────────────────────────────
-// jacoco {
-//     toolVersion = '0.8.12'
-// }
-// jacocoTestReport {
-//     dependsOn test
-//     reports { xml.required = true; html.required = true }
-// }
-// jacocoTestCoverageVerification {
-//     violationRules { rule { limit { minimum = 0.50 } } }
-// }
+jacoco {
+    toolVersion = '0.8.12'
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn jacocoTestReport
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.25
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
 
 // ── Spotless (enable after running: ./gradlew spotlessApply) ───────────────────
 // spotless {

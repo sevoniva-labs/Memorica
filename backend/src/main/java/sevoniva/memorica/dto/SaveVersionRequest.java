@@ -16,4 +16,6 @@ public class SaveVersionRequest {
 
     @NotNull
     private Integer charCount;
+
+    private String source;
 }

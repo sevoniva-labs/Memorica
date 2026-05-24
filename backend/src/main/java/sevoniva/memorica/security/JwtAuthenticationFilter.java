@@ -35,8 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String jwt = parseJwt(request);
-        boolean blacklisted = tokenBlacklistService != null && tokenBlacklistService.isBlacklisted(jwt);
-        if (jwt != null && jwtUtil.validateToken(jwt) && jwtUtil.isAccessToken(jwt) && !blacklisted) {
+        if (jwt != null && jwtUtil.validateToken(jwt) && jwtUtil.isAccessToken(jwt) && !isBlacklisted(jwt)) {
             String username = jwtUtil.getUsernameFromToken(jwt);
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
             UsernamePasswordAuthenticationToken auth =
@@ -45,6 +44,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(auth);
         }
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isBlacklisted(String jwt) {
+        return tokenBlacklistService != null && tokenBlacklistService.isBlacklisted(jwt);
     }
 
     private String parseJwt(HttpServletRequest request) {

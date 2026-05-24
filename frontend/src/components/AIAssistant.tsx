@@ -3,9 +3,9 @@ import { Editor } from '@tiptap/react'
 import {
   aiActionLabels,
   aiActionIcons,
-  streamAIResponse,
   type AIAction,
-} from '../ai/mockAI'
+} from '../ai/aiActions'
+import { generateAI } from '../api/client'
 import { Sparkles, X, Check, Copy, Replace, Type, Loader2 } from 'lucide-react'
 
 interface Props {
@@ -23,17 +23,6 @@ export default function AIAssistant({ editor, open, onClose, initialAction }: Pr
   const abortRef = useRef(false)
   const hasRunInitial = useRef(false)
 
-  // 监听 initialAction，自动执行
-  useEffect(() => {
-    if (initialAction && open && !hasRunInitial.current) {
-      hasRunInitial.current = true
-      runAI(initialAction)
-    }
-    if (!open) {
-      hasRunInitial.current = false
-    }
-  }, [initialAction, open])
-
   const getSelectedText = useCallback(() => {
     if (!editor) return ''
     const { from, to } = editor.state.selection
@@ -43,10 +32,10 @@ export default function AIAssistant({ editor, open, onClose, initialAction }: Pr
 
   const selectedText = getSelectedText()
 
-  const runAI = async (action: AIAction) => {
+  const runAI = useCallback(async (action: AIAction) => {
     if (!editor || streaming) return
 
-    const text = selectedText || editor.getText().slice(0, 500)
+    const text = getSelectedText() || editor.getText().slice(0, 500)
     if (!text.trim()) return
 
     setStreaming(true)
@@ -54,22 +43,33 @@ export default function AIAssistant({ editor, open, onClose, initialAction }: Pr
     abortRef.current = false
 
     try {
-      const stream = streamAIResponse({
+      const response = await generateAI({
         action,
         text,
         customPrompt: action === 'custom' ? customPrompt : undefined,
       })
-
-      let buffer = ''
-      for await (const chunk of stream) {
-        if (abortRef.current) break
-        buffer += chunk
-        setResult(buffer)
+      if (!abortRef.current) {
+        setResult(response.text)
+      }
+    } catch (err) {
+      if (!abortRef.current) {
+        setResult(err instanceof Error ? err.message : 'AI 服务暂时不可用')
       }
     } finally {
       setStreaming(false)
     }
-  }
+  }, [customPrompt, editor, getSelectedText, streaming])
+
+  // 监听 initialAction，自动执行
+  useEffect(() => {
+    if (initialAction && open && !hasRunInitial.current) {
+      hasRunInitial.current = true
+      runAI(initialAction)
+    }
+    if (!open) {
+      hasRunInitial.current = false
+    }
+  }, [initialAction, open, runAI])
 
   const handleReplace = () => {
     if (!editor || !result) return

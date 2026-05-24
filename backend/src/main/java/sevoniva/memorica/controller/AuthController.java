@@ -1,6 +1,7 @@
 package sevoniva.memorica.controller;
 
 import sevoniva.memorica.dto.*;
+import sevoniva.memorica.security.UserDetailsImpl;
 import sevoniva.memorica.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,7 +42,8 @@ public class AuthController {
 
     @GetMapping("/me")
     public ApiResponse<?> me() {
-        Long userId = Long.valueOf(SecurityContextHolder.getContext().getAuthentication().getName());
-        return authService.me(userId);
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        UserDetailsImpl userDetails = (UserDetailsImpl) principal;
+        return authService.me(userDetails.getId());
     }
 }

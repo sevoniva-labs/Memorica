@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { isAxiosError } from 'axios'
 import { login, register } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { FileText } from 'lucide-react'
@@ -25,8 +26,10 @@ export default function LoginPage() {
         : await register(username, password, email)
       storeLogin(data.accessToken, data.refreshToken, data.user)
       navigate('/')
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.response?.data?.error || '操作失败'
+    } catch (err: unknown) {
+      const msg = isAxiosError<{ message?: string; error?: string }>(err)
+        ? err.response?.data?.message || err.response?.data?.error || '操作失败'
+        : '操作失败'
       setError(msg)
     } finally {
       setLoading(false)

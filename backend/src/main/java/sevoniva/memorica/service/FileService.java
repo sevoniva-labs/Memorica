@@ -4,6 +4,10 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.minio.*;
 import io.minio.http.Method;
+import sevoniva.memorica.entity.UploadedFile;
+import sevoniva.memorica.exception.AccessDeniedException;
+import sevoniva.memorica.exception.ResourceNotFoundException;
+import sevoniva.memorica.repository.UploadedFileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +24,7 @@ public class FileService {
     private static final Logger log = LoggerFactory.getLogger(FileService.class);
 
     private final MinioClient minioClient;
+    private final UploadedFileRepository uploadedFileRepository;
 
     @Value("${app.minio.bucket-name}")
     private String bucketName;
@@ -30,13 +35,17 @@ public class FileService {
     @Value("${app.file.allowed-types}")
     private String allowedTypes;
 
-    public FileService(MinioClient minioClient) {
+    @Value("${app.file.url-expiry-minutes}")
+    private int urlExpiryMinutes;
+
+    public FileService(MinioClient minioClient, UploadedFileRepository uploadedFileRepository) {
         this.minioClient = minioClient;
+        this.uploadedFileRepository = uploadedFileRepository;
     }
 
     @CircuitBreaker(name = "minioUpload", fallbackMethod = "uploadFileFallback")
     @Retry(name = "minioRetry")
-    public String uploadFile(MultipartFile file) throws Exception {
+    public String uploadFile(MultipartFile file, Long uploaderId) throws Exception {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("文件不能为空");
         }
@@ -67,22 +76,34 @@ public class FileService {
                 .contentType(contentType)
                 .build()
         );
+        uploadedFileRepository.save(UploadedFile.builder()
+                .objectName(objectName)
+                .originalName(originalName)
+                .contentType(contentType)
+                .sizeBytes(file.getSize())
+                .uploaderId(uploaderId)
+                .build());
         return objectName;
     }
 
-    public String uploadFileFallback(MultipartFile file, Throwable t) throws Exception {
+    public String uploadFileFallback(MultipartFile file, Long uploaderId, Throwable t) throws Exception {
         log.error("MinIO upload failed (circuit open or retries exhausted): {}", t.getMessage());
         throw new RuntimeException("文件上传服务暂时不可用，请稍后重试");
     }
 
     @CircuitBreaker(name = "minioGetUrl")
-    public String getFileUrl(String objectName) throws Exception {
+    public String getFileUrl(String objectName, Long requesterId) throws Exception {
+        UploadedFile file = uploadedFileRepository.findByObjectName(objectName)
+                .orElseThrow(() -> new ResourceNotFoundException("文件不存在"));
+        if (!file.getUploaderId().equals(requesterId)) {
+            throw new AccessDeniedException("无权访问该文件");
+        }
         return minioClient.getPresignedObjectUrl(
             GetPresignedObjectUrlArgs.builder()
                 .bucket(bucketName)
                 .object(objectName)
                 .method(Method.GET)
-                .expiry(7, TimeUnit.DAYS)
+                .expiry(Math.max(urlExpiryMinutes, 1), TimeUnit.MINUTES)
                 .build()
         );
     }

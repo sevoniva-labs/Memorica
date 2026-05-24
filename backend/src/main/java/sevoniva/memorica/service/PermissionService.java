@@ -7,6 +7,9 @@ import sevoniva.memorica.repository.DocumentPermissionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Optional;
+
 @Service
 public class PermissionService {
 
@@ -52,8 +55,21 @@ public class PermissionService {
                 .orElse(false);
     }
 
+    public List<DocumentPermission> listPermissions(String documentId) {
+        return permissionRepository.findByDocumentId(documentId);
+    }
+
+    public Optional<DocumentPermission> findPermission(String documentId, Long userId) {
+        return permissionRepository.findByDocumentIdAndUserId(documentId, userId);
+    }
+
     @Transactional
     public void revokeAccess(String documentId, Long userId) {
         permissionRepository.deleteByDocumentIdAndUserId(documentId, userId);
+    }
+
+    @Transactional
+    public void revokeAll(String documentId) {
+        permissionRepository.deleteByDocumentId(documentId);
     }
 }

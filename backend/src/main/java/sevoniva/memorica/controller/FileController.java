@@ -1,7 +1,9 @@
 package sevoniva.memorica.controller;
 
 import sevoniva.memorica.dto.ApiResponse;
+import sevoniva.memorica.security.UserDetailsImpl;
 import sevoniva.memorica.service.FileService;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,25 +20,21 @@ public class FileController {
     }
 
     @PostMapping("/upload")
-    public ApiResponse<?> upload(@RequestParam("file") MultipartFile file) {
-        try {
-            String objectName = fileService.uploadFile(file);
-            String url = fileService.getFileUrl(objectName);
-            return ApiResponse.success(Map.of("objectName", objectName, "url", url));
-        } catch (IllegalArgumentException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("上传失败: " + e.getMessage());
-        }
+    public ApiResponse<?> upload(@RequestParam("file") MultipartFile file) throws Exception {
+        Long userId = currentUserId();
+        String objectName = fileService.uploadFile(file, userId);
+        String url = fileService.getFileUrl(objectName, userId);
+        return ApiResponse.success(Map.of("objectName", objectName, "url", url));
     }
 
     @GetMapping("/view/{objectName}")
-    public ApiResponse<?> getUrl(@PathVariable String objectName) {
-        try {
-            String url = fileService.getFileUrl(objectName);
-            return ApiResponse.success(Map.of("url", url));
-        } catch (Exception e) {
-            throw new RuntimeException("获取链接失败: " + e.getMessage());
-        }
+    public ApiResponse<?> getUrl(@PathVariable String objectName) throws Exception {
+        String url = fileService.getFileUrl(objectName, currentUserId());
+        return ApiResponse.success(Map.of("url", url));
+    }
+
+    private Long currentUserId() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ((UserDetailsImpl) principal).getId();
     }
 }

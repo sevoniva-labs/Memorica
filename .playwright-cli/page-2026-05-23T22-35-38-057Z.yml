@@ -1,0 +1,126 @@
+- generic [ref=e24]:
+  - complementary [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e27]:
+        - img "file" [ref=e29]:
+          - img [ref=e30]
+        - generic [ref=e32]:
+          - strong [ref=e34]: Memorica
+          - generic [ref=e35]: AI 文档工作台
+      - menu [ref=e40]:
+        - menuitem "member 空间文档" [ref=e41] [cursor=pointer]:
+          - img "member" [ref=e43]:
+            - img [ref=e44]
+          - generic [ref=e46]: 空间文档
+        - menuitem "file 我的文档" [ref=e47] [cursor=pointer]:
+          - img "file" [ref=e49]:
+            - img [ref=e50]
+          - generic [ref=e52]: 我的文档
+        - menuitem "globe_stroked 公开文档" [ref=e53] [cursor=pointer]:
+          - img "globe_stroked" [ref=e55]:
+            - img [ref=e56]
+          - generic [ref=e58]: 公开文档
+      - button "ai_stroked_level_2 AI 创作" [ref=e60] [cursor=pointer]:
+        - generic [ref=e61]:
+          - img "ai_stroked_level_2" [ref=e62]:
+            - img [ref=e63]
+          - generic [ref=e66]: AI 创作
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - img "member" [ref=e70]:
+            - img [ref=e71]
+          - generic [ref=e73]:
+            - generic [ref=e74]: 当前空间
+            - strong [ref=e76]: Space Owner 1779575648 的空间
+        - generic [ref=e77]:
+          - 'generic "Tag: 所有者" [ref=e78]':
+            - generic [ref=e79]: 所有者
+          - generic [ref=e80]: 2 人
+        - generic [ref=e81]:
+          - generic [ref=e82]:
+            - listitem [ref=e83]:
+              - img "S" [ref=e85]
+            - generic [ref=e86]: Space Owner 1779575648
+            - 'generic "Tag: 所有者" [ref=e87]':
+              - generic [ref=e88]: 所有者
+          - generic [ref=e89]:
+            - listitem [ref=e90]:
+              - img "S" [ref=e92]
+            - generic [ref=e93]: Space Collab 1779575648
+            - 'generic "Tag: 成员" [ref=e94]':
+              - generic [ref=e95]: 成员
+        - generic [ref=e96]:
+          - generic [ref=e97]:
+            - img "invite_stroked" [ref=e99]:
+              - img [ref=e100]
+            - textbox "用户名或邮箱" [ref=e103]
+          - generic [ref=e104]:
+            - button "成员" [ref=e105] [cursor=pointer]
+            - button "管理员" [ref=e106] [cursor=pointer]
+            - button "添加" [disabled] [ref=e107]:
+              - generic [ref=e108]: 添加
+      - generic [ref=e109]:
+        - generic [ref=e110]:
+          - listitem [ref=e111]:
+            - img "S" [ref=e113]
+          - generic [ref=e114]:
+            - strong [ref=e116]: Space Owner 1779575648
+            - generic [ref=e117]: 已登录
+        - button "quit 退出登录" [ref=e118] [cursor=pointer]:
+          - generic [ref=e119]:
+            - img "quit" [ref=e120]:
+              - img [ref=e121]
+            - generic [ref=e123]: 退出登录
+  - generic [ref=e124]:
+    - generic [ref=e125]:
+      - generic [ref=e126]:
+        - img "search" [ref=e128]:
+          - img [ref=e129]
+        - textbox "搜索文档" [ref=e131]
+      - generic [ref=e132]:
+        - button "plus 新建" [ref=e133] [cursor=pointer]:
+          - generic [ref=e134]:
+            - img "plus" [ref=e135]:
+              - img [ref=e136]
+            - generic [ref=e138]: 新建
+        - button "ai_stroked_level_2 AI 创作" [ref=e139] [cursor=pointer]:
+          - generic [ref=e140]:
+            - img "ai_stroked_level_2" [ref=e141]:
+              - img [ref=e142]
+            - generic [ref=e145]: AI 创作
+        - listitem [ref=e146]:
+          - img "S" [ref=e148]
+    - main [ref=e149]:
+      - generic [ref=e150]:
+        - generic [ref=e151]:
+          - generic [ref=e153]: 1 个文档
+          - heading "Space Owner 1779575648 的空间" [level=2] [ref=e154]
+          - generic [ref=e155]: 当前空间内的团队文档，成员可访问，所有权和编辑权限仍按文档维度控制。
+        - generic [ref=e156]:
+          - button "空间" [ref=e157] [cursor=pointer]:
+            - generic [ref=e158]: 空间
+          - button "我的" [ref=e159] [cursor=pointer]:
+            - generic [ref=e160]: 我的
+          - button "公开" [ref=e161] [cursor=pointer]:
+            - generic [ref=e162]: 公开
+      - grid [ref=e169]:
+        - rowgroup [ref=e175]:
+          - row "名称 创建人 最近更新" [ref=e176]:
+            - columnheader "名称" [ref=e177]
+            - columnheader "创建人" [ref=e178]
+            - columnheader "最近更新" [ref=e179]
+            - columnheader [ref=e180]
+        - rowgroup [ref=e181]:
+          - row "file Space-scoped Doc S Space Owner 1779575648 5月23日 22:34" [ref=e182] [cursor=pointer]:
+            - gridcell "file Space-scoped Doc" [ref=e183]:
+              - generic [ref=e184]:
+                - img "file" [ref=e186]:
+                  - img [ref=e187]
+                - strong [ref=e191]: Space-scoped Doc
+            - gridcell "S Space Owner 1779575648" [ref=e192]:
+              - generic [ref=e193]:
+                - listitem [ref=e194]:
+                  - img "S" [ref=e196]
+                - generic [ref=e197]: Space Owner 1779575648
+            - gridcell "5月23日 22:34" [ref=e198]
+            - gridcell [ref=e199]

@@ -27,16 +27,20 @@ import { Collaboration } from '@tiptap/extension-collaboration'
 import CollaborationCaret from '@tiptap/extension-collaboration-caret'
 import { HocuspocusProvider } from '@hocuspocus/provider'
 import * as Y from 'yjs'
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import type { AIAction } from '../ai/mockAI'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import type { AIAction } from '../ai/aiActions'
 import BubbleMenuBar from './BubbleMenuBar'
 import SlashMenu from './SlashMenu'
 import Toolbar from './Toolbar'
 import AIAssistant from './AIAssistant'
 import FindReplace from './FindReplace'
-import { updateDocumentMeta, saveVersion } from '../api/client'
-import { ArrowLeft, History, Save } from 'lucide-react'
+import ShareSettingsPanel from './ShareSettingsPanel'
+import { getVersion, updateDocumentMeta, saveVersion } from '../api/client'
+import { useAuthStore } from '../stores/authStore'
+import { useSidebar } from '../contexts/SidebarContext'
+import Dropdown from '@douyinfe/semi-ui-19/lib/es/dropdown'
+import { ArrowLeft, Download, FileText, History, Loader2, MoreHorizontal, RefreshCw, Save, Search, Share2, Sparkles, Type } from 'lucide-react'
 
 interface Props {
   docId?: string
@@ -45,12 +49,34 @@ interface Props {
   initialTitle?: string
 }
 
-const mentionUsers = [
-  { id: '1', label: '张三' },
-  { id: '2', label: '李四' },
-  { id: '3', label: '王五' },
-  { id: '4', label: '赵六' },
-]
+type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
+type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+
+function defaultWebSocketUrl() {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}/ws`
+}
+
+function normalizeConnectionStatus(status?: string): ConnectionStatus {
+  return status === 'connected' || status === 'disconnected' ? status : 'connecting'
+}
+
+function tokenExpiresSoon(token: string, graceSeconds = 60) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1] || '')) as { exp?: number }
+    return !payload.exp || payload.exp * 1000 <= Date.now() + graceSeconds * 1000
+  } catch {
+    return true
+  }
+}
+
+async function getCollaborationToken() {
+  const token = localStorage.getItem('accessToken')
+  if (token && !tokenExpiresSoon(token)) {
+    return token
+  }
+  return (await useAuthStore.getState().refreshAccessToken()) || ''
+}
 
 export default function CollabEditor({
   docId = 'default-doc',
@@ -59,6 +85,7 @@ export default function CollabEditor({
   initialTitle,
 }: Props) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [title, setTitle] = useState(initialTitle || '未命名文档')
   const [wordCount, setWordCount] = useState(0)
   const [charCount, setCharCount] = useState(0)
@@ -66,19 +93,36 @@ export default function CollabEditor({
   const [aiOpen, setAiOpen] = useState(false)
   const [aiInitialAction, setAiInitialAction] = useState<AIAction | null>(null)
   const [findOpen, setFindOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting')
+  const [connectionIssue, setConnectionIssue] = useState('')
+  const [collaboratorCount, setCollaboratorCount] = useState(1)
+  const [, setTitleSaveState] = useState<SaveState>('idle')
+  const [versionSaveState, setVersionSaveState] = useState<SaveState>('idle')
+  const [contentRevision, setContentRevision] = useState(0)
+  const [, setLastSavedAt] = useState<Date | null>(null)
+  const { updateDocTitle } = useSidebar()
+  const lastVersionFingerprintRef = useRef('')
+  const versionSavingRef = useRef(false)
+  const versionResetTimerRef = useRef<number | null>(null)
+  const restoredVersionRef = useRef<number | null>(null)
+  const mentionUsers = useMemo(() => [{ id: 'current-user', label: userName }], [userName])
 
   // 创建 Yjs Doc 和 Hocuspocus Provider
   const [yDoc] = useState(() => new Y.Doc())
-  const token = localStorage.getItem('accessToken') || undefined
-  const sessionId = Math.random().toString(36).substring(2, 10)
+  const [sessionId] = useState(() => crypto.randomUUID().slice(0, 8))
   const [provider] = useState(() => {
-    const baseUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:1234'
+    const baseUrl = import.meta.env.VITE_WS_URL || defaultWebSocketUrl()
     const url = `${baseUrl}?sessionId=${sessionId}`
     return new HocuspocusProvider({
       url,
       name: docId,
       document: yDoc,
-      token: token,
+      token: getCollaborationToken,
+      onAuthenticated: () => {
+        setConnectionStatus('connected')
+        setConnectionIssue('')
+      },
     })
   })
 
@@ -134,26 +178,140 @@ export default function CollabEditor({
     onUpdate: ({ editor }) => {
       setWordCount(editor.getText().split(/\s+/).filter(Boolean).length)
       setCharCount(editor.storage.characterCount?.characters() ?? 0)
+      setContentRevision((revision) => revision + 1)
     },
   })
 
-  // Debounce save title to backend
-  const titleRef = useRef(title)
-  titleRef.current = title
-  const saveTitle = useCallback(() => {
-    updateDocumentMeta(docId, titleRef.current).catch(() => {})
-  }, [docId])
+  useEffect(() => {
+    // 实时同步全局 sidebar 列表中的标题
+    updateDocTitle(docId, title.trim())
+    if (!title.trim()) return
+    const t = setTimeout(() => {
+      updateDocumentMeta(docId, title.trim())
+        .then(() => {
+          setTitleSaveState('saved')
+          setLastSavedAt(new Date())
+        })
+        .catch(() => setTitleSaveState('error'))
+    }, 800)
+    return () => clearTimeout(t)
+  }, [docId, title, updateDocTitle])
 
   useEffect(() => {
-    const t = setTimeout(saveTitle, 800)
-    return () => clearTimeout(t)
-  }, [title, saveTitle])
+    const handleStatus = ({ status }: { status: ConnectionStatus }) => {
+      setConnectionStatus(status)
+      if (status === 'connecting') {
+        setConnectionIssue('')
+      }
+    }
+    const handleAwareness = ({ states }: { states: unknown[] }) => {
+      setCollaboratorCount(Math.max(1, states.length))
+    }
+    const handleAuthenticationFailed = ({ reason }: { reason?: string }) => {
+      setConnectionStatus('disconnected')
+      setConnectionIssue(reason || '协作认证失败')
+      useAuthStore.getState().refreshAccessToken().then((freshToken) => {
+        if (freshToken) {
+          provider.configuration.websocketProvider.disconnect()
+          provider.configuration.websocketProvider.connect()
+        }
+      })
+    }
+    const handleAuthenticated = () => {
+      setConnectionIssue('')
+    }
+    provider.on('status', handleStatus)
+    provider.on('awarenessChange', handleAwareness)
+    provider.on('authenticationFailed', handleAuthenticationFailed)
+    provider.on('authenticated', handleAuthenticated)
+    const syncInitialStatus = window.setTimeout(() => {
+      setConnectionStatus(normalizeConnectionStatus(provider.configuration.websocketProvider.status))
+    }, 0)
+    return () => {
+      window.clearTimeout(syncInitialStatus)
+      provider.off('status', handleStatus)
+      provider.off('awarenessChange', handleAwareness)
+      provider.off('authenticationFailed', handleAuthenticationFailed)
+      provider.off('authenticated', handleAuthenticated)
+    }
+  }, [provider])
 
   useEffect(() => {
     return () => {
+      if (versionResetTimerRef.current) {
+        window.clearTimeout(versionResetTimerRef.current)
+      }
       provider.destroy()
     }
   }, [provider])
+
+  const connected = connectionStatus === 'connected'
+
+  const saveCurrentVersion = useCallback(async (source: 'manual' | 'auto' | 'restore') => {
+    if (!editor || versionSavingRef.current) return
+    const json = JSON.stringify(editor.getJSON())
+    const html = editor.getHTML()
+    if (json === lastVersionFingerprintRef.current) return
+
+    versionSavingRef.current = true
+    setVersionSaveState('saving')
+    try {
+      const result = await saveVersion(docId, json, html, wordCount, charCount, source)
+      lastVersionFingerprintRef.current = json
+      setVersionSaveState(result?.saved === false ? 'idle' : 'saved')
+      setLastSavedAt(new Date())
+      if (versionResetTimerRef.current) {
+        window.clearTimeout(versionResetTimerRef.current)
+      }
+      versionResetTimerRef.current = window.setTimeout(() => setVersionSaveState('idle'), 2200)
+    } catch {
+      setVersionSaveState('error')
+    } finally {
+      versionSavingRef.current = false
+    }
+  }, [charCount, docId, editor, wordCount])
+
+  // 拦截 Ctrl+S / Cmd+S，保存版本而不是浏览器保存网页
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        saveCurrentVersion('manual')
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [saveCurrentVersion])
+
+  useEffect(() => {
+    if (!editor || !connected || contentRevision === 0) return
+    const t = window.setTimeout(() => {
+      saveCurrentVersion('auto')
+    }, 12000)
+    return () => window.clearTimeout(t)
+  }, [connected, contentRevision, editor, saveCurrentVersion])
+
+  useEffect(() => {
+    const versionId = Number(searchParams.get('restoreVersion'))
+    if (!editor || !connected || !versionId || restoredVersionRef.current === versionId) return
+    restoredVersionRef.current = versionId
+    getVersion(versionId)
+      .then((version) => {
+        editor.commands.setContent(JSON.parse(version.contentJson || '{}'))
+        window.setTimeout(() => saveCurrentVersion('restore'), 300)
+        window.history.replaceState(null, '', `/doc/${docId}`)
+      })
+      .catch(() => {
+        setVersionSaveState('error')
+      })
+  }, [connected, docId, editor, saveCurrentVersion, searchParams])
+
+  const reconnectCollaboration = () => {
+    setConnectionStatus('connecting')
+    setConnectionIssue('')
+    provider.configuration.websocketProvider.disconnect()
+    provider.configuration.websocketProvider.connect()
+  }
 
   const exportHtml = () => {
     if (!editor) return
@@ -167,65 +325,120 @@ export default function CollabEditor({
     URL.revokeObjectURL(url)
   }
 
+  const handleTitleChange = (nextTitle: string) => {
+    setTitle(nextTitle)
+    if (nextTitle.trim()) {
+      setTitleSaveState('saving')
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-white">
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-sm border-b border-gray-100">
-        <div className="max-w-[900px] mx-auto px-8 h-12 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <button onClick={() => navigate('/')} className="p-1 hover:bg-gray-100 rounded-md transition">
-              <ArrowLeft className="w-4 h-4 text-gray-500" />
+    <div className="memorica-editor-shell">
+      <div className="memorica-editor-topbar">
+        <div className="memorica-editor-bar-inner">
+          {/* 左侧：返回 + 标题 */}
+          <div className="memorica-editor-left">
+            <button
+              type="button"
+              className="memorica-editor-icon-btn"
+              onClick={() => navigate('/')}
+              title="返回"
+            >
+              <ArrowLeft className="w-4 h-4" />
             </button>
-            <span className="font-medium text-gray-700">Memorica</span>
-            <span>/</span>
-            <span className="truncate max-w-[200px]">{title}</span>
+            <input
+              type="text"
+              className="memorica-editor-title-input"
+              value={title}
+              onChange={(e) => handleTitleChange(e.target.value)}
+              placeholder="无标题"
+            />
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setFindOpen(!findOpen)} className={`text-xs px-3 py-1.5 rounded-md transition ${findOpen ? 'bg-gray-200 text-gray-900' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>查找</button>
-            <button onClick={() => setAiOpen(!aiOpen)} className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-md transition ${aiOpen ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>AI</button>
-            <button onClick={async () => {
-              if (!editor) return
-              try {
-                const json = JSON.stringify(editor.getJSON())
-                const html = editor.getHTML()
-                await saveVersion(docId, json, html, wordCount, charCount)
-                alert('版本已保存')
-              } catch {
-                alert('保存版本失败')
-              }
-            }} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition">
-              <Save className="w-3.5 h-3.5" />
-              保存版本
+
+          {/* 中间：协作状态（简化为圆点） */}
+          <div className="memorica-editor-center">
+            <span
+              className="memorica-editor-collab-dot"
+              data-status={connectionStatus}
+              title={connected ? `${collaboratorCount} 人在线` : connectionIssue || '协作已断开'}
+            >
+              <span className="memorica-editor-collab-indicator" />
+              <span className="memorica-editor-collab-text">
+                {connected ? '协作中' : connectionStatus === 'connecting' ? '连接中' : '已断开'}
+              </span>
+            </span>
+            {!connected && connectionStatus === 'disconnected' && (
+              <button
+                type="button"
+                className="memorica-editor-icon-btn"
+                onClick={reconnectCollaboration}
+                title="重新连接"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* 右侧：分享 + AI + 更多 */}
+          <div className="memorica-editor-right">
+            <button
+              type="button"
+              className="memorica-editor-btn-primary"
+              onClick={() => setShareOpen(true)}
+            >
+              <Share2 className="w-4 h-4" />
+              <span>分享</span>
             </button>
-            <button onClick={() => navigate(`/doc/${docId}/versions`)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition">
-              <History className="w-3.5 h-3.5" />
-              历史
+            <button
+              type="button"
+              className={aiOpen ? 'memorica-editor-btn active' : 'memorica-editor-btn'}
+              onClick={() => setAiOpen(!aiOpen)}
+              title="AI 助手"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">AI</span>
             </button>
-            <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-              <button onClick={() => setMode('notion')} className={`px-3 py-1 text-xs rounded-md transition ${mode === 'notion' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Notion</button>
-              <button onClick={() => setMode('rich')} className={`px-3 py-1 text-xs rounded-md transition ${mode === 'rich' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>富文本</button>
-            </div>
-            <span className="text-xs text-gray-400">{wordCount} 词 / {charCount} 字</span>
-            <span className="flex items-center gap-1 text-xs text-gray-400"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: userColor }} />{userName}</span>
-            <button onClick={exportHtml} className="text-xs px-3 py-1.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition">导出</button>
+            <Dropdown
+              trigger="click"
+              position="bottomRight"
+              menu={[
+                { node: 'item', name: '查找替换', icon: <Search className="w-4 h-4" />, onClick: () => setFindOpen(true) },
+                { node: 'item', name: versionSaveState === 'saving' ? '保存版本中...' : '保存版本', icon: versionSaveState === 'saving' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />, onClick: () => saveCurrentVersion('manual') },
+                { node: 'item', name: '历史版本', icon: <History className="w-4 h-4" />, onClick: () => navigate(`/doc/${docId}/versions`) },
+                { node: 'divider' },
+                { node: 'item', name: `切换为${mode === 'notion' ? '富文本' : '轻文档'}`, icon: <FileText className="w-4 h-4" />, onClick: () => setMode(mode === 'notion' ? 'rich' : 'notion') },
+                { node: 'item', name: `字数 ${wordCount} 词 / ${charCount} 字`, icon: <Type className="w-4 h-4" /> },
+                { node: 'divider' },
+                { node: 'item', name: '导出 HTML', icon: <Download className="w-4 h-4" />, onClick: exportHtml },
+                ...(connectionStatus === 'disconnected' ? [{ node: 'item' as const, name: '重新连接协作', icon: <RefreshCw className="w-4 h-4" />, onClick: reconnectCollaboration }] : []),
+              ]}
+            >
+              <button type="button" className="memorica-editor-btn" title="更多">
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </Dropdown>
           </div>
         </div>
       </div>
       {mode === 'rich' && <Toolbar editor={editor} />}
+      <ShareSettingsPanel docId={docId} open={shareOpen} onClose={() => setShareOpen(false)} />
       <FindReplace editor={editor} open={findOpen} onClose={() => setFindOpen(false)} />
-      <div className="max-w-[900px] mx-auto px-8 py-8 relative">
-        <div className="absolute -right-[340px] top-8 w-80 hidden lg:block">
+      {aiOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/20 backdrop-blur-sm">
+          <div className="w-full max-w-sm">
+            <AIAssistant editor={editor} open={aiOpen} onClose={() => { setAiOpen(false); setAiInitialAction(null) }} initialAction={aiInitialAction} />
+          </div>
+        </div>
+      )}
+
+      {/* AI 助手 - 桌面端浮动面板 */}
+      {aiOpen && (
+        <div className="fixed right-6 top-24 z-30 hidden lg:block">
           <AIAssistant editor={editor} open={aiOpen} onClose={() => { setAiOpen(false); setAiInitialAction(null) }} initialAction={aiInitialAction} />
         </div>
-        {aiOpen && (
-          <div className="lg:hidden fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/20 backdrop-blur-sm">
-            <div className="w-full max-w-sm">
-              <AIAssistant editor={editor} open={aiOpen} onClose={() => { setAiOpen(false); setAiInitialAction(null) }} initialAction={aiInitialAction} />
-            </div>
-          </div>
-        )}
-        <div className="mb-6">
-          <textarea value={title} onChange={(e) => setTitle(e.target.value)} placeholder="无标题" className="w-full text-4xl font-bold text-gray-900 placeholder-gray-300 border-none outline-none resize-none bg-transparent leading-tight" rows={1} />
-        </div>
+      )}
+
+      <div className="max-w-[900px] mx-auto px-8 py-8">
         <div className="relative">
           {mode === 'notion' && editor && (
             <DragHandle editor={editor}>

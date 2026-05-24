@@ -5,14 +5,30 @@ import {
   Quote, Code, Image, Table,
   Minus, Type, Video, Sigma, Smile,
 } from 'lucide-react'
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { aiActionLabels, aiActionIcons, type AIAction } from '../ai/mockAI'
+import { useState, useEffect, useCallback, useRef, useMemo, type ElementType } from 'react'
+import { aiActionLabels, aiActionIcons, type AIAction } from '../ai/aiActions'
 
 interface SlashItem {
   title: string
-  icon: React.ElementType
+  icon: ElementType
   category: string
   command: (editor: Editor) => void
+}
+
+interface AIItem {
+  title: string
+  key: AIAction
+  icon: string
+}
+
+type MenuItem = SlashItem | AIItem
+
+type EmbedChain = ReturnType<Editor['chain']> & {
+  setYoutubeVideo: (options: { src: string }) => EmbedChain
+}
+
+function embedChain(editor: Editor) {
+  return editor.chain().focus() as unknown as EmbedChain
 }
 
 const blockItems: SlashItem[] = [
@@ -33,7 +49,7 @@ const blockItems: SlashItem[] = [
   }},
   { title: 'YouTube', icon: Video, category: '嵌入', command: (editor) => {
     const url = window.prompt('YouTube URL:')
-    if (url) (editor.chain().focus() as any).setYoutubeVideo({ src: url }).run()
+    if (url) embedChain(editor).setYoutubeVideo({ src: url }).run()
   }},
   { title: '数学公式', icon: Sigma, category: '嵌入', command: (editor) => {
     const formula = window.prompt('输入 LaTeX 公式（行内用 $...$，块级用 $$...$$）:')
@@ -69,25 +85,31 @@ export default function SlashMenu({ editor, onAskAI }: Props) {
     showRef.current = show
   }, [show])
 
-  const aiItems = onAskAI
-    ? Object.entries(aiActionLabels)
-        .filter(([key]) => key !== 'custom')
-        .map(([key, label]) => ({
-          title: label,
-          key: key as AIAction,
-          icon: aiActionIcons[key as AIAction],
-        }))
-    : []
+  const aiItems = useMemo<AIItem[]>(() => {
+    if (!onAskAI) return []
+    return Object.entries(aiActionLabels)
+      .filter(([key]) => key !== 'custom')
+      .map(([key, label]) => ({
+        title: label,
+        key: key as AIAction,
+        icon: aiActionIcons[key as AIAction],
+      }))
+  }, [onAskAI])
 
-  const filteredBlocks = query
-    ? blockItems.filter((i) => i.title.toLowerCase().includes(query.toLowerCase()))
-    : blockItems
+  const filteredBlocks = useMemo(() => {
+    if (!query) return blockItems
+    return blockItems.filter((i) => i.title.toLowerCase().includes(query.toLowerCase()))
+  }, [query])
 
-  const filteredAI = query
-    ? aiItems.filter((i) => i.title.toLowerCase().includes(query.toLowerCase()))
-    : aiItems
+  const filteredAI = useMemo(() => {
+    if (!query) return aiItems
+    return aiItems.filter((i) => i.title.toLowerCase().includes(query.toLowerCase()))
+  }, [aiItems, query])
 
-  const allItems = [...filteredBlocks, ...filteredAI]
+  const allItems = useMemo<MenuItem[]>(
+    () => [...filteredBlocks, ...filteredAI],
+    [filteredBlocks, filteredAI]
+  )
 
   const updatePosition = useCallback(() => {
     if (!editor) return
@@ -188,9 +210,9 @@ export default function SlashMenu({ editor, onAskAI }: Props) {
         if (!item) return
 
         if ('command' in item) {
-          ;(item as SlashItem).command(editor)
+          item.command(editor)
         } else if ('key' in item && onAskAI) {
-          onAskAI((item as { key: AIAction }).key)
+          onAskAI(item.key)
         }
         setShow(false)
         setQuery('')
@@ -224,7 +246,7 @@ export default function SlashMenu({ editor, onAskAI }: Props) {
           <div key={cat}>
             <div className="px-3 py-2 text-xs text-gray-400 uppercase tracking-wider">{cat}</div>
             {catItems.map((item) => {
-              const globalIdx = allItems.indexOf(item as any)
+              const globalIdx = allItems.findIndex((candidate) => candidate.title === item.title)
               const Icon = item.icon
               return (
                 <button

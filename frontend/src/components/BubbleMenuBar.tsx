@@ -27,6 +27,15 @@ interface Props {
   onAskAI?: () => void
 }
 
+type RichTextChain = ReturnType<Editor['chain']> & {
+  setColor: (color: string) => RichTextChain
+  unsetColor: () => RichTextChain
+  setFontFamily: (font: string) => RichTextChain
+  unsetFontFamily: () => RichTextChain
+  toggleSubscript: () => RichTextChain
+  toggleSuperscript: () => RichTextChain
+}
+
 export default function BubbleMenuBar({ editor, onAskAI }: Props) {
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showFontPicker, setShowFontPicker] = useState(false)
@@ -38,16 +47,18 @@ export default function BubbleMenuBar({ editor, onAskAI }: Props) {
       active ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-100'
     }`
 
+  const richChain = () => editor.chain().focus() as unknown as RichTextChain
+
   const setFontColor = (color: string) => {
-    ;(editor.chain().focus() as any).setColor(color).run()
+    richChain().setColor(color).run()
     setShowColorPicker(false)
   }
 
   const setFontFamily = (font: string) => {
     if (font) {
-      ;(editor.chain().focus() as any).setFontFamily(font).run()
+      richChain().setFontFamily(font).run()
     } else {
-      ;(editor.chain().focus() as any).unsetFontFamily().run()
+      richChain().unsetFontFamily().run()
     }
     setShowFontPicker(false)
   }
@@ -113,14 +124,14 @@ export default function BubbleMenuBar({ editor, onAskAI }: Props) {
       </button>
       <div className="w-px h-4 bg-gray-200 mx-1" />
       <button
-        onClick={() => (editor.chain().focus() as any).toggleSubscript().run()}
+        onClick={() => richChain().toggleSubscript().run()}
         className={btn(editor.isActive('subscript'))}
         title="下标"
       >
         <Subscript size={14} />
       </button>
       <button
-        onClick={() => (editor.chain().focus() as any).toggleSuperscript().run()}
+        onClick={() => richChain().toggleSuperscript().run()}
         className={btn(editor.isActive('superscript'))}
         title="上标"
       >
@@ -151,7 +162,7 @@ export default function BubbleMenuBar({ editor, onAskAI }: Props) {
               />
             ))}
             <button
-              onClick={() => { (editor.chain().focus() as any).unsetColor().run(); setShowColorPicker(false) }}
+              onClick={() => { richChain().unsetColor().run(); setShowColorPicker(false) }}
               className="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center text-[10px] text-gray-400"
             >
               ×

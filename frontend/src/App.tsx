@@ -1,16 +1,28 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { useAuthStore } from './stores/authStore'
-import LoginPage from './pages/LoginPage'
-import DocumentListPage from './pages/DocumentListPage'
-import EditorPage from './pages/EditorPage'
-import VersionHistoryPage from './pages/VersionHistoryPage'
+import AppErrorBoundary from './components/AppErrorBoundary'
+import AppLayout from './components/AppLayout'
+
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const DocumentListPage = lazy(() => import('./pages/DocumentListPage'))
+const EditorPage = lazy(() => import('./pages/EditorPage'))
+const VersionHistoryPage = lazy(() => import('./pages/VersionHistoryPage'))
+
+function PageFallback() {
+  return (
+    <div className="memorica-route-loading">
+      <div />
+      <span>加载 Memorica</span>
+    </div>
+  )
+}
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore()
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>
+    return <PageFallback />
   }
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
 }
@@ -23,35 +35,45 @@ function App() {
   }, [checkAuth])
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <DocumentListPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/doc/:docId"
-          element={
-            <PrivateRoute>
-              <EditorPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/doc/:docId/versions"
-          element={
-            <PrivateRoute>
-              <VersionHistoryPage />
-            </PrivateRoute>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+    <AppErrorBoundary>
+      <BrowserRouter>
+        <Suspense fallback={<PageFallback />}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <AppLayout>
+                    <DocumentListPage />
+                  </AppLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/doc/:docId"
+              element={
+                <PrivateRoute>
+                  <AppLayout>
+                    <EditorPage />
+                  </AppLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/doc/:docId/versions"
+              element={
+                <PrivateRoute>
+                  <AppLayout>
+                    <VersionHistoryPage />
+                  </AppLayout>
+                </PrivateRoute>
+              }
+            />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </AppErrorBoundary>
   )
 }
 

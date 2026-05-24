@@ -84,6 +84,7 @@ class RepositoryIntegrationTest {
                 .title("Integration Doc")
                 .owner(owner)
                 .ownerName("IT Owner")
+                .workspaceId("personal-" + owner.getId())
                 .wordCount(50)
                 .charCount(200)
                 .build();
@@ -102,10 +103,11 @@ class RepositoryIntegrationTest {
                     .title("Doc " + i)
                     .owner(owner)
                     .ownerName("IT Owner")
+                    .workspaceId("personal-" + owner.getId())
                     .build());
         }
 
-        Page<Document> page = documentRepository.findByOwnerId(owner.getId(), PageRequest.of(0, 2));
+        Page<Document> page = documentRepository.findByOwnerIdAndDeletedAtIsNull(owner.getId(), PageRequest.of(0, 2));
         assertEquals(2, page.getContent().size());
         assertTrue(page.getTotalElements() >= 3);
     }
@@ -117,10 +119,11 @@ class RepositoryIntegrationTest {
                 .title("Public Doc")
                 .owner(owner)
                 .ownerName("IT Owner")
+                .workspaceId("personal-" + owner.getId())
                 .isPublic(true)
                 .build());
 
-        Page<Document> page = documentRepository.findByIsPublicTrue(PageRequest.of(0, 10));
+        Page<Document> page = documentRepository.findByIsPublicTrueAndDeletedAtIsNull(PageRequest.of(0, 10));
         assertTrue(page.getTotalElements() > 0);
     }
 }

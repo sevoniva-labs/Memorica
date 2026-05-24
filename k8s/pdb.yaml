@@ -1,0 +1,32 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: memorica-api
+  namespace: memorica
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: memorica-api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: memorica-hocuspocus
+  namespace: memorica
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: memorica-hocuspocus
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: memorica-frontend
+  namespace: memorica
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: memorica-frontend

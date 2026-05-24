@@ -1,11 +1,12 @@
 const { Server } = require('@hocuspocus/server')
 const { Logger } = require('@hocuspocus/extension-logger')
-const { getDoc, saveDoc, checkDocumentAccess } = require('./db')
+const { getDoc, saveDoc, getDocumentAccess } = require('./db')
 const jwt = require('jsonwebtoken')
+const Y = require('yjs')
 require('dotenv').config()
 
 const PORT = parseInt(process.env.PORT || '1234', 10)
-const JWT_SECRET = process.env.JWT_SECRET || 'memorica-jwt-secret-key-2026-very-long-and-secure'
+const JWT_SECRET = requiredSecret('JWT_SECRET')
 const REDIS_URL = process.env.REDIS_URL || null
 const MAX_DOCUMENT_SIZE = parseInt(process.env.MAX_DOCUMENT_SIZE || String(10 * 1024 * 1024), 10) // 10MB
 const MAX_CONNECTIONS = parseInt(process.env.MAX_CONNECTIONS || '1000', 10)
@@ -19,16 +20,33 @@ function verifyToken(token) {
   }
 }
 
+function requiredSecret(name) {
+  const value = process.env[name]
+  if (!value || Buffer.byteLength(value, 'utf8') < 32) {
+    throw new Error(`${name} must be configured and at least 32 bytes`)
+  }
+  return value
+}
+
 const extensions = [new Logger()]
+
+function redisConfigFromUrl(value) {
+  const parsed = new URL(value)
+  return {
+    host: parsed.hostname,
+    port: parsed.port ? Number(parsed.port) : 6379,
+    options: parsed.password ? { password: decodeURIComponent(parsed.password) } : {},
+  }
+}
 
 // Redis extension for horizontal scaling (multi-instance broadcast)
 if (REDIS_URL) {
   try {
     const { Redis } = require('@hocuspocus/extension-redis')
-    extensions.push(new Redis({ url: REDIS_URL }))
+    extensions.push(new Redis(redisConfigFromUrl(REDIS_URL)))
     console.log('[Hocuspocus] Redis extension enabled for multi-instance scaling')
   } catch (e) {
-    console.warn('[Hocuspocus] @hocuspocus/extension-redis not installed; running single-instance')
+    console.warn(`[Hocuspocus] Redis extension disabled: ${e.message}`)
   }
 }
 
@@ -52,7 +70,8 @@ const server = new Server({
     return null
   },
 
-  async onStoreDocument({ documentName, state }) {
+  async onStoreDocument({ documentName, document }) {
+    const state = Y.encodeStateAsUpdate(document)
     if (state.length > MAX_DOCUMENT_SIZE) {
       console.warn(`[Hocuspocus] Document ${documentName} exceeds size limit, rejecting store`)
       return
@@ -62,8 +81,7 @@ const server = new Server({
 
   async onAuthenticate({ token, documentName }) {
     if (!token) {
-      // Allow read-only anonymous access for public documents
-      return { user: { name: 'Guest', color: '#9ca3af' }, connectionProps: { role: 'viewer' } }
+      throw new Error('Authentication required')
     }
 
     const payload = verifyToken(token)
@@ -71,17 +89,16 @@ const server = new Server({
       throw new Error('Invalid token')
     }
 
-    // Check document-level access permission
-    const hasAccess = await checkDocumentAccess(documentName, payload.sub)
-    if (!hasAccess) {
-      throw new Error('Access denied to this document')
+    const access = await getDocumentAccess(documentName, payload.sub)
+    if (!access?.canWrite) {
+      throw new Error('Write access denied to this document')
     }
 
     const name = payload.username || payload.displayName || 'User'
     const color = payload.color || '#2563eb'
     return {
       user: { name, color, id: payload.sub },
-      connectionProps: { role: 'editor' },
+      connectionProps: { role: access.role },
     }
   },
 

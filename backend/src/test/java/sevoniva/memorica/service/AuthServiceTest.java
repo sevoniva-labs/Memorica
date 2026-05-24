@@ -36,13 +36,17 @@ class AuthServiceTest {
     private JwtUtil jwtUtil;
     @Mock
     private TokenBlacklistService tokenBlacklistService;
+    @Mock
+    private AuditService auditService;
+    @Mock
+    private WorkspaceService workspaceService;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         authService = new AuthService(userRepository, passwordEncoder,
-                authenticationManager, jwtUtil, tokenBlacklistService);
+                authenticationManager, jwtUtil, tokenBlacklistService, auditService, workspaceService);
     }
 
     @Test
@@ -68,6 +72,7 @@ class AuthServiceTest {
         var result = authService.register(req);
         assertNotNull(result.getData());
         verify(userRepository).save(any(User.class));
+        verify(workspaceService).ensurePersonalWorkspace(any(User.class));
     }
 
     @Test

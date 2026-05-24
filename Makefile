@@ -22,8 +22,10 @@ backend-build: ## Build backend JAR
 backend-test: ## Run backend tests
 	cd backend && ./gradlew test --no-daemon
 
-backend-lint: ## Check backend code style
+backend-check: ## Run backend compile, tests, architecture, migration, and coverage checks
 	cd backend && ./gradlew check --no-daemon
+
+backend-lint: backend-check ## Alias for backend quality checks
 
 # --- Frontend ---
 
@@ -38,6 +40,20 @@ frontend-build: ## Build frontend for production
 
 frontend-lint: ## Lint frontend
 	cd frontend && npm run lint
+
+frontend-audit: ## Audit frontend production dependencies
+	cd frontend && npm audit --omit=dev --audit-level=high
+
+# --- Collaboration ---
+
+hocuspocus-install: ## Install collaboration service dependencies
+	cd hocuspocus && npm ci
+
+hocuspocus-check: ## Check collaboration service syntax
+	cd hocuspocus && node -c src/server.js && node -c src/db.js
+
+hocuspocus-audit: ## Audit collaboration production dependencies
+	cd hocuspocus && npm audit --omit=dev --audit-level=high
 
 # --- Database ---
 
@@ -60,9 +76,9 @@ docker-push: ## Push Docker images to registry
 
 # --- CI ---
 
-ci: lint test ## Run full CI pipeline locally
+ci: backend-check frontend-lint frontend-build frontend-audit hocuspocus-check hocuspocus-audit ## Run full CI pipeline locally
 
-lint: backend-lint frontend-lint ## Run all linters
+lint: backend-lint frontend-lint hocuspocus-check ## Run all linters and syntax checks
 
 test: backend-test ## Run all tests
 

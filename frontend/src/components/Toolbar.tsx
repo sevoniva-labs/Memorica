@@ -10,7 +10,7 @@ import {
   Highlighter, Minus,
   Subscript, Superscript,
   Palette, Type,
-  Focus, Upload,
+  Upload, Video,
 } from 'lucide-react'
 import { uploadFile } from '../api/client'
 
@@ -35,9 +35,20 @@ interface ToolbarProps {
   editor: Editor | null
 }
 
+type RichTextChain = ReturnType<Editor['chain']> & {
+  setColor: (color: string) => RichTextChain
+  unsetColor: () => RichTextChain
+  setFontFamily: (font: string) => RichTextChain
+  unsetFontFamily: () => RichTextChain
+  toggleSubscript: () => RichTextChain
+  toggleSuperscript: () => RichTextChain
+  setYoutubeVideo: (options: { src: string }) => RichTextChain
+}
+
 export default function Toolbar({ editor }: ToolbarProps) {
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showFontPicker, setShowFontPicker] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!editor) return null
 
@@ -48,7 +59,7 @@ export default function Toolbar({ editor }: ToolbarProps) {
         : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
     }`
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const richChain = () => editor.chain().focus() as unknown as RichTextChain
 
   const addImage = () => {
     const url = window.prompt('图片 URL:')
@@ -78,19 +89,19 @@ export default function Toolbar({ editor }: ToolbarProps) {
 
   const addYoutube = () => {
     const url = window.prompt('YouTube URL:')
-    if (url) (editor.chain().focus() as any).setYoutubeVideo({ src: url }).run()
+    if (url) richChain().setYoutubeVideo({ src: url }).run()
   }
 
   const setFontColor = (color: string) => {
-    ;(editor.chain().focus() as any).setColor(color).run()
+    richChain().setColor(color).run()
     setShowColorPicker(false)
   }
 
   const setFontFamily = (font: string) => {
     if (font) {
-      ;(editor.chain().focus() as any).setFontFamily(font).run()
+      richChain().setFontFamily(font).run()
     } else {
-      ;(editor.chain().focus() as any).unsetFontFamily().run()
+      richChain().unsetFontFamily().run()
     }
     setShowFontPicker(false)
   }
@@ -119,8 +130,8 @@ export default function Toolbar({ editor }: ToolbarProps) {
 
           {/* 上标下标 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => (editor.chain().focus() as any).toggleSubscript().run()} className={btnClass(editor.isActive('subscript'))} title="下标"><Subscript size={16} /></button>
-            <button onClick={() => (editor.chain().focus() as any).toggleSuperscript().run()} className={btnClass(editor.isActive('superscript'))} title="上标"><Superscript size={16} /></button>
+            <button onClick={() => richChain().toggleSubscript().run()} className={btnClass(editor.isActive('subscript'))} title="下标"><Subscript size={16} /></button>
+            <button onClick={() => richChain().toggleSuperscript().run()} className={btnClass(editor.isActive('superscript'))} title="上标"><Superscript size={16} /></button>
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
@@ -149,7 +160,7 @@ export default function Toolbar({ editor }: ToolbarProps) {
                   />
                 ))}
                 <button
-                  onClick={() => { (editor.chain().focus() as any).unsetColor().run(); setShowColorPicker(false) }}
+                  onClick={() => { richChain().unsetColor().run(); setShowColorPicker(false) }}
                   className="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center text-[10px] text-gray-400 hover:text-gray-600"
                   title="清除颜色"
                 >
@@ -219,20 +230,10 @@ export default function Toolbar({ editor }: ToolbarProps) {
             <button onClick={() => fileInputRef.current?.click()} className={btnClass(false)} title="上传图片"><Upload size={16} /></button>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
             <button onClick={addTable} className={btnClass(editor.isActive('table'))} title="表格"><Table size={16} /></button>
-            <button onClick={addYoutube} className={btnClass(false)} title="YouTube"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></button>
+            <button onClick={addYoutube} className={btnClass(false)} title="YouTube"><Video size={16} /></button>
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
-          {/* 专注模式 */}
-          <div className="flex items-center gap-0.5">
-            <button
-              onClick={() => alert('专注模式已启用：当前段落会自动高亮，其他段落会淡化显示')}
-              className={btnClass(false)}
-              title="专注模式"
-            >
-              <Focus size={16} />
-            </button>
-          </div>
         </div>
       </div>
     </div>

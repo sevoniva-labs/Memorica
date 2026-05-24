@@ -25,17 +25,23 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final TokenBlacklistService tokenBlacklistService;
+    private final AuditService auditService;
+    private final WorkspaceService workspaceService;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        AuthenticationManager authenticationManager,
                        JwtUtil jwtUtil,
-                       @org.springframework.beans.factory.annotation.Autowired(required = false) TokenBlacklistService tokenBlacklistService) {
+                       @org.springframework.beans.factory.annotation.Autowired(required = false) TokenBlacklistService tokenBlacklistService,
+                       AuditService auditService,
+                       WorkspaceService workspaceService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.tokenBlacklistService = tokenBlacklistService;
+        this.auditService = auditService;
+        this.workspaceService = workspaceService;
     }
 
     private static final String[] COLORS = {
@@ -60,6 +66,9 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
+        workspaceService.ensurePersonalWorkspace(user);
+        auditService.log(user.getId(), user.getUsername(), "AUTH_REGISTER",
+                "USER", String.valueOf(user.getId()), "User registered", null);
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail(), user.getUsername());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getEmail(), user.getUsername());
 
@@ -76,6 +85,8 @@ public class AuthService {
         );
         UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
         User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
+        auditService.log(user.getId(), user.getUsername(), "AUTH_LOGIN",
+                "USER", String.valueOf(user.getId()), "User logged in", null);
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail(), user.getUsername());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getEmail(), user.getUsername());
 
@@ -102,6 +113,8 @@ public class AuthService {
         if (tokenBlacklistService != null) {
             tokenBlacklistService.blacklist(refreshToken, oldExpiration);
         }
+        auditService.log(userId, username, "AUTH_REFRESH",
+                "USER", String.valueOf(userId), "Refresh token rotated", null);
 
         String newAccessToken = jwtUtil.generateAccessToken(userId, email, username);
         String newRefreshToken = jwtUtil.generateRefreshToken(userId, email, username);
@@ -113,10 +126,14 @@ public class AuthService {
     }
 
     public ApiResponse<?> logout(String token) {
+        Long userId = jwtUtil.getUserIdFromToken(token);
+        String username = jwtUtil.getUsernameFromToken(token);
         if (tokenBlacklistService != null) {
             long expiration = jwtUtil.getTokenExpiration(token);
             tokenBlacklistService.blacklist(token, expiration);
         }
+        auditService.log(userId, username, "AUTH_LOGOUT",
+                "USER", String.valueOf(userId), "Access token revoked", null);
         return ApiResponse.success(null);
     }
 

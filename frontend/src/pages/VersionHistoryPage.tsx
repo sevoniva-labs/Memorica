@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { listVersions, getVersion, getDocument, type DocumentVersion, type DocumentItem } from '../api/client'
+import {
+  listVersions,
+  getVersion,
+  getDocument,
+  type DocumentVersion,
+  type DocumentVersionDetail,
+  type DocumentItem,
+} from '../api/client'
 import { ArrowLeft, FileText, Clock, User, RotateCcw } from 'lucide-react'
 
 export default function VersionHistoryPage() {
@@ -8,8 +15,9 @@ export default function VersionHistoryPage() {
   const navigate = useNavigate()
   const [doc, setDoc] = useState<DocumentItem | null>(null)
   const [versions, setVersions] = useState<DocumentVersion[]>([])
-  const [selectedVersion, setSelectedVersion] = useState<any>(null)
+  const [selectedVersion, setSelectedVersion] = useState<DocumentVersionDetail | null>(null)
   const [loading, setLoading] = useState(true)
+  const [restoring, setRestoring] = useState(false)
 
   useEffect(() => {
     if (!docId) return
@@ -25,6 +33,12 @@ export default function VersionHistoryPage() {
   const handleSelect = async (versionId: number) => {
     const v = await getVersion(versionId)
     setSelectedVersion(v)
+  }
+
+  const handleRestore = () => {
+    if (!docId || !selectedVersion || restoring) return
+    setRestoring(true)
+    navigate(`/doc/${docId}?restoreVersion=${selectedVersion.id}`)
   }
 
   const formatDate = (s: string) => {
@@ -103,16 +117,12 @@ export default function VersionHistoryPage() {
                     </p>
                   </div>
                   <button
-                    onClick={() => {
-                      // 回退到该版本：将 contentJson 写回编辑器（通过打开编辑器并替换内容）
-                      // 简化：复制内容提示
-                      navigator.clipboard.writeText(selectedVersion.contentJson).catch(() => {})
-                      alert('版本内容 JSON 已复制到剪贴板')
-                    }}
+                    onClick={handleRestore}
+                    disabled={restoring}
                     className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    复制内容
+                    {restoring ? '恢复中' : '恢复此版本'}
                   </button>
                 </div>
                 {selectedVersion.snapshotHtml ? (

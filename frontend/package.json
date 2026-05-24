@@ -10,7 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@douyinfe/semi-icons": "^2.99.2",
+    "@douyinfe/semi-ui-19": "^2.99.2",
     "@hocuspocus/provider": "^4.1.0",
+    "@semi-bot/semi-theme-feishu": "^1.0.0",
     "@tiptap/extension-bubble-menu": "^3.23.6",
     "@tiptap/extension-character-count": "^3.23.6",
     "@tiptap/extension-collaboration": "^3.23.6",
@@ -45,7 +48,7 @@
     "@tiptap/suggestion": "^3.23.6",
     "@tiptap/y-tiptap": "^3.0.3",
     "axios": "^1.16.1",
-    "katex": "^0.17.0",
+    "katex": "^0.16.22",
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

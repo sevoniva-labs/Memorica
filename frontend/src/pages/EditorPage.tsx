@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import CollabEditor from '../components/CollabEditor'
 import { getDocument, type DocumentItem } from '../api/client'
 import { ArrowLeft } from 'lucide-react'
+import { useAuthStore } from '../stores/authStore'
 
 export default function EditorPage() {
   const { docId } = useParams<{ docId: string }>()
@@ -10,7 +11,7 @@ export default function EditorPage() {
   const [doc, setDoc] = useState<DocumentItem | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const user = useAuthStore((s) => s.user)
 
   useEffect(() => {
     if (!docId) return
@@ -46,8 +47,8 @@ export default function EditorPage() {
   return (
     <CollabEditor
       docId={docId!}
-      userName={user.displayName || user.username || '匿名用户'}
-      userColor={user.color || '#2563eb'}
+      userName={user?.displayName || user?.username || '匿名用户'}
+      userColor={user?.color || '#2563eb'}
       initialTitle={doc.title}
     />
   )
