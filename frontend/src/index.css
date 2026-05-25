@@ -140,7 +140,7 @@ body {
   width: 260px;
   display: flex;
   flex-direction: column;
-  background: #1e40af;
+  background: #6E62E8;
   border-right: 0;
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: sticky;
@@ -1181,7 +1181,7 @@ body {
   --memo-tertiary: #9ca3af;
   --memo-line: #e5e7eb;
   --memo-soft-line: #f3f4f6;
-  --memo-sidebar: #1e40af;
+  --memo-sidebar: #6E62E8;
   min-height: 100vh;
   background: #fff;
   color: var(--memo-text);
