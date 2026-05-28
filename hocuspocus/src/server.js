@@ -79,7 +79,7 @@ const server = new Server({
     await saveDoc(documentName, Buffer.from(state))
   },
 
-  async onAuthenticate({ token, documentName }) {
+  async onAuthenticate({ token, documentName, connectionConfig }) {
     if (!token) {
       throw new Error('Authentication required')
     }
@@ -90,15 +90,16 @@ const server = new Server({
     }
 
     const access = await getDocumentAccess(documentName, payload.sub)
-    if (!access?.canWrite) {
-      throw new Error('Write access denied to this document')
+    if (!access?.canRead) {
+      throw new Error('Read access denied to this document')
     }
+    connectionConfig.readOnly = !access.canWrite
 
     const name = payload.username || payload.displayName || 'User'
     const color = payload.color || '#2563eb'
     return {
       user: { name, color, id: payload.sub },
-      connectionProps: { role: access.role },
+      connectionProps: { role: access.role, readOnly: connectionConfig.readOnly },
     }
   },
 

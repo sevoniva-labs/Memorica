@@ -75,8 +75,16 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379
 
+  drawio:
+    restart: always
+
   frontend:
     restart: always
+    build:
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_WS_URL: ${VITE_WS_URL:-}
+        VITE_DRAWIO_URL: ${VITE_DRAWIO_URL:-https://embed.diagrams.net/}
 
   nginx:
     image: nginx:${NGINX_IMAGE_TAG:-1.27-alpine}

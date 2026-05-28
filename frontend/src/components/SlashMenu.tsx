@@ -2,8 +2,8 @@ import { Editor } from '@tiptap/react'
 import {
   Heading1, Heading2, Heading3,
   List, ListOrdered, ListChecks,
-  Quote, Code, Image, Table,
-  Minus, Type, Video, Sigma, Smile,
+  Quote, Code, Image, Paperclip, Table,
+  Minus, Type, Video, Sigma, Smile, Workflow,
 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef, useMemo, type ElementType } from 'react'
 import { aiActionLabels, aiActionIcons, type AIAction } from '../ai/aiActions'
@@ -31,7 +31,12 @@ function embedChain(editor: Editor) {
   return editor.chain().focus() as unknown as EmbedChain
 }
 
-const blockItems: SlashItem[] = [
+function createBlockItems(
+  onCreateDiagram?: () => void,
+  onUploadImage?: () => void,
+  onUploadAttachment?: () => void
+): SlashItem[] {
+  return [
   { title: '文本', icon: Type, category: '基础', command: (editor) => editor.chain().focus().setParagraph().run() },
   { title: '标题 1', icon: Heading1, category: '基础', command: (editor) => editor.chain().focus().toggleHeading({ level: 1 }).run() },
   { title: '标题 2', icon: Heading2, category: '基础', command: (editor) => editor.chain().focus().toggleHeading({ level: 2 }).run() },
@@ -47,10 +52,28 @@ const blockItems: SlashItem[] = [
     const url = window.prompt('图片 URL:')
     if (url) editor.chain().focus().setImage({ src: url }).run()
   }},
+  ...(onUploadImage ? [{
+    title: '上传图片',
+    icon: Image,
+    category: '媒体',
+    command: () => onUploadImage(),
+  }] : []),
+  ...(onUploadAttachment ? [{
+    title: '附件',
+    icon: Paperclip,
+    category: '媒体',
+    command: () => onUploadAttachment(),
+  }] : []),
   { title: 'YouTube', icon: Video, category: '嵌入', command: (editor) => {
     const url = window.prompt('YouTube URL:')
     if (url) embedChain(editor).setYoutubeVideo({ src: url }).run()
   }},
+  ...(onCreateDiagram ? [{
+    title: '图示',
+    icon: Workflow,
+    category: '嵌入',
+    command: () => onCreateDiagram(),
+  }] : []),
   { title: '数学公式', icon: Sigma, category: '嵌入', command: (editor) => {
     const formula = window.prompt('输入 LaTeX 公式（行内用 $...$，块级用 $$...$$）:')
     if (formula) {
@@ -65,20 +88,28 @@ const blockItems: SlashItem[] = [
   { title: '表情符号', icon: Smile, category: '嵌入', command: (editor) => {
     editor.chain().focus().insertContent(':smile:').run()
   }},
-]
+  ]
+}
 
 interface Props {
   editor: Editor | null
   onAskAI?: (action: AIAction) => void
+  onCreateDiagram?: () => void
+  onUploadImage?: () => void
+  onUploadAttachment?: () => void
 }
 
-export default function SlashMenu({ editor, onAskAI }: Props) {
+export default function SlashMenu({ editor, onAskAI, onCreateDiagram, onUploadImage, onUploadAttachment }: Props) {
   const [show, setShow] = useState(false)
   const [selected, setSelected] = useState(0)
   const [query, setQuery] = useState('')
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const showRef = useRef(show)
   const menuRef = useRef<HTMLDivElement>(null)
+  const blockItems = useMemo(
+    () => createBlockItems(onCreateDiagram, onUploadImage, onUploadAttachment),
+    [onCreateDiagram, onUploadAttachment, onUploadImage]
+  )
 
   // 保持 ref 与 state 同步
   useEffect(() => {
@@ -99,7 +130,7 @@ export default function SlashMenu({ editor, onAskAI }: Props) {
   const filteredBlocks = useMemo(() => {
     if (!query) return blockItems
     return blockItems.filter((i) => i.title.toLowerCase().includes(query.toLowerCase()))
-  }, [query])
+  }, [blockItems, query])
 
   const filteredAI = useMemo(() => {
     if (!query) return aiItems

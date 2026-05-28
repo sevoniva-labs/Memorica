@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
 
@@ -6,6 +6,16 @@ export const api = axios.create({
   baseURL: `${API_BASE}/api/v1`,
   headers: { 'Content-Type': 'application/json' },
 })
+
+type RetriableRequestConfig = InternalAxiosRequestConfig & { _retry?: boolean }
+
+let refreshPromise: Promise<string | null> | null = null
+
+export function apiErrorMessage(error: unknown, fallback: string) {
+  const err = error as AxiosError<{ message?: string; error?: string }>
+  if (!err.response) return '网络不可用，请检查连接后重试'
+  return err.response.data?.message || fallback
+}
 
 function generateTraceId(): string {
   return Math.random().toString(36).substring(2, 10)
@@ -20,13 +30,50 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+function clearSessionAndRedirect() {
+  localStorage.removeItem('accessToken')
+  localStorage.removeItem('refreshToken')
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login'
+  }
+}
+
+async function refreshAccessTokenDirect() {
+  const refreshToken = localStorage.getItem('refreshToken')
+  if (!refreshToken) return null
+
+  try {
+    const res = await axios.post(`${API_BASE}/api/v1/auth/refresh`, { refreshToken })
+    const { accessToken, refreshToken: nextRefresh } = res.data.data
+    localStorage.setItem('accessToken', accessToken)
+    localStorage.setItem('refreshToken', nextRefresh)
+    return accessToken as string
+  } catch {
+    return null
+  }
+}
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err: AxiosError) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
-      window.location.href = '/login'
+      const original = err.config as RetriableRequestConfig | undefined
+      const url = original?.url || ''
+      const isAuthRequest = url.includes('/auth/login') || url.includes('/auth/refresh')
+
+      if (original && !original._retry && !isAuthRequest) {
+        original._retry = true
+        refreshPromise = refreshPromise || refreshAccessTokenDirect().finally(() => {
+          refreshPromise = null
+        })
+        const token = await refreshPromise
+        if (token) {
+          original.headers.Authorization = `Bearer ${token}`
+          return api(original)
+        }
+      }
+
+      clearSessionAndRedirect()
     }
     return Promise.reject(err)
   }
@@ -52,6 +99,8 @@ export interface DocumentItem {
   charCount: number
   isPublic?: boolean
   isFavorite?: boolean
+  canWrite?: boolean
+  canManage?: boolean
   coverImage?: string
   createdAt: string
   updatedAt: string
@@ -83,6 +132,15 @@ export interface AIGenerateResponse {
   provider: string
   model: string
   text: string
+}
+
+export interface UploadedFileInfo {
+  objectName: string
+  url: string
+  originalName: string
+  contentType: string
+  sizeBytes: number
+  documentId?: string
 }
 
 export interface DocumentSharingMember {
@@ -154,6 +212,11 @@ export async function listMyDocuments(page = 0, size = 20, q?: string, parentId?
 
 export async function listPublicDocuments(page = 0, size = 20, q?: string) {
   const res = await api.get('/documents/public', { params: { page, size, q: q || undefined } })
+  return (res.data.data as PageResponse<DocumentItem>).content
+}
+
+export async function listSharedDocuments(page = 0, size = 20, q?: string) {
+  const res = await api.get('/documents/shared', { params: { page, size, q: q || undefined } })
   return (res.data.data as PageResponse<DocumentItem>).content
 }
 
@@ -284,6 +347,39 @@ export async function saveVersion(
   return res.data.data
 }
 
+export function saveVersionKeepalive(
+  id: string,
+  contentJson: string,
+  snapshotHtml: string,
+  wordCount: number,
+  charCount: number,
+  source: 'manual' | 'auto' | 'restore' = 'auto'
+) {
+  const token = localStorage.getItem('accessToken')
+  if (!token) return false
+
+  const body = JSON.stringify({
+    contentJson,
+    snapshotHtml,
+    wordCount,
+    charCount,
+    source,
+  })
+  if (new Blob([body]).size > 60 * 1024) return false
+
+  void fetch(`${API_BASE}/api/v1/documents/${id}/versions`, {
+    method: 'POST',
+    keepalive: true,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      'X-Trace-Id': generateTraceId(),
+    },
+    body,
+  }).catch(() => undefined)
+  return true
+}
+
 export async function listVersions(id: string, page = 0, size = 20) {
   const res = await api.get(`/documents/${id}/versions`, { params: { page, size } })
   return (res.data.data as PageResponse<DocumentVersion>).content
@@ -299,11 +395,19 @@ export async function generateAI(request: AIGenerateRequest) {
   return res.data.data as AIGenerateResponse
 }
 
-export async function uploadFile(file: File) {
+export async function uploadFile(file: File, documentId?: string) {
   const form = new FormData()
   form.append('file', file)
+  if (documentId) {
+    form.append('documentId', documentId)
+  }
   const res = await api.post('/files/upload', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
-  return res.data.data as { objectName: string; url: string }
+  return res.data.data as UploadedFileInfo
+}
+
+export async function getFileUrl(objectName: string) {
+  const res = await api.get(`/files/view/${encodeURIComponent(objectName)}`)
+  return res.data.data as UploadedFileInfo
 }

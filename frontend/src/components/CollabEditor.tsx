@@ -1,9 +1,8 @@
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Placeholder } from '@tiptap/extension-placeholder'
 import { Underline } from '@tiptap/extension-underline'
 import { Link } from '@tiptap/extension-link'
-import { Image } from '@tiptap/extension-image'
 import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
@@ -36,21 +35,37 @@ import Toolbar from './Toolbar'
 import AIAssistant from './AIAssistant'
 import FindReplace from './FindReplace'
 import ShareSettingsPanel from './ShareSettingsPanel'
-import { getVersion, updateDocumentMeta, saveVersion } from '../api/client'
+import DrawioDialog from './DrawioDialog'
+import { Diagram, type DiagramAttrs, type DiagramEditPayload } from '../extensions/Diagram'
+import { Attachment, type AttachmentAttrs } from '../extensions/Attachment'
+import { DocumentImage } from '../extensions/DocumentImage'
+import { apiErrorMessage, getVersion, listVersions, updateDocumentMeta, saveVersion, saveVersionKeepalive, uploadFile } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { useSidebar } from '../contexts/SidebarContext'
 import Dropdown from '@douyinfe/semi-ui-19/lib/es/dropdown'
-import { ArrowLeft, Download, FileText, History, Loader2, MoreHorizontal, RefreshCw, Save, Search, Share2, Sparkles, Type } from 'lucide-react'
+import Toast from '@douyinfe/semi-ui-19/lib/es/toast'
+import { ArrowLeft, Download, FileText, History, ImageIcon, Loader2, MoreHorizontal, Paperclip, RefreshCw, Search, Share2, Sparkles, Type, Workflow } from 'lucide-react'
 
 interface Props {
   docId?: string
   userName?: string
   userColor?: string
   initialTitle?: string
+  initialCanWrite?: boolean
 }
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
-type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'local'
+type SaveSource = 'manual' | 'auto' | 'restore'
+
+interface LocalDraft {
+  contentJson: string
+  snapshotHtml: string
+  title: string
+  wordCount: number
+  charCount: number
+  updatedAt: string
+}
 
 function defaultWebSocketUrl() {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -78,11 +93,70 @@ async function getCollaborationToken() {
   return (await useAuthStore.getState().refreshAccessToken()) || ''
 }
 
+function draftStorageKey(docId: string) {
+  return `memorica:draft:${docId}`
+}
+
+function readLocalDraft(key: string): LocalDraft | null {
+  try {
+    const value = localStorage.getItem(key)
+    return value ? JSON.parse(value) as LocalDraft : null
+  } catch {
+    return null
+  }
+}
+
+function writeLocalDraft(key: string, draft: LocalDraft) {
+  try {
+    localStorage.setItem(key, JSON.stringify(draft))
+  } catch {
+    return
+  }
+}
+
+function removeLocalDraft(key: string) {
+  try {
+    localStorage.removeItem(key)
+  } catch {
+    return
+  }
+}
+
+function snapshotEditor(editor: Editor, title: string): LocalDraft {
+  const text = editor.getText()
+  return {
+    contentJson: JSON.stringify(editor.getJSON()),
+    snapshotHtml: editor.getHTML(),
+    title: title.trim() || '未命名文档',
+    wordCount: text.split(/\s+/).filter(Boolean).length,
+    charCount: editor.storage.characterCount?.characters() ?? text.length,
+    updatedAt: new Date().toISOString(),
+  }
+}
+
+function saveStateText(state: SaveState, issue = '') {
+  if (state === 'saving') return '正在保存'
+  if (state === 'saved') return '已保存'
+  if (state === 'local') return issue.startsWith('网络不可用') ? '离线中' : '正在保存'
+  if (state === 'error') return '保存失败'
+  return '已保存'
+}
+
+function shouldShowSavedAt(state: SaveState) {
+  return state === 'saved' || state === 'idle'
+}
+
+function formatSavedAt(value: Date | null) {
+  if (!value) return ''
+  return value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
 export default function CollabEditor({
   docId = 'default-doc',
   userName = '匿名用户',
   userColor = '#2563eb',
   initialTitle,
+  initialCanWrite = true,
 }: Props) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -94,19 +168,40 @@ export default function CollabEditor({
   const [aiInitialAction, setAiInitialAction] = useState<AIAction | null>(null)
   const [findOpen, setFindOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  const [drawioOpen, setDrawioOpen] = useState(false)
+  const [activeDiagram, setActiveDiagram] = useState<DiagramEditPayload | null>(null)
+  const [uploadingFile, setUploadingFile] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting')
   const [connectionIssue, setConnectionIssue] = useState('')
   const [collaboratorCount, setCollaboratorCount] = useState(1)
+  const [canEdit, setCanEdit] = useState(initialCanWrite)
   const [, setTitleSaveState] = useState<SaveState>('idle')
   const [versionSaveState, setVersionSaveState] = useState<SaveState>('idle')
+  const [saveIssue, setSaveIssue] = useState('')
   const [contentRevision, setContentRevision] = useState(0)
-  const [, setLastSavedAt] = useState<Date | null>(null)
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const { updateDocTitle } = useSidebar()
+  const draftKey = useMemo(() => draftStorageKey(docId), [docId])
+  const [recoverableDraft, setRecoverableDraft] = useState<LocalDraft | null>(() => readLocalDraft(draftStorageKey(docId)))
+  const localDraftRef = useRef<LocalDraft | null>(recoverableDraft)
   const lastVersionFingerprintRef = useRef('')
   const versionSavingRef = useRef(false)
+  const saveCurrentVersionRef = useRef<(source: SaveSource) => Promise<void>>(async () => {})
+  const queuedSaveSourceRef = useRef<SaveSource | null>(null)
+  const retrySaveTimerRef = useRef<number | null>(null)
   const versionResetTimerRef = useRef<number | null>(null)
+  const hasUnsavedChangesRef = useRef(false)
   const restoredVersionRef = useRef<number | null>(null)
+  const bootstrappedVersionRef = useRef(false)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const attachmentInputRef = useRef<HTMLInputElement>(null)
   const mentionUsers = useMemo(() => [{ id: 'current-user', label: userName }], [userName])
+
+  const openCreateDiagram = useCallback(() => {
+    if (!canEdit) return
+    setActiveDiagram(null)
+    setDrawioOpen(true)
+  }, [canEdit])
 
   // 创建 Yjs Doc 和 Hocuspocus Provider
   const [yDoc] = useState(() => new Y.Doc())
@@ -119,9 +214,10 @@ export default function CollabEditor({
       name: docId,
       document: yDoc,
       token: getCollaborationToken,
-      onAuthenticated: () => {
+      onAuthenticated: ({ scope }: { scope?: string }) => {
         setConnectionStatus('connected')
         setConnectionIssue('')
+        setCanEdit(scope !== 'readonly')
       },
     })
   })
@@ -141,7 +237,7 @@ export default function CollabEditor({
       }),
       Underline,
       Link.configure({ openOnClick: false }),
-      Image.configure({ HTMLAttributes: { class: 'notion-image' } }),
+      DocumentImage.configure({ HTMLAttributes: { class: 'notion-image' } }),
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
@@ -165,6 +261,8 @@ export default function CollabEditor({
       Youtube.configure({ inline: false, width: 640, height: 360, HTMLAttributes: { class: 'youtube-embed' } }),
       CharacterCount.configure({ mode: 'textSize' }),
       Mathematics.configure({ katexOptions: { throwOnError: false } }),
+      Attachment,
+      Diagram,
       // 协作扩展
       Collaboration.configure({ document: yDoc }),
       CollaborationCaret.configure({
@@ -178,14 +276,33 @@ export default function CollabEditor({
     onUpdate: ({ editor }) => {
       setWordCount(editor.getText().split(/\s+/).filter(Boolean).length)
       setCharCount(editor.storage.characterCount?.characters() ?? 0)
+      hasUnsavedChangesRef.current = true
+      setSaveIssue('')
+      setVersionSaveState((state) => state === 'saving' ? state : 'saving')
       setContentRevision((revision) => revision + 1)
     },
   })
 
   useEffect(() => {
+    editor?.setEditable(canEdit)
+  }, [canEdit, editor])
+
+  useEffect(() => {
+    const handleDiagramEdit = (event: Event) => {
+      if (!canEdit) return
+      const detail = (event as CustomEvent<DiagramEditPayload>).detail
+      if (!detail) return
+      setActiveDiagram(detail)
+      setDrawioOpen(true)
+    }
+    window.addEventListener('memorica:diagram-edit', handleDiagramEdit)
+    return () => window.removeEventListener('memorica:diagram-edit', handleDiagramEdit)
+  }, [canEdit])
+
+  useEffect(() => {
     // 实时同步全局 sidebar 列表中的标题
     updateDocTitle(docId, title.trim())
-    if (!title.trim()) return
+    if (!canEdit || !title.trim()) return
     const t = setTimeout(() => {
       updateDocumentMeta(docId, title.trim())
         .then(() => {
@@ -195,7 +312,7 @@ export default function CollabEditor({
         .catch(() => setTitleSaveState('error'))
     }, 800)
     return () => clearTimeout(t)
-  }, [docId, title, updateDocTitle])
+  }, [canEdit, docId, title, updateDocTitle])
 
   useEffect(() => {
     const handleStatus = ({ status }: { status: ConnectionStatus }) => {
@@ -217,8 +334,9 @@ export default function CollabEditor({
         }
       })
     }
-    const handleAuthenticated = () => {
+    const handleAuthenticated = ({ scope }: { scope?: string }) => {
       setConnectionIssue('')
+      setCanEdit(scope !== 'readonly')
     }
     provider.on('status', handleStatus)
     provider.on('awarenessChange', handleAwareness)
@@ -241,24 +359,70 @@ export default function CollabEditor({
       if (versionResetTimerRef.current) {
         window.clearTimeout(versionResetTimerRef.current)
       }
+      if (retrySaveTimerRef.current) {
+        window.clearTimeout(retrySaveTimerRef.current)
+      }
       provider.destroy()
     }
   }, [provider])
 
   const connected = connectionStatus === 'connected'
 
-  const saveCurrentVersion = useCallback(async (source: 'manual' | 'auto' | 'restore') => {
-    if (!editor || versionSavingRef.current) return
-    const json = JSON.stringify(editor.getJSON())
-    const html = editor.getHTML()
-    if (json === lastVersionFingerprintRef.current) return
+  const persistCurrentDraft = useCallback(() => {
+    if (!editor || !canEdit) return null
+    const draft = snapshotEditor(editor, title)
+    writeLocalDraft(draftKey, draft)
+    localDraftRef.current = draft
+    hasUnsavedChangesRef.current = true
+    return draft
+  }, [canEdit, draftKey, editor, title])
+
+  const clearDraft = useCallback(() => {
+    removeLocalDraft(draftKey)
+    localDraftRef.current = null
+    hasUnsavedChangesRef.current = false
+    setRecoverableDraft(null)
+  }, [draftKey])
+
+  const flushDraftKeepalive = useCallback(() => {
+    if (!editor || !canEdit || !hasUnsavedChangesRef.current) return false
+    const draft = persistCurrentDraft()
+    if (!draft || draft.contentJson === lastVersionFingerprintRef.current || !navigator.onLine) return false
+    return saveVersionKeepalive(docId, draft.contentJson, draft.snapshotHtml, draft.wordCount, draft.charCount, 'auto')
+  }, [canEdit, docId, editor, persistCurrentDraft])
+
+  const saveCurrentVersion = useCallback(async (source: SaveSource) => {
+    if (!editor || !canEdit) return
+    if (versionSavingRef.current) {
+      queuedSaveSourceRef.current = source
+      setVersionSaveState('saving')
+      return
+    }
+
+    const draft = persistCurrentDraft()
+    if (!draft) return
+
+    if (draft.contentJson === lastVersionFingerprintRef.current) {
+      clearDraft()
+      setVersionSaveState('saved')
+      setSaveIssue('')
+      return
+    }
+
+    if (!navigator.onLine) {
+      setVersionSaveState('local')
+      setSaveIssue('网络不可用，恢复网络后会自动保存')
+      return
+    }
 
     versionSavingRef.current = true
     setVersionSaveState('saving')
     try {
-      const result = await saveVersion(docId, json, html, wordCount, charCount, source)
-      lastVersionFingerprintRef.current = json
+      const result = await saveVersion(docId, draft.contentJson, draft.snapshotHtml, draft.wordCount, draft.charCount, source)
+      lastVersionFingerprintRef.current = draft.contentJson
+      clearDraft()
       setVersionSaveState(result?.saved === false ? 'idle' : 'saved')
+      setSaveIssue('')
       setLastSavedAt(new Date())
       if (versionResetTimerRef.current) {
         window.clearTimeout(versionResetTimerRef.current)
@@ -266,10 +430,26 @@ export default function CollabEditor({
       versionResetTimerRef.current = window.setTimeout(() => setVersionSaveState('idle'), 2200)
     } catch {
       setVersionSaveState('error')
+      setSaveIssue('保存未完成，稍后会自动重试')
+      if (!retrySaveTimerRef.current) {
+        retrySaveTimerRef.current = window.setTimeout(() => {
+          retrySaveTimerRef.current = null
+          void saveCurrentVersionRef.current('auto')
+        }, 6000)
+      }
     } finally {
       versionSavingRef.current = false
+      const queuedSource = queuedSaveSourceRef.current
+      queuedSaveSourceRef.current = null
+      if (queuedSource) {
+        window.setTimeout(() => void saveCurrentVersionRef.current(queuedSource), 0)
+      }
     }
-  }, [charCount, docId, editor, wordCount])
+  }, [canEdit, clearDraft, docId, editor, persistCurrentDraft])
+
+  useEffect(() => {
+    saveCurrentVersionRef.current = saveCurrentVersion
+  }, [saveCurrentVersion])
 
   // 拦截 Ctrl+S / Cmd+S，保存版本而不是浏览器保存网页
   useEffect(() => {
@@ -284,12 +464,82 @@ export default function CollabEditor({
   }, [saveCurrentVersion])
 
   useEffect(() => {
-    if (!editor || !connected || contentRevision === 0) return
-    const t = window.setTimeout(() => {
+    if (!editor || !canEdit || contentRevision === 0) return
+    const localTimer = window.setTimeout(() => {
+      persistCurrentDraft()
+      setVersionSaveState((state) => state === 'saving' ? state : 'saving')
+    }, 300)
+    const remoteTimer = window.setTimeout(() => {
       saveCurrentVersion('auto')
-    }, 12000)
-    return () => window.clearTimeout(t)
-  }, [connected, contentRevision, editor, saveCurrentVersion])
+    }, 1600)
+    return () => {
+      window.clearTimeout(localTimer)
+      window.clearTimeout(remoteTimer)
+    }
+  }, [canEdit, contentRevision, editor, persistCurrentDraft, saveCurrentVersion])
+
+  useEffect(() => {
+    if (!editor || !connected || bootstrappedVersionRef.current) return
+    bootstrappedVersionRef.current = true
+    const timer = window.setTimeout(() => {
+      if (!editor.isEmpty) return
+      listVersions(docId, 0, 1)
+        .then((versions) => versions[0] ? getVersion(versions[0].id) : null)
+        .then((version) => {
+          if (!version || !editor.isEmpty) return
+          editor.commands.setContent(JSON.parse(version.contentJson || '{}'))
+          lastVersionFingerprintRef.current = version.contentJson || ''
+          hasUnsavedChangesRef.current = false
+        })
+        .catch(() => {
+          bootstrappedVersionRef.current = false
+        })
+    }, 900)
+    return () => window.clearTimeout(timer)
+  }, [connected, docId, editor])
+
+  useEffect(() => {
+    const handleOnline = () => {
+      if (localDraftRef.current || readLocalDraft(draftKey)) {
+        if (retrySaveTimerRef.current) {
+          window.clearTimeout(retrySaveTimerRef.current)
+          retrySaveTimerRef.current = null
+        }
+        void saveCurrentVersion('auto')
+      }
+    }
+    window.addEventListener('online', handleOnline)
+    return () => window.removeEventListener('online', handleOnline)
+  }, [draftKey, saveCurrentVersion])
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!canEdit || !editor) return
+      if (!hasUnsavedChangesRef.current && versionSaveState !== 'saving') return
+      flushDraftKeepalive()
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [canEdit, editor, flushDraftKeepalive, versionSaveState])
+
+  useEffect(() => {
+    const handlePageHide = () => {
+      flushDraftKeepalive()
+    }
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        flushDraftKeepalive()
+      }
+    }
+    window.addEventListener('pagehide', handlePageHide)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [flushDraftKeepalive])
 
   useEffect(() => {
     const versionId = Number(searchParams.get('restoreVersion'))
@@ -313,6 +563,23 @@ export default function CollabEditor({
     provider.configuration.websocketProvider.connect()
   }
 
+  const restoreLocalDraft = () => {
+    if (!editor || !recoverableDraft || !canEdit) return
+    try {
+      editor.commands.setContent(JSON.parse(recoverableDraft.contentJson || '{}'))
+      setTitle(recoverableDraft.title || title)
+      setRecoverableDraft(null)
+      hasUnsavedChangesRef.current = true
+      window.setTimeout(() => void saveCurrentVersion('auto'), 300)
+    } catch {
+      setVersionSaveState('error')
+    }
+  }
+
+  const discardLocalDraft = () => {
+    clearDraft()
+  }
+
   const exportHtml = () => {
     if (!editor) return
     const html = `<h1>${title}</h1>` + editor.getHTML()
@@ -326,11 +593,82 @@ export default function CollabEditor({
   }
 
   const handleTitleChange = (nextTitle: string) => {
+    if (!canEdit) return
     setTitle(nextTitle)
     if (nextTitle.trim()) {
       setTitleSaveState('saving')
     }
   }
+
+  const closeDrawio = () => {
+    setDrawioOpen(false)
+    setActiveDiagram(null)
+  }
+
+  const saveDiagram = (value: DiagramAttrs) => {
+    const payload = {
+      ...value,
+      title: value.title || activeDiagram?.attrs.title || '图示',
+      updatedAt: value.updatedAt || new Date().toISOString(),
+    }
+    if (activeDiagram) {
+      activeDiagram.updateAttributes(payload)
+    } else {
+      editor?.chain().focus().insertContent({ type: 'diagram', attrs: payload }).run()
+    }
+    closeDrawio()
+    setVersionSaveState('saving')
+    window.setTimeout(() => void saveCurrentVersionRef.current('auto'), 300)
+  }
+
+  const uploadSelectedFile = useCallback(async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    target: 'image' | 'attachment'
+  ) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || !editor || !canEdit || uploadingFile) return
+
+    setUploadingFile(true)
+    setVersionSaveState('saving')
+    try {
+      const uploaded = await uploadFile(file, docId)
+      const attachmentAttrs: AttachmentAttrs = {
+        objectName: uploaded.objectName,
+        url: uploaded.url,
+        name: uploaded.originalName || file.name,
+        sizeBytes: uploaded.sizeBytes || file.size,
+        contentType: uploaded.contentType || file.type,
+        uploadedAt: new Date().toISOString(),
+      }
+
+      if (target === 'image' && (uploaded.contentType || file.type).startsWith('image/')) {
+        editor.chain().focus().insertContent({
+          type: 'image',
+          attrs: {
+            src: uploaded.url,
+            alt: uploaded.originalName || file.name,
+            title: uploaded.originalName || file.name,
+            objectName: uploaded.objectName,
+            contentType: uploaded.contentType || file.type,
+            sizeBytes: uploaded.sizeBytes || file.size,
+          },
+        }).run()
+      } else {
+      editor.chain().focus().insertContent({ type: 'attachment', attrs: attachmentAttrs }).run()
+      }
+
+      setVersionSaveState('saving')
+      window.setTimeout(() => void saveCurrentVersionRef.current('auto'), 300)
+      Toast.success('文件已插入')
+    } catch (error) {
+      setVersionSaveState('error')
+      setSaveIssue('上传失败，文档内容没有丢失')
+      Toast.error(apiErrorMessage(error, '上传失败，请稍后重试'))
+    } finally {
+      setUploadingFile(false)
+    }
+  }, [canEdit, docId, editor, uploadingFile])
 
   return (
     <div className="memorica-editor-shell">
@@ -352,6 +690,7 @@ export default function CollabEditor({
               value={title}
               onChange={(e) => handleTitleChange(e.target.value)}
               placeholder="无标题"
+              disabled={!canEdit}
             />
           </div>
 
@@ -367,6 +706,21 @@ export default function CollabEditor({
                 {connected ? '协作中' : connectionStatus === 'connecting' ? '连接中' : '已断开'}
               </span>
             </span>
+            <span className="memorica-editor-save-status" data-state={!canEdit ? 'readonly' : versionSaveState}>
+              <span title={saveIssue || (lastSavedAt ? `上次保存 ${formatSavedAt(lastSavedAt)}` : undefined)}>
+                {!canEdit ? '只读' : saveStateText(versionSaveState, saveIssue)}
+                {shouldShowSavedAt(versionSaveState) && lastSavedAt ? ` ${formatSavedAt(lastSavedAt)}` : ''}
+              </span>
+            </span>
+            {canEdit && versionSaveState === 'error' && (
+              <button
+                type="button"
+                className="memorica-editor-sync-btn"
+                onClick={() => saveCurrentVersion('manual')}
+              >
+                重试
+              </button>
+            )}
             {!connected && connectionStatus === 'disconnected' && (
               <button
                 type="button"
@@ -394,6 +748,7 @@ export default function CollabEditor({
               className={aiOpen ? 'memorica-editor-btn active' : 'memorica-editor-btn'}
               onClick={() => setAiOpen(!aiOpen)}
               title="AI 助手"
+              disabled={!canEdit}
             >
               <Sparkles className="w-4 h-4" />
               <span className="hidden sm:inline">AI</span>
@@ -403,7 +758,9 @@ export default function CollabEditor({
               position="bottomRight"
               menu={[
                 { node: 'item', name: '查找替换', icon: <Search className="w-4 h-4" />, onClick: () => setFindOpen(true) },
-                { node: 'item', name: versionSaveState === 'saving' ? '保存版本中...' : '保存版本', icon: versionSaveState === 'saving' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />, onClick: () => saveCurrentVersion('manual') },
+                ...(canEdit ? [{ node: 'item' as const, name: '插入图示', icon: <Workflow className="w-4 h-4" />, onClick: openCreateDiagram }] : []),
+                ...(canEdit ? [{ node: 'item' as const, name: uploadingFile ? '上传中...' : '上传图片', icon: uploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />, onClick: () => imageInputRef.current?.click() }] : []),
+                ...(canEdit ? [{ node: 'item' as const, name: uploadingFile ? '上传中...' : '上传附件', icon: uploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />, onClick: () => attachmentInputRef.current?.click() }] : []),
                 { node: 'item', name: '历史版本', icon: <History className="w-4 h-4" />, onClick: () => navigate(`/doc/${docId}/versions`) },
                 { node: 'divider' },
                 { node: 'item', name: `切换为${mode === 'notion' ? '富文本' : '轻文档'}`, icon: <FileText className="w-4 h-4" />, onClick: () => setMode(mode === 'notion' ? 'rich' : 'notion') },
@@ -420,9 +777,47 @@ export default function CollabEditor({
           </div>
         </div>
       </div>
-      {mode === 'rich' && <Toolbar editor={editor} />}
+      <input
+        ref={imageInputRef}
+        data-testid="memorica-image-upload"
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(event) => void uploadSelectedFile(event, 'image')}
+      />
+      <input
+        ref={attachmentInputRef}
+        data-testid="memorica-attachment-upload"
+        type="file"
+        accept="image/*,application/pdf"
+        hidden
+        onChange={(event) => void uploadSelectedFile(event, 'attachment')}
+      />
+      {recoverableDraft && canEdit && (
+        <div className="memorica-editor-draft-banner">
+          <span>发现上次未保存的内容，更新时间 {new Date(recoverableDraft.updatedAt).toLocaleString()}</span>
+          <button type="button" onClick={restoreLocalDraft}>恢复</button>
+          <button type="button" onClick={discardLocalDraft}>忽略</button>
+        </div>
+      )}
+      {mode === 'rich' && (
+        <Toolbar
+          editor={editor}
+          onCreateDiagram={canEdit ? openCreateDiagram : undefined}
+          onUploadImage={canEdit ? () => imageInputRef.current?.click() : undefined}
+          onUploadAttachment={canEdit ? () => attachmentInputRef.current?.click() : undefined}
+          uploading={uploadingFile}
+        />
+      )}
       <ShareSettingsPanel docId={docId} open={shareOpen} onClose={() => setShareOpen(false)} />
       <FindReplace editor={editor} open={findOpen} onClose={() => setFindOpen(false)} />
+      <DrawioDialog
+        open={drawioOpen}
+        initialXml={activeDiagram?.attrs.xml}
+        initialTitle={activeDiagram?.attrs.title || '图示'}
+        onCancel={closeDrawio}
+        onSave={saveDiagram}
+      />
       {aiOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/20 backdrop-blur-sm">
           <div className="w-full max-w-sm">
@@ -447,9 +842,15 @@ export default function CollabEditor({
               </div>
             </DragHandle>
           )}
-          {mode === 'notion' && <BubbleMenuBar editor={editor} onAskAI={() => setAiOpen(true)} />}
+          {mode === 'notion' && <BubbleMenuBar editor={editor} onAskAI={canEdit ? () => setAiOpen(true) : undefined} />}
           <EditorContent editor={editor} />
-          <SlashMenu editor={editor} onAskAI={(action) => { setAiInitialAction(action); setAiOpen(true) }} />
+          <SlashMenu
+            editor={editor}
+            onAskAI={canEdit ? (action) => { setAiInitialAction(action); setAiOpen(true) } : undefined}
+            onCreateDiagram={canEdit ? openCreateDiagram : undefined}
+            onUploadImage={canEdit ? () => imageInputRef.current?.click() : undefined}
+            onUploadAttachment={canEdit ? () => attachmentInputRef.current?.click() : undefined}
+          />
         </div>
       </div>
     </div>

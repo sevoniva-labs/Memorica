@@ -1,7 +1,9 @@
 package sevoniva.memorica.integration;
 
 import sevoniva.memorica.entity.Document;
+import sevoniva.memorica.entity.DocumentPermission;
 import sevoniva.memorica.entity.User;
+import sevoniva.memorica.repository.DocumentPermissionRepository;
 import sevoniva.memorica.repository.DocumentRepository;
 import sevoniva.memorica.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +53,9 @@ class RepositoryIntegrationTest {
 
     @Autowired
     private DocumentRepository documentRepository;
+
+    @Autowired
+    private DocumentPermissionRepository documentPermissionRepository;
 
     private User owner;
 
@@ -125,5 +130,45 @@ class RepositoryIntegrationTest {
 
         Page<Document> page = documentRepository.findByIsPublicTrueAndDeletedAtIsNull(PageRequest.of(0, 10));
         assertTrue(page.getTotalElements() > 0);
+    }
+
+    @Test
+    void shouldFindSharedDocumentsWithoutSearchTerm() {
+        User viewer = userRepository.save(User.builder()
+                .username("viewer-" + UUID.randomUUID().toString().substring(0, 8))
+                .email("viewer-" + UUID.randomUUID().toString().substring(0, 6) + "@it.com")
+                .password("pass")
+                .color("#2563eb")
+                .displayName("IT Viewer")
+                .build());
+        Document shared = documentRepository.save(Document.builder()
+                .id(UUID.randomUUID().toString())
+                .title("Shared Roadmap")
+                .owner(owner)
+                .ownerName("IT Owner")
+                .workspaceId("personal-" + owner.getId())
+                .isPublic(false)
+                .build());
+        documentPermissionRepository.save(DocumentPermission.builder()
+                .documentId(shared.getId())
+                .userId(owner.getId())
+                .role(DocumentPermission.ROLE_OWNER)
+                .grantedBy(owner.getId())
+                .build());
+        documentPermissionRepository.save(DocumentPermission.builder()
+                .documentId(shared.getId())
+                .userId(viewer.getId())
+                .role(DocumentPermission.ROLE_VIEWER)
+                .grantedBy(owner.getId())
+                .build());
+
+        Page<Document> all = documentRepository.findSharedWithUser(
+                viewer.getId(), DocumentPermission.ROLE_OWNER, PageRequest.of(0, 10));
+        Page<Document> searched = documentRepository.findSharedWithUserByTitleContaining(
+                viewer.getId(), DocumentPermission.ROLE_OWNER, "road", PageRequest.of(0, 10));
+
+        assertEquals(1, all.getTotalElements());
+        assertEquals(shared.getId(), all.getContent().get(0).getId());
+        assertEquals(1, searched.getTotalElements());
     }
 }

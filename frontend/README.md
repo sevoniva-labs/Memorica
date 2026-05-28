@@ -28,10 +28,21 @@ npm run build
 npm run lint
 
 # E2E 测试
-npx playwright test
+npm run test:e2e
 ```
 
-开发服务器默认运行在 `http://localhost:5173`，代理到后端 `http://localhost:8080`。配置见 `vite.config.ts`。
+开发服务器默认运行在 `http://localhost:5173`，代理到后端 `http://localhost:8080`。E2E 默认使用 `http://127.0.0.1:5174`，避免和手动开发端口冲突：
+
+```bash
+E2E_BASE_URL=http://127.0.0.1:5174 \
+E2E_API_BASE_URL=http://127.0.0.1:8080/api/v1 \
+npm run test:e2e
+
+# 真实 AI 提供商回归，默认跳过以避免无密钥或额度导致主回归不稳定
+E2E_RUN_AI=true npm run test:e2e -- --grep "AI provider"
+```
+
+配置见 `vite.config.ts` 和 `playwright.config.ts`。
 
 ## 项目结构
 
@@ -46,6 +57,7 @@ src/
 │   ├── AppLayout.tsx      # 全局布局：Sidebar + Main
 │   ├── CollabEditor.tsx   # 协作编辑器（TipTap + Yjs）
 │   ├── Toolbar.tsx        # 富文本工具栏
+│   ├── DrawioDialog.tsx   # diagrams.net 图示编辑器嵌入
 │   ├── BubbleMenuBar.tsx  # 行内浮动菜单
 │   ├── SlashMenu.tsx      # / 命令菜单
 │   ├── AIAssistant.tsx    # AI 助手浮动面板
@@ -76,6 +88,8 @@ src/
 - 标题修改通过 `updateDocumentMeta` API 异步保存，同时通过 `SidebarContext` 本地乐观更新 sidebar 列表
 - 文档内容通过 Yjs + Hocuspocus 自动同步，12 秒无操作后自动保存版本快照
 - `Ctrl+S` / `Cmd+S` 触发手动保存版本
+- `VITE_DRAWIO_URL` 控制图示编辑器地址，生产环境建议使用自托管 diagrams.net 服务
+- 上传图片和附件会绑定当前文档，分享用户按文档权限刷新临时访问链接
 
 ## 样式约定
 

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Editor } from '@tiptap/react'
 import {
   Bold, Italic, Underline, Strikethrough,
@@ -10,9 +10,9 @@ import {
   Highlighter, Minus,
   Subscript, Superscript,
   Palette, Type,
-  Upload, Video,
+  Paperclip, Upload, Video,
+  Workflow,
 } from 'lucide-react'
-import { uploadFile } from '../api/client'
 
 const colors = [
   '#000000', '#ef4444', '#f97316', '#eab308',
@@ -33,6 +33,10 @@ const fonts = [
 
 interface ToolbarProps {
   editor: Editor | null
+  onCreateDiagram?: () => void
+  onUploadImage?: () => void
+  onUploadAttachment?: () => void
+  uploading?: boolean
 }
 
 type RichTextChain = ReturnType<Editor['chain']> & {
@@ -45,10 +49,9 @@ type RichTextChain = ReturnType<Editor['chain']> & {
   setYoutubeVideo: (options: { src: string }) => RichTextChain
 }
 
-export default function Toolbar({ editor }: ToolbarProps) {
+export default function Toolbar({ editor, onCreateDiagram, onUploadImage, onUploadAttachment, uploading }: ToolbarProps) {
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showFontPicker, setShowFontPicker] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!editor) return null
 
@@ -64,18 +67,6 @@ export default function Toolbar({ editor }: ToolbarProps) {
   const addImage = () => {
     const url = window.prompt('图片 URL:')
     if (url) editor.chain().focus().setImage({ src: url }).run()
-  }
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !editor) return
-    try {
-      const res = await uploadFile(file)
-      editor.chain().focus().setImage({ src: res.url }).run()
-    } catch {
-      alert('图片上传失败')
-    }
-    e.target.value = ''
   }
 
   const addLink = () => {
@@ -227,9 +218,20 @@ export default function Toolbar({ editor }: ToolbarProps) {
             <button onClick={() => editor.chain().focus().setHorizontalRule().run()} className={btnClass(false)} title="分隔线"><Minus size={16} /></button>
             <button onClick={addLink} className={btnClass(editor.isActive('link'))} title="链接"><Link size={16} /></button>
             <button onClick={addImage} className={btnClass(false)} title="图片 URL"><Image size={16} /></button>
-            <button onClick={() => fileInputRef.current?.click()} className={btnClass(false)} title="上传图片"><Upload size={16} /></button>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+            {onUploadImage && (
+              <button onClick={onUploadImage} className={btnClass(false)} title={uploading ? '上传中' : '上传图片'} disabled={uploading}>
+                <Upload size={16} />
+              </button>
+            )}
+            {onUploadAttachment && (
+              <button onClick={onUploadAttachment} className={btnClass(false)} title={uploading ? '上传中' : '上传附件'} disabled={uploading}>
+                <Paperclip size={16} />
+              </button>
+            )}
             <button onClick={addTable} className={btnClass(editor.isActive('table'))} title="表格"><Table size={16} /></button>
+            {onCreateDiagram && (
+              <button onClick={onCreateDiagram} className={btnClass(false)} title="图示"><Workflow size={16} /></button>
+            )}
             <button onClick={addYoutube} className={btnClass(false)} title="YouTube"><Video size={16} /></button>
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />

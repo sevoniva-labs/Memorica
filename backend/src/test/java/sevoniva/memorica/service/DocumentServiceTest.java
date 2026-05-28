@@ -146,6 +146,8 @@ class DocumentServiceTest {
         var result = documentService.getDocument("doc-1");
 
         assertEquals("Shared", result.getData().getTitle());
+        assertFalse(result.getData().getCanWrite());
+        assertFalse(result.getData().getCanManage());
     }
 
     @Test
@@ -160,6 +162,8 @@ class DocumentServiceTest {
         var result = documentService.getDocument("doc-1");
 
         assertEquals("Team", result.getData().getTitle());
+        assertFalse(result.getData().getCanWrite());
+        assertFalse(result.getData().getCanManage());
     }
 
     @Test
@@ -197,6 +201,23 @@ class DocumentServiceTest {
 
         var result = documentService.listMyDocuments(0, 20);
         assertEquals(1, result.getData().getTotalElements());
+    }
+
+    @Test
+    void listSharedDocuments_shouldReturnDocumentsGrantedToCurrentUser() {
+        User owner = User.builder().id(2L).username("owner").displayName("Owner").build();
+        Document doc = Document.builder().id("doc-1").title("Shared").owner(owner)
+                .ownerName("Owner").workspaceId("team-1").wordCount(0).charCount(0).isPublic(false).build();
+        Page<Document> page = new PageImpl<>(List.of(doc));
+        when(documentRepository.findSharedWithUser(eq(1L), eq(DocumentPermission.ROLE_OWNER), any(Pageable.class)))
+                .thenReturn(page);
+        when(permissionService.canWrite("doc-1", 1L)).thenReturn(true);
+
+        var result = documentService.listSharedDocuments(0, 20, null);
+
+        assertEquals(1, result.getData().getTotalElements());
+        assertEquals("Shared", result.getData().getContent().get(0).getTitle());
+        assertEquals(Boolean.TRUE, result.getData().getContent().get(0).getCanWrite());
     }
 
     @Test
@@ -354,10 +375,9 @@ class DocumentServiceTest {
         var result = documentService.getDocument("doc-1");
 
         assertEquals("Mine", result.getData().getTitle());
-        verify(documentUserStateRepository).save(argThat(state ->
-                "doc-1".equals(state.getDocumentId())
-                        && state.getUserId().equals(1L)
-                        && state.getLastOpenedAt() != null));
+        assertTrue(result.getData().getCanWrite());
+        assertTrue(result.getData().getCanManage());
+        verify(documentUserStateRepository).upsertLastOpened("doc-1", 1L);
     }
 
     @Test
@@ -370,7 +390,7 @@ class DocumentServiceTest {
         var result = documentService.setFavorite("doc-1", true);
 
         assertEquals("Mine", result.getData().getTitle());
-        verify(documentUserStateRepository).save(argThat(state -> Boolean.TRUE.equals(state.getIsFavorite())));
+        verify(documentUserStateRepository).upsertFavorite("doc-1", 1L, true);
     }
 
     @Test

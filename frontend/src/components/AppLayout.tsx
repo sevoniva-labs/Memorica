@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { listRecentDocuments } from '../api/client'
 import type { DocumentItem } from '../api/client'
@@ -32,7 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return false
     }
   })
-  const initRef = useRef(true)
+  const [initialRender, setInitialRender] = useState(true)
   const [recentDocs, setRecentDocs] = useState<DocumentItem[]>([])
   const [query, setQuery] = useState('')
 
@@ -56,7 +56,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     refreshRecentDocs()
     // 首次渲染后移除 no-transition，恢复 width 动画
     const t = window.setTimeout(() => {
-      initRef.current = false
+      setInitialRender(false)
       const sidebar = document.querySelector('.memorica-app-sidebar')
       if (sidebar) sidebar.classList.remove('no-transition')
     }, 50)
@@ -78,7 +78,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       value={{ recentDocs, refreshRecentDocs, updateDocTitle, collapsed, setCollapsed, query, setQuery }}
     >
       <div className="memorica-app-layout">
-        <aside className={`memorica-app-sidebar${collapsed ? ' collapsed' : ''}${initRef.current ? ' no-transition' : ''}`}>
+        <aside className={`memorica-app-sidebar${collapsed ? ' collapsed' : ''}${initialRender ? ' no-transition' : ''}`}>
           <div className="memorica-app-sidebar-header">
             <button
               type="button"
@@ -86,7 +86,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               onClick={() => {
                 const next = !collapsed
                 setCollapsed(next)
-                try { localStorage.setItem('memorica-sidebar-collapsed', String(next)) } catch {}
+                try {
+                  localStorage.setItem('memorica-sidebar-collapsed', String(next))
+                } catch {
+                  return
+                }
               }}
               title={collapsed ? '展开' : '收起'}
             >

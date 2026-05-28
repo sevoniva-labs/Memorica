@@ -46,10 +46,12 @@ export default function EditorPage() {
 
   return (
     <CollabEditor
+      key={docId}
       docId={docId!}
       userName={user?.displayName || user?.username || '匿名用户'}
       userColor={user?.color || '#2563eb'}
       initialTitle={doc.title}
+      initialCanWrite={doc.canWrite !== false}
     />
   )
 }

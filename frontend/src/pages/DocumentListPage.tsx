@@ -35,6 +35,7 @@ import {
   listMyDocuments,
   listPublicDocuments,
   listRecentDocuments,
+  listSharedDocuments,
   listTrashDocuments,
   listWorkspaceDocuments,
   listWorkspaceFolders,
@@ -51,7 +52,7 @@ import { useSidebar } from '../contexts/SidebarContext'
 const { Header, Content } = Layout
 const { Text, Title } = Typography
 
-type TabKey = 'workspace' | 'my' | 'recent' | 'favorite' | 'public' | 'trash'
+type TabKey = 'workspace' | 'my' | 'recent' | 'favorite' | 'shared' | 'public' | 'trash'
 
 interface WorkspaceRow extends DocumentItem {
   key: string
@@ -91,6 +92,7 @@ async function loadDocuments(tab: TabKey, workspaceId?: string, query = '', pare
     return listWorkspaceDocuments(workspaceId, 0, 20, keyword, parentId)
   }
   if (tab === 'my') return listMyDocuments(0, 20, keyword, parentId)
+  if (tab === 'shared') return listSharedDocuments(0, 20, keyword)
   if (tab === 'public') return listPublicDocuments(0, 20, keyword)
   if (tab === 'recent') return listRecentDocuments(0, 20)
   if (tab === 'favorite') return listFavoriteDocuments(0, 20)
@@ -469,7 +471,9 @@ export default function DocumentListPage() {
             ? '收藏'
             : tab === 'trash'
               ? '回收站'
-              : '与我共享'
+              : tab === 'public'
+                ? '公开文档'
+                : '与我共享'
 
   const topTitle = tab === 'workspace' ? '文档库' : activeTitle
 
@@ -507,7 +511,8 @@ export default function DocumentListPage() {
     { itemKey: 'my', tab: '归我所有' },
     { itemKey: 'recent', tab: '最近访问' },
     { itemKey: 'favorite', tab: '收藏' },
-    { itemKey: 'public', tab: '与我共享' },
+    { itemKey: 'shared', tab: '与我共享' },
+    { itemKey: 'public', tab: '公开文档' },
     { itemKey: 'trash', tab: '回收站' },
   ]
 
@@ -515,7 +520,9 @@ export default function DocumentListPage() {
     ? { title: '没有匹配的文档', desc: '换个关键词再试试。', showBtn: false }
     : tab === 'trash'
       ? { title: '回收站为空', desc: '删除的文档会显示在这里。', showBtn: false }
-      : tab === 'public'
+      : tab === 'shared'
+        ? { title: '暂无共享文档', desc: '别人分享给你的文档会显示在这里。', showBtn: false }
+        : tab === 'public'
         ? { title: '暂无公开文档', desc: '公开文档会显示在这里。', showBtn: false }
         : { title: '还没有文档', desc: '创建你的第一个文档，开始记录想法。', showBtn: true }
 

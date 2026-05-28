@@ -18,6 +18,8 @@ public class DocumentResponse {
     private Integer charCount;
     private Boolean isPublic;
     private Boolean isFavorite;
+    private Boolean canWrite;
+    private Boolean canManage;
     private String coverImage;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

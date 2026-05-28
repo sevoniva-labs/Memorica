@@ -461,6 +461,62 @@ body {
   display: inline;
 }
 
+.memorica-editor-save-status {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid #edf0f4;
+  background: #fff;
+  color: #667085;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.memorica-editor-save-status[data-state="saving"] {
+  color: #245bdb;
+  background: #eef3ff;
+  border-color: #dbe7ff;
+}
+
+.memorica-editor-save-status[data-state="saved"] {
+  color: #12805c;
+  background: #ecfdf5;
+  border-color: #d5f5e5;
+}
+
+.memorica-editor-save-status[data-state="local"],
+.memorica-editor-save-status[data-state="error"] {
+  color: #a15c07;
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.memorica-editor-save-status[data-state="readonly"] {
+  color: #5f6672;
+  background: #f7f8fa;
+}
+
+.memorica-editor-sync-btn {
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  color: #9a3412;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.memorica-editor-sync-btn:hover {
+  background: #fffbeb;
+  border-color: #fdba74;
+}
+
 /* 右侧：按钮组 */
 .memorica-editor-right {
   display: flex;
@@ -492,6 +548,12 @@ body {
   background: #f2f3f5;
 }
 
+.memorica-editor-btn:disabled,
+.memorica-editor-title-input:disabled {
+  color: #98a2b3;
+  cursor: not-allowed;
+}
+
 .memorica-editor-btn.active {
   color: #245bdb;
   background: #eef3ff;
@@ -517,6 +579,30 @@ body {
 
 .memorica-editor-btn-primary:hover {
   background: #2860e0;
+}
+
+.memorica-editor-draft-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 40px;
+  border-bottom: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 13px;
+}
+
+.memorica-editor-draft-banner button {
+  height: 26px;
+  border: 1px solid #fdba74;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #9a3412;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 .memorica-share-overlay {
@@ -1028,6 +1114,229 @@ body {
   border-radius: 8px;
   margin: 8px 0;
   border: none;
+}
+
+.memorica-document-image {
+  display: block;
+  margin: 12px 0;
+}
+
+.memorica-document-image img {
+  display: block;
+  max-width: 100%;
+  max-height: 720px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.memorica-document-image-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #e7eaf0;
+  border-radius: 8px;
+  color: #667085;
+  background: #fafbfc;
+  font-size: 13px;
+}
+
+.memorica-attachment-node,
+.memorica-attachment-static {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 560px);
+  min-height: 62px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid #e7eaf0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.memorica-attachment-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  color: #245bdb;
+  background: #eef3ff;
+}
+
+.memorica-attachment-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.memorica-attachment-title {
+  overflow: hidden;
+  color: #1f2329;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memorica-attachment-meta {
+  margin-top: 2px;
+  overflow: hidden;
+  color: #8f959e;
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memorica-attachment-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  flex: 0 0 auto;
+  border: 1px solid #dfe3ea;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #4e5969;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.memorica-attachment-action:hover:not(:disabled) {
+  color: #245bdb;
+  border-color: #bacefd;
+  background: #f5f8ff;
+}
+
+.memorica-attachment-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.memorica-diagram-node,
+.memorica-diagram-static {
+  width: 100%;
+  margin: 10px 0;
+  overflow: hidden;
+  border: 1px solid #e7eaf0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.memorica-diagram-node.selected {
+  border-color: #3370ff;
+  box-shadow: 0 0 0 2px rgba(51, 112, 255, 0.12);
+}
+
+.memorica-diagram-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 12px;
+  border-bottom: 1px solid #eef0f3;
+  background: #fafbfc;
+}
+
+.memorica-diagram-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: #1f2329;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.memorica-diagram-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 8px;
+  color: #5f6672;
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.memorica-diagram-edit:hover {
+  color: #245bdb;
+  background: #eef3ff;
+}
+
+.memorica-diagram-canvas {
+  min-height: 220px;
+  padding: 16px;
+  background:
+    linear-gradient(#f5f7fb 1px, transparent 1px),
+    linear-gradient(90deg, #f5f7fb 1px, transparent 1px),
+    #fff;
+  background-size: 20px 20px;
+}
+
+.memorica-diagram-canvas img {
+  display: block;
+  max-width: 100%;
+  max-height: 560px;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.memorica-diagram-empty {
+  display: flex;
+  min-height: 188px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #667085;
+  font-size: 13px;
+}
+
+.memorica-drawio-frame-wrap {
+  height: min(72vh, 780px);
+  min-height: 560px;
+  background: #f7f8fa;
+}
+
+.memorica-drawio-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.memorica-drawio-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.memorica-drawio-footer > span {
+  color: #667085;
+  font-size: 13px;
+}
+
+.memorica-drawio-footer > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.memorica-spin-icon {
+  animation: memorica-spin 0.8s linear infinite;
 }
 
 /* 数学公式 */

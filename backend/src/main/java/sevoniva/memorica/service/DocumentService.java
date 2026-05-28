@@ -86,6 +86,16 @@ public class DocumentService {
         return ApiResponse.success(docs.map(this::toResponse));
     }
 
+    public ApiResponse<Page<DocumentResponse>> listSharedDocuments(int page, int size, String query) {
+        Long userId = getCurrentUserId();
+        PageRequest pr = PageRequest.of(safePage(page), safeSize(size), Sort.by(Sort.Direction.DESC, "updatedAt"));
+        Page<Document> docs = hasQuery(query)
+                ? documentRepository.findSharedWithUserByTitleContaining(
+                    userId, DocumentPermission.ROLE_OWNER, query.trim(), pr)
+                : documentRepository.findSharedWithUser(userId, DocumentPermission.ROLE_OWNER, pr);
+        return ApiResponse.success(docs.map(this::toResponse));
+    }
+
     public ApiResponse<Page<DocumentResponse>> listWorkspaceDocuments(String workspaceId, int page, int size) {
         return listWorkspaceDocuments(workspaceId, page, size, null, null);
     }
@@ -193,6 +203,7 @@ public class DocumentService {
         return ApiResponse.success(toResponse(folder));
     }
 
+    @Transactional
     public ApiResponse<DocumentResponse> getDocument(String id) {
         Document doc = documentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("文档不存在"));
@@ -268,9 +279,7 @@ public class DocumentService {
         Document doc = documentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("文档不存在"));
         checkReadAccess(doc);
-        DocumentUserState state = getOrCreateState(id, getCurrentUserId());
-        state.setIsFavorite(favorite);
-        documentUserStateRepository.save(state);
+        documentUserStateRepository.upsertFavorite(id, getCurrentUserId(), favorite);
         auditService.log(getCurrentUserId(), getCurrentUsername(),
                 favorite ? "DOCUMENT_FAVORITE" : "DOCUMENT_UNFAVORITE",
                 "DOCUMENT", doc.getId(), favorite ? "Document favorited" : "Document unfavorited", null);
@@ -434,6 +443,8 @@ public class DocumentService {
                 .charCount(doc.getCharCount())
                 .isPublic(doc.getIsPublic())
                 .isFavorite(state != null && Boolean.TRUE.equals(state.getIsFavorite()))
+                .canWrite(canCurrentUserWrite(doc))
+                .canManage(canCurrentUserManage(doc))
                 .coverImage(doc.getCoverImage())
                 .createdAt(doc.getCreatedAt())
                 .updatedAt(doc.getUpdatedAt())
@@ -524,6 +535,24 @@ public class DocumentService {
         }
     }
 
+    private boolean canCurrentUserWrite(Document doc) {
+        try {
+            checkWriteAccess(doc);
+            return true;
+        } catch (AccessDeniedException e) {
+            return false;
+        }
+    }
+
+    private boolean canCurrentUserManage(Document doc) {
+        try {
+            checkManageAccess(doc);
+            return true;
+        } catch (AccessDeniedException e) {
+            return false;
+        }
+    }
+
     private String normalizeSaveSource(String source) {
         if ("auto".equals(source) || "restore".equals(source)) {
             return source;
@@ -548,17 +577,7 @@ public class DocumentService {
     }
 
     private void markOpened(String documentId) {
-        DocumentUserState state = getOrCreateState(documentId, getCurrentUserId());
-        state.setLastOpenedAt(LocalDateTime.now());
-        documentUserStateRepository.save(state);
-    }
-
-    private DocumentUserState getOrCreateState(String documentId, Long userId) {
-        return findUserState(documentId, userId).orElseGet(() -> DocumentUserState.builder()
-                .documentId(documentId)
-                .userId(userId)
-                .isFavorite(false)
-                .build());
+        documentUserStateRepository.upsertLastOpened(documentId, getCurrentUserId());
     }
 
     private java.util.Optional<DocumentUserState> findUserState(String documentId, Long userId) {

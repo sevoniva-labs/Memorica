@@ -39,6 +39,7 @@ public class AiProperties {
         private String apiKey = "";
         private String baseUrl = "https://api.deepseek.com";
         private String model = "deepseek-v4-flash";
+        private String thinking = "disabled";
         private Duration timeout = Duration.ofSeconds(45);
         private double temperature = 0.4;
 
@@ -64,6 +65,14 @@ public class AiProperties {
 
         public void setModel(String model) {
             this.model = model;
+        }
+
+        public String getThinking() {
+            return thinking;
+        }
+
+        public void setThinking(String thinking) {
+            this.thinking = thinking;
         }
 
         public Duration getTimeout() {

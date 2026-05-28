@@ -34,6 +34,9 @@ public class UploadedFile {
     @Column(name = "uploader_id", nullable = false)
     private Long uploaderId;
 
+    @Column(name = "document_id")
+    private String documentId;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

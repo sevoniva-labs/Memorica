@@ -1,6 +1,12 @@
 # --- Build Stage ---
 FROM node:22-alpine AS builder
 WORKDIR /app
+ARG VITE_API_BASE_URL=
+ARG VITE_WS_URL=
+ARG VITE_DRAWIO_URL=https://embed.diagrams.net/
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_WS_URL=$VITE_WS_URL
+ENV VITE_DRAWIO_URL=$VITE_DRAWIO_URL
 COPY package.json package-lock.json ./
 RUN npm ci --frozen-lockfile
 COPY . .

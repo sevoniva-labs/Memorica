@@ -33,6 +33,14 @@ public class DocumentController {
         return documentService.listPublicDocuments(page, size, q);
     }
 
+    @GetMapping("/shared")
+    public ApiResponse<Page<DocumentResponse>> listShared(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String q) {
+        return documentService.listSharedDocuments(page, size, q);
+    }
+
     @GetMapping("/workspace/{workspaceId}")
     public ApiResponse<Page<DocumentResponse>> listWorkspace(
             @PathVariable String workspaceId,

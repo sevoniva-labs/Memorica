@@ -4,6 +4,8 @@ import sevoniva.memorica.entity.Document;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -26,4 +28,30 @@ public interface DocumentRepository extends JpaRepository<Document, String> {
     List<Document> findByIsPublicTrueOrderByUpdatedAtDesc();
     Page<Document> findByIsPublicTrueAndDeletedAtIsNull(Pageable pageable);
     Page<Document> findByIsPublicTrueAndDeletedAtIsNullAndTitleContainingIgnoreCase(String title, Pageable pageable);
+
+    @Query("""
+            select d from Document d
+            join DocumentPermission p on p.documentId = d.id
+            where p.userId = :userId
+              and p.role <> :ownerRole
+              and d.deletedAt is null
+              and d.owner.id <> :userId
+            """)
+    Page<Document> findSharedWithUser(@Param("userId") Long userId,
+                                      @Param("ownerRole") String ownerRole,
+                                      Pageable pageable);
+
+    @Query("""
+            select d from Document d
+            join DocumentPermission p on p.documentId = d.id
+            where p.userId = :userId
+              and p.role <> :ownerRole
+              and d.deletedAt is null
+              and d.owner.id <> :userId
+              and lower(d.title) like lower(concat('%', :query, '%'))
+            """)
+    Page<Document> findSharedWithUserByTitleContaining(@Param("userId") Long userId,
+                                      @Param("ownerRole") String ownerRole,
+                                      @Param("query") String query,
+                                      Pageable pageable);
 }

@@ -20,17 +20,35 @@ public class FileController {
     }
 
     @PostMapping("/upload")
-    public ApiResponse<?> upload(@RequestParam("file") MultipartFile file) throws Exception {
+    public ApiResponse<?> upload(@RequestParam("file") MultipartFile file,
+                                 @RequestParam(value = "documentId", required = false) String documentId) throws Exception {
         Long userId = currentUserId();
-        String objectName = fileService.uploadFile(file, userId);
+        String objectName = fileService.uploadFile(file, userId, documentId);
         String url = fileService.getFileUrl(objectName, userId);
-        return ApiResponse.success(Map.of("objectName", objectName, "url", url));
+        var uploaded = fileService.getFile(objectName, userId);
+        return ApiResponse.success(Map.of(
+                "objectName", objectName,
+                "url", url,
+                "originalName", uploaded.getOriginalName() != null ? uploaded.getOriginalName() : objectName,
+                "contentType", uploaded.getContentType(),
+                "sizeBytes", uploaded.getSizeBytes(),
+                "documentId", uploaded.getDocumentId() != null ? uploaded.getDocumentId() : ""
+        ));
     }
 
     @GetMapping("/view/{objectName}")
     public ApiResponse<?> getUrl(@PathVariable String objectName) throws Exception {
-        String url = fileService.getFileUrl(objectName, currentUserId());
-        return ApiResponse.success(Map.of("url", url));
+        Long userId = currentUserId();
+        String url = fileService.getFileUrl(objectName, userId);
+        var file = fileService.getFile(objectName, userId);
+        return ApiResponse.success(Map.of(
+                "objectName", file.getObjectName(),
+                "url", url,
+                "originalName", file.getOriginalName() != null ? file.getOriginalName() : file.getObjectName(),
+                "contentType", file.getContentType(),
+                "sizeBytes", file.getSizeBytes(),
+                "documentId", file.getDocumentId() != null ? file.getDocumentId() : ""
+        ));
     }
 
     private Long currentUserId() {

@@ -27,7 +27,7 @@ class MigrationIntegrationTest {
                     .cleanDisabled(true)
                     .load();
 
-            assertEquals(4, flyway.migrate().migrationsExecuted);
+            assertEquals(8, flyway.migrate().migrationsExecuted);
             flyway.validate();
             assertEquals(0, flyway.migrate().migrationsExecuted);
 

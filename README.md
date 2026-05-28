@@ -8,6 +8,7 @@
 
 - **实时协作** — 多人同时编辑同一文档，光标和选区实时同步，基于 Yjs + Hocuspocus + WebSocket
 - **版本历史** — 手动保存版本快照，随时回退到之前的状态
+- **图示编辑** — 集成 diagrams.net/drawio，支持在文档中插入和保存流程图
 - **权限管理** — 文档可设为私有/公开，支持按用户授予查看/编辑权限
 - **文件夹** — 支持创建文件夹组织文档，支持嵌套
 - **AI 助手** — 集成 DeepSeek，支持续写、润色、总结等操作
@@ -133,8 +134,29 @@ cd backend
 cd frontend
 npm run dev        # 开发服务器
 npm run build      # 生产构建
-npx playwright test # E2E 测试
+npm run test:e2e   # E2E 测试
 ```
+
+E2E 默认要求 API、协作服务和前端可访问。常用本地命令：
+
+```bash
+cd frontend
+E2E_BASE_URL=http://127.0.0.1:5174 \
+E2E_API_BASE_URL=http://127.0.0.1:8080/api/v1 \
+npm run test:e2e
+```
+
+### 图示服务
+
+默认使用 `https://embed.diagrams.net/`。如果需要本地或私有化部署，可以启用可选 drawio 服务：
+
+```bash
+COMPOSE_PROFILES=drawio \
+VITE_DRAWIO_URL=http://localhost:8081/ \
+docker compose -f docker/docker-compose.yml up -d --build
+```
+
+生产环境建议把 diagrams.net 部署在可信域名下，并通过 `VITE_DRAWIO_URL` 指向该地址。
 
 ## 部署
 
