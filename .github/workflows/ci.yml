@@ -17,7 +17,7 @@ jobs:
   backend-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-java@v4
         with:
           java-version: "21"
@@ -28,7 +28,7 @@ jobs:
   frontend-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -42,7 +42,7 @@ jobs:
   hocuspocus-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -65,7 +65,7 @@ jobs:
       TLS_CERT_PATH: /tmp/memorica-ci-fullchain.pem
       TLS_KEY_PATH: /tmp/memorica-ci-privkey.pem
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: docker compose -f docker/docker-compose.yml config -q
       - run: docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml config -q
 
@@ -74,5 +74,5 @@ jobs:
     needs: [backend-check, frontend-check, hocuspocus-check, compose-check]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: docker compose -f docker/docker-compose.yml build
