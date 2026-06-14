@@ -43,6 +43,7 @@ export default function VersionHistoryPage() {
   const [doc, setDoc] = useState<DocumentItem | null>(null)
   const [versions, setVersions] = useState<DocumentVersion[]>([])
   const [selectedVersion, setSelectedVersion] = useState<DocumentVersionDetail | null>(null)
+  const [detailError, setDetailError] = useState('')
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [restoring, setRestoring] = useState(false)
@@ -54,10 +55,12 @@ export default function VersionHistoryPage() {
       const data = await fetchHistory(docId)
       setDoc(data.doc)
       setVersions(data.versions)
+      setDetailError('')
       setLoadError('')
     } catch (error) {
       setVersions([])
       setSelectedVersion(null)
+      setDetailError('')
       setLoadError(apiErrorMessage(error, '历史版本加载失败，请稍后重试'))
     } finally {
       setLoading(false)
@@ -73,12 +76,14 @@ export default function VersionHistoryPage() {
         if (cancelled) return
         setDoc(data.doc)
         setVersions(data.versions)
+        setDetailError('')
         setLoadError('')
       })
       .catch((error) => {
         if (cancelled) return
         setVersions([])
         setSelectedVersion(null)
+        setDetailError('')
         setLoadError(apiErrorMessage(error, '历史版本加载失败，请稍后重试'))
       })
       .finally(() => {
@@ -91,8 +96,14 @@ export default function VersionHistoryPage() {
   }, [docId])
 
   const handleSelect = async (versionId: number) => {
-    const v = await getVersion(versionId)
-    setSelectedVersion(v)
+    setSelectedVersion(null)
+    setDetailError('')
+    try {
+      const v = await getVersion(versionId)
+      setSelectedVersion(v)
+    } catch (error) {
+      setDetailError(apiErrorMessage(error, '版本详情加载失败，请稍后重试'))
+    }
   }
 
   const handleRestore = () => {
@@ -223,7 +234,17 @@ export default function VersionHistoryPage() {
             </div>
 
             <div className="lg:col-span-2">
-              {selectedVersion ? (
+              {detailError ? (
+                <Card className="border-gray-100" styles={{ body: { padding: 24 } }}>
+                  <Alert
+                    showIcon
+                    type="error"
+                    data-testid="memorica-version-detail-error"
+                    message="版本详情加载失败"
+                    description={detailError}
+                  />
+                </Card>
+              ) : selectedVersion ? (
                 <Card className="border-gray-100" styles={{ body: { padding: 24 } }}>
                   <div className="flex items-center justify-between mb-4">
                     <div>

@@ -32,7 +32,12 @@ const version = {
   createdAt: '2026-06-14T08:30:00.000Z',
 };
 
-async function openVersionHistory(page: Page, canWrite: boolean, versions = [version]) {
+async function openVersionHistory(
+  page: Page,
+  canWrite: boolean,
+  versions = [version],
+  options: { versionDetailStatus?: number; versionDetailBody?: unknown } = {}
+) {
   await page.addInitScript(() => {
     window.localStorage.setItem('accessToken', 'mock-access-token');
     window.localStorage.setItem('refreshToken', 'mock-refresh-token');
@@ -62,6 +67,14 @@ async function openVersionHistory(page: Page, canWrite: boolean, versions = [ver
     });
   });
   await page.route(`**/api/v1/documents/versions/${version.id}`, async (route) => {
+    if (options.versionDetailStatus) {
+      await route.fulfill({
+        status: options.versionDetailStatus,
+        contentType: 'application/json',
+        body: JSON.stringify(options.versionDetailBody || { message: '版本详情加载失败' }),
+      });
+      return;
+    }
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
@@ -97,6 +110,18 @@ test('editor can restore a selected version', async ({ page }) => {
   await page.getByRole('button', { name: /版本 1/ }).click();
 
   await expect(page.getByRole('button', { name: '恢复此版本' })).toBeVisible();
+});
+
+test('version detail load failure shows an inline error', async ({ page }) => {
+  await openVersionHistory(page, true, [version], {
+    versionDetailStatus: 503,
+    versionDetailBody: { message: '版本详情暂时不可用' },
+  });
+
+  await page.getByRole('button', { name: /版本 1/ }).click();
+
+  await expect(page.getByTestId('memorica-version-detail-error')).toContainText('版本详情暂时不可用');
+  await expect(page.getByRole('button', { name: '恢复此版本' })).not.toBeVisible();
 });
 
 test('version list shows word count changes between versions', async ({ page }) => {
