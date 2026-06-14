@@ -1086,6 +1086,102 @@ body {
   border-radius: 1px;
 }
 
+.memorica-bubble-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.14);
+}
+
+.memorica-bubble-button.ant-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #4b5563;
+  border-radius: 6px;
+}
+
+.memorica-bubble-button.ant-btn:hover,
+.memorica-bubble-button.ant-btn:focus-visible {
+  color: #111827;
+  background: #f3f4f6;
+}
+
+.memorica-bubble-button-active.ant-btn,
+.memorica-bubble-button-active.ant-btn:hover,
+.memorica-bubble-button-active.ant-btn:focus-visible {
+  color: #fff;
+  background: #111827;
+}
+
+.memorica-bubble-divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: #e5e7eb;
+}
+
+.memorica-bubble-color-button-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.memorica-bubble-color-indicator {
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 12px;
+  height: 2px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+}
+
+.memorica-bubble-color-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 88px;
+  font-size: 12px;
+}
+
+.memorica-bubble-color-swatch {
+  width: 14px;
+  height: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 50%;
+}
+
+.memorica-bubble-clear-option,
+.memorica-bubble-font-option {
+  font-size: 12px;
+}
+
+.memorica-bubble-ai-button.ant-btn {
+  width: auto;
+  padding: 0 8px;
+  color: #1677ff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.memorica-bubble-ai-button.ant-btn:hover,
+.memorica-bubble-ai-button.ant-btn:focus-visible {
+  color: #0958d9;
+  background: #e6f4ff;
+}
+
 /* 分隔线 */
 .notion-editor hr {
   border: none;

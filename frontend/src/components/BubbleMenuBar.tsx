@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import {
@@ -17,6 +17,8 @@ import {
   ThunderboltOutlined,
   UnderlineOutlined,
 } from '@ant-design/icons'
+import { Button, Dropdown, Tooltip } from 'antd'
+import type { MenuProps } from 'antd'
 
 const colors = [
   '#000000', '#ef4444', '#f97316', '#eab308',
@@ -30,6 +32,10 @@ const fonts = [
   { label: '黑体', value: 'SimHei, sans-serif' },
   { label: '微软雅黑', value: '"Microsoft YaHei", sans-serif' },
 ]
+
+const clearColorKey = '__clear_color__'
+const defaultFontKey = '__default_font__'
+const iconStyle = { fontSize: 14 }
 
 interface Props {
   editor: Editor | null
@@ -46,196 +52,154 @@ type RichTextChain = ReturnType<Editor['chain']> & {
 }
 
 export default function BubbleMenuBar({ editor, onAskAI }: Props) {
-  const [showColorPicker, setShowColorPicker] = useState(false)
-  const [showFontPicker, setShowFontPicker] = useState(false)
-
   if (!editor) return null
 
-  const btn = (active: boolean) =>
-    `p-1.5 rounded transition-colors ${
-      active ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-100'
-    }`
-
   const richChain = () => editor.chain().focus() as unknown as RichTextChain
+  const currentColor = editor.getAttributes('textStyle').color as string | undefined
 
-  const setFontColor = (color: string) => {
-    richChain().setColor(color).run()
-    setShowColorPicker(false)
+  const buttonClass = (active: boolean, extraClass = '') =>
+    `memorica-bubble-button${active ? ' memorica-bubble-button-active' : ''}${extraClass ? ` ${extraClass}` : ''}`
+
+  const renderIconButton = (
+    label: string,
+    icon: ReactNode,
+    onClick: () => void,
+    active = false,
+    extraClass = ''
+  ) => (
+    <Tooltip title={label}>
+      <Button
+        aria-label={label}
+        className={buttonClass(active, extraClass)}
+        icon={icon}
+        onClick={onClick}
+        size="small"
+        title={label}
+        type="text"
+      />
+    </Tooltip>
+  )
+
+  const handleColorMenuClick: MenuProps['onClick'] = ({ key }) => {
+    if (key === clearColorKey) {
+      richChain().unsetColor().run()
+      return
+    }
+    richChain().setColor(String(key)).run()
   }
 
-  const setFontFamily = (font: string) => {
+  const handleFontMenuClick: MenuProps['onClick'] = ({ key }) => {
+    const font = key === defaultFontKey ? '' : String(key)
     if (font) {
       richChain().setFontFamily(font).run()
     } else {
       richChain().unsetFontFamily().run()
     }
-    setShowFontPicker(false)
   }
+
+  const colorMenuItems: MenuProps['items'] = [
+    ...colors.map((color) => ({
+      key: color,
+      label: (
+        <span className="memorica-bubble-color-option">
+          <span
+            aria-hidden="true"
+            className="memorica-bubble-color-swatch"
+            style={{ backgroundColor: color }}
+          />
+          <span>{color}</span>
+        </span>
+      ),
+    })),
+    {
+      key: clearColorKey,
+      label: <span className="memorica-bubble-clear-option">清除颜色</span>,
+    },
+  ]
+
+  const fontMenuItems: MenuProps['items'] = fonts.map((font) => ({
+    key: font.value || defaultFontKey,
+    label: (
+      <span className="memorica-bubble-font-option" style={font.value ? { fontFamily: font.value } : undefined}>
+        {font.label}
+      </span>
+    ),
+  }))
 
   return (
     <BubbleMenu
       editor={editor}
       updateDelay={100}
-      className="flex items-center gap-0.5 bg-white border border-gray-200 rounded-lg shadow-lg px-2 py-1.5 relative"
+      className="memorica-bubble-menu"
     >
-      <button
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        className={btn(editor.isActive('bold'))}
-        title="加粗"
-      >
-        <BoldOutlined style={{ fontSize: 14 }} />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        className={btn(editor.isActive('italic'))}
-        title="斜体"
-      >
-        <ItalicOutlined style={{ fontSize: 14 }} />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-        className={btn(editor.isActive('underline'))}
-        title="下划线"
-      >
-        <UnderlineOutlined style={{ fontSize: 14 }} />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleStrike().run()}
-        className={btn(editor.isActive('strike'))}
-        title="删除线"
-      >
-        <StrikethroughOutlined style={{ fontSize: 14 }} />
-      </button>
-      <div className="w-px h-4 bg-gray-200 mx-1" />
-      <button
-        onClick={() => editor.chain().focus().toggleCode().run()}
-        className={btn(editor.isActive('code'))}
-        title="代码"
-      >
-        <CodeOutlined style={{ fontSize: 14 }} />
-      </button>
-      <button
-        onClick={() => {
+      {renderIconButton('加粗', <BoldOutlined style={iconStyle} />, () => editor.chain().focus().toggleBold().run(), editor.isActive('bold'))}
+      {renderIconButton('斜体', <ItalicOutlined style={iconStyle} />, () => editor.chain().focus().toggleItalic().run(), editor.isActive('italic'))}
+      {renderIconButton('下划线', <UnderlineOutlined style={iconStyle} />, () => editor.chain().focus().toggleUnderline().run(), editor.isActive('underline'))}
+      {renderIconButton('删除线', <StrikethroughOutlined style={iconStyle} />, () => editor.chain().focus().toggleStrike().run(), editor.isActive('strike'))}
+      <div className="memorica-bubble-divider" />
+      {renderIconButton('代码', <CodeOutlined style={iconStyle} />, () => editor.chain().focus().toggleCode().run(), editor.isActive('code'))}
+      {renderIconButton('链接', <LinkOutlined style={iconStyle} />, () => {
           const url = window.prompt('链接 URL:')
           if (url) editor.chain().focus().setLink({ href: url }).run()
-        }}
-        className={btn(editor.isActive('link'))}
-        title="链接"
-      >
-        <LinkOutlined style={{ fontSize: 14 }} />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleHighlight().run()}
-        className={btn(editor.isActive('highlight'))}
-        title="高亮"
-      >
-        <HighlightOutlined style={{ fontSize: 14 }} />
-      </button>
-      <div className="w-px h-4 bg-gray-200 mx-1" />
-      <button
-        onClick={() => richChain().toggleSubscript().run()}
-        className={btn(editor.isActive('subscript'))}
-        title="下标"
-      >
-        <SubnodeOutlined style={{ fontSize: 14 }} />
-      </button>
-      <button
-        onClick={() => richChain().toggleSuperscript().run()}
-        className={btn(editor.isActive('superscript'))}
-        title="上标"
-      >
-        <FontSizeOutlined style={{ fontSize: 14 }} />
-      </button>
-      <div className="w-px h-4 bg-gray-200 mx-1" />
-      {/* 颜色 */}
-      <div className="relative">
-        <button
-          onClick={() => { setShowColorPicker(!showColorPicker); setShowFontPicker(false) }}
-          className={btn(!!editor.getAttributes('textStyle').color)}
-          title="文字颜色"
-        >
-          <BgColorsOutlined style={{ fontSize: 14 }} />
-          <span
-            className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-2.5 h-[2px] rounded-full"
-            style={{ backgroundColor: editor.getAttributes('textStyle').color || 'transparent' }}
+        }, editor.isActive('link'))}
+      {renderIconButton('高亮', <HighlightOutlined style={iconStyle} />, () => editor.chain().focus().toggleHighlight().run(), editor.isActive('highlight'))}
+      <div className="memorica-bubble-divider" />
+      {renderIconButton('下标', <SubnodeOutlined style={iconStyle} />, () => richChain().toggleSubscript().run(), editor.isActive('subscript'))}
+      {renderIconButton('上标', <FontSizeOutlined style={iconStyle} />, () => richChain().toggleSuperscript().run(), editor.isActive('superscript'))}
+      <div className="memorica-bubble-divider" />
+      <Tooltip title="文字颜色">
+        <Dropdown menu={{ items: colorMenuItems, onClick: handleColorMenuClick }} trigger={['click']}>
+          <Button
+            aria-label="文字颜色"
+            className={buttonClass(!!currentColor)}
+            icon={(
+              <span className="memorica-bubble-color-button-icon">
+                <BgColorsOutlined style={iconStyle} />
+                <span
+                  aria-hidden="true"
+                  className="memorica-bubble-color-indicator"
+                  style={{ backgroundColor: currentColor || 'transparent' }}
+                />
+              </span>
+            )}
+            size="small"
+            title="文字颜色"
+            type="text"
           />
-        </button>
-        {showColorPicker && (
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 p-2 bg-white border border-gray-200 rounded-lg shadow-xl grid grid-cols-5 gap-1 z-50">
-            {colors.map((c) => (
-              <button
-                key={c}
-                onClick={() => setFontColor(c)}
-                className="w-5 h-5 rounded-full border border-gray-200 hover:scale-110 transition"
-                style={{ backgroundColor: c }}
-              />
-            ))}
-            <button
-              onClick={() => { richChain().unsetColor().run(); setShowColorPicker(false) }}
-              className="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center text-[10px] text-gray-400"
-            >
-              ×
-            </button>
-          </div>
-        )}
-      </div>
-      {/* 字体 */}
-      <div className="relative">
-        <button
-          onClick={() => { setShowFontPicker(!showFontPicker); setShowColorPicker(false) }}
-          className={btn(false)}
-          title="字体"
-        >
-          <FontSizeOutlined style={{ fontSize: 14 }} />
-        </button>
-        {showFontPicker && (
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 py-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-[120px]">
-            {fonts.map((f) => (
-              <button
-                key={f.label}
-                onClick={() => setFontFamily(f.value)}
-                className="w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 transition"
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="w-px h-4 bg-gray-200 mx-1" />
-      <button
-        onClick={() => editor.chain().focus().setTextAlign('left').run()}
-        className={btn(editor.isActive({ textAlign: 'left' }))}
-        title="左对齐"
-      >
-        <AlignLeftOutlined style={{ fontSize: 14 }} />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().setTextAlign('center').run()}
-        className={btn(editor.isActive({ textAlign: 'center' }))}
-        title="居中"
-      >
-        <AlignCenterOutlined style={{ fontSize: 14 }} />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().setTextAlign('right').run()}
-        className={btn(editor.isActive({ textAlign: 'right' }))}
-        title="右对齐"
-      >
-        <AlignRightOutlined style={{ fontSize: 14 }} />
-      </button>
-      {/* AI 按钮 */}
+        </Dropdown>
+      </Tooltip>
+      <Tooltip title="字体">
+        <Dropdown menu={{ items: fontMenuItems, onClick: handleFontMenuClick }} trigger={['click']}>
+          <Button
+            aria-label="字体"
+            className={buttonClass(false)}
+            icon={<FontSizeOutlined style={iconStyle} />}
+            size="small"
+            title="字体"
+            type="text"
+          />
+        </Dropdown>
+      </Tooltip>
+      <div className="memorica-bubble-divider" />
+      {renderIconButton('左对齐', <AlignLeftOutlined style={iconStyle} />, () => editor.chain().focus().setTextAlign('left').run(), editor.isActive({ textAlign: 'left' }))}
+      {renderIconButton('居中', <AlignCenterOutlined style={iconStyle} />, () => editor.chain().focus().setTextAlign('center').run(), editor.isActive({ textAlign: 'center' }))}
+      {renderIconButton('右对齐', <AlignRightOutlined style={iconStyle} />, () => editor.chain().focus().setTextAlign('right').run(), editor.isActive({ textAlign: 'right' }))}
       {onAskAI && (
         <>
-          <div className="w-px h-4 bg-gray-200 mx-1" />
-          <button
-            onClick={onAskAI}
-            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors"
-            title="Ask AI"
-          >
-            <ThunderboltOutlined style={{ fontSize: 14 }} />
-            AI
-          </button>
+          <div className="memorica-bubble-divider" />
+          <Tooltip title="AI 助手">
+            <Button
+              aria-label="AI 助手"
+              className="memorica-bubble-button memorica-bubble-ai-button"
+              icon={<ThunderboltOutlined style={iconStyle} />}
+              onClick={onAskAI}
+              size="small"
+              title="AI 助手"
+              type="text"
+            >
+              AI
+            </Button>
+          </Tooltip>
         </>
       )}
     </BubbleMenu>
