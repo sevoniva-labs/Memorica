@@ -36,6 +36,7 @@ test('GitHub Actions can deploy the frontend to Cloudflare Pages', async () => {
   assert.match(source, /npm run build/)
   assert.match(source, /CLOUDFLARE_API_TOKEN/)
   assert.match(source, /CLOUDFLARE_ACCOUNT_ID/)
+  assert.match(source, /CLOUDFLARE_PAGES_BRANCH/)
   assert.match(source, /wrangler@4\.100\.0 pages deploy dist/)
   assert.match(source, /memorica-frontend/)
 })

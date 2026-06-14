@@ -44,12 +44,13 @@ Optional GitHub repository variables:
 
 ```text
 CLOUDFLARE_PAGES_PROJECT_NAME=memorica-frontend
+CLOUDFLARE_PAGES_BRANCH=main
 VITE_API_BASE_URL=https://api.example.com/api/v1
 VITE_WS_URL=wss://api.example.com/ws
 VITE_DRAWIO_URL=https://embed.diagrams.net/
 ```
 
-The workflow installs frontend dependencies with `https://registry.npmmirror.com`, runs lint and build, then deploys `frontend/dist` with Wrangler. If `VITE_API_BASE_URL` and `VITE_WS_URL` are empty, the Pages deployment will still serve the static frontend, but login, API calls, file access, and collaboration will not be usable until a public HTTPS/WSS backend is configured.
+The workflow installs frontend dependencies with `https://registry.npmmirror.com`, runs lint and build, then deploys `frontend/dist` with Wrangler. Set `CLOUDFLARE_PAGES_BRANCH=main` when a development branch should update the Pages production temporary domain. If `VITE_API_BASE_URL` and `VITE_WS_URL` are empty, the Pages deployment will still serve the static frontend, but login, API calls, file access, and collaboration will not be usable until a public HTTPS/WSS backend is configured.
 
 ## Current Project
 
