@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { pathToFileURL } from 'node:url'
+
 const DEFAULTS = {
   apiBase: process.env.MEMORICA_API_BASE || 'http://127.0.0.1:8080/api/v1',
   ownerUsername: process.env.MEMORICA_DEMO_USERNAME || 'demo',
@@ -14,16 +16,19 @@ const DEFAULTS = {
 const args = new Set(process.argv.slice(2))
 const dryRun = args.has('--dry-run')
 const help = args.has('--help') || args.has('-h')
+const isCli = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href
 
-if (help) {
-  printHelp()
-  process.exit(0)
+if (isCli) {
+  if (help) {
+    printHelp()
+    process.exit(0)
+  }
+
+  main().catch((error) => {
+    console.error(`Demo seed failed: ${error.message}`)
+    process.exit(1)
+  })
 }
-
-main().catch((error) => {
-  console.error(`Demo seed failed: ${error.message}`)
-  process.exit(1)
-})
 
 async function main() {
   if (dryRun) {
@@ -186,7 +191,7 @@ async function apiForm(path, { token, form }) {
   return payload.data
 }
 
-function buildVersionOneContent() {
+export function buildVersionOneContent() {
   return doc([
     heading('Memorica 预发布演示'),
     paragraph('这是一篇用于三分钟演示的协作文档，覆盖正文编辑、版本历史、Draw.io 图示、附件和只读分享。'),
@@ -194,7 +199,7 @@ function buildVersionOneContent() {
   ])
 }
 
-function buildVersionTwoContent(attachment) {
+export function buildVersionTwoContent(attachment) {
   const now = new Date().toISOString()
   return doc([
     heading('Memorica 预发布演示'),
@@ -241,7 +246,7 @@ function diagram(updatedAt) {
   }
 }
 
-function extractPlainText(node) {
+export function extractPlainText(node) {
   if (!node) return ''
   if (node.text) return node.text
   if (!Array.isArray(node.content)) return ''
@@ -260,7 +265,7 @@ function escapeHtml(value) {
     .replaceAll('"', '&quot;')
 }
 
-function demoPdfBytes() {
+export function demoPdfBytes() {
   const stream = 'BT /F1 18 Tf 40 82 Td (Memorica demo attachment) Tj ET'
   const objects = [
     '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',

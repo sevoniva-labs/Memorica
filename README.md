@@ -142,6 +142,7 @@ make dev           # 启动所有服务
 make dev-down      # 停止所有服务
 make demo-seed-dry-run # 查看演示数据准备配置
 make demo-seed     # 创建 demo/viewer 用户、演示文档、版本、图示、附件和只读分享
+make demo-seed-test # 测试演示数据脚本的文档内容生成
 make build         # 构建后端、前端并检查协作服务语法
 make test          # 运行后端快速测试
 make lint          # 运行代码检查

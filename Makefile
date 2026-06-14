@@ -1,6 +1,6 @@
 .PHONY: \
 	help \
-	dev dev-down dev-logs setup clean demo-seed demo-seed-dry-run \
+	dev dev-down dev-logs setup clean demo-seed demo-seed-dry-run demo-seed-test \
 	build ci lint test verify-local audit \
 	backend-build backend-test backend-unit-test backend-integration-test backend-check backend-lint testcontainers-check \
 	frontend-install frontend-dev frontend-build frontend-lint frontend-check frontend-audit e2e-local \
@@ -27,6 +27,9 @@ demo-seed: ## Seed demo users, document, versions, diagram, attachment, and view
 
 demo-seed-dry-run: ## Show demo seed configuration without calling local services
 	node scripts/seed-demo.mjs --dry-run
+
+demo-seed-test: ## Test demo seed content generation without calling local services
+	node --test scripts/seed-demo.test.mjs
 
 # --- Backend ---
 
@@ -122,7 +125,7 @@ lint: backend-lint frontend-lint hocuspocus-check ## Run all linters and syntax 
 
 test: backend-unit-test ## Run fast backend tests
 
-verify-local: backend-unit-test frontend-check hocuspocus-check audit ## Run local checks that do not require browser services
+verify-local: backend-unit-test frontend-check hocuspocus-check demo-seed-test audit ## Run local checks that do not require browser services
 
 # --- Database ---
 
