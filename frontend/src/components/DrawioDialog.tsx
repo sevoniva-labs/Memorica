@@ -68,6 +68,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
   const canceling = state === 'canceling'
   const retryable = state === 'timeout' || state === 'error'
   const initTimedOut = state === 'initTimeout'
+  const saveDisabled = canceling || state === 'loading' || state === 'saving'
 
   useEffect(() => {
     stateRef.current = state
@@ -207,7 +208,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
   }, [handleMessage, open])
 
   const handleSave = () => {
-    if (canceling) return
+    if (canceling || ['loading', 'saving', 'initTimeout'].includes(stateRef.current)) return
     setState('saving')
     requestExport()
     clearSaveTimer()
@@ -235,7 +236,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
               type="primary"
               icon={saving ? <LoadingOutlined spin /> : (retryable || initTimedOut) ? <ReloadOutlined /> : <CheckOutlined />}
               loading={saving}
-              disabled={canceling}
+              disabled={saveDisabled}
               onClick={initTimedOut ? reloadDrawio : handleSave}
             >
               {initTimedOut ? '重新加载' : retryable ? '重试保存' : '保存图示'}

@@ -190,6 +190,21 @@ test('drawio save requests a direct svg export from the embedded editor', async 
     .toContainEqual(expect.objectContaining({ action: 'export', format: 'svg' }));
 });
 
+test('drawio save stays disabled until the embedded editor is ready', async ({ page }) => {
+  await openEditor(page);
+  await page.route('**/embed.diagrams.net/**', async (route) => {
+    await route.fulfill({
+      contentType: 'text/html',
+      body: '<!doctype html><title>drawio loading</title>',
+    });
+  });
+
+  await openDrawioFromBlankTemplate(page);
+
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('图示编辑器加载中');
+  await expect(page.getByRole('button', { name: '保存图示' })).toBeDisabled();
+});
+
 test('drawio cancel shows canceling state and does not insert a diagram', async ({ page }) => {
   await openEditor(page);
   await openDrawioFromBlankTemplate(page);
@@ -224,6 +239,15 @@ test('drawio exit event closes without inserting a diagram', async ({ page }) =>
 test('drawio save timeout shows an explicit retry action', async ({ page }) => {
   await openEditor(page);
   await openDrawioFromBlankTemplate(page);
+  await page.evaluate(() => {
+    const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
+    if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
+    window.dispatchEvent(new MessageEvent('message', {
+      data: JSON.stringify({ event: 'init' }),
+      source: iframe.contentWindow,
+    }));
+  });
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('可以开始编辑图示');
 
   await page.clock.install();
   await page.getByRole('button', { name: '保存图示' }).click();
