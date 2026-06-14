@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import CollabEditor from '../components/CollabEditor'
 import { getDocument, type DocumentItem } from '../api/client'
 import { ArrowLeftOutlined } from '@ant-design/icons'
+import { Button } from 'antd'
 import { useAuthStore } from '../stores/authStore'
 
 export default function EditorPage() {
@@ -33,13 +34,14 @@ export default function EditorPage() {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-3">
         <p className="text-sm text-gray-500">文档不存在或无权访问</p>
-        <button
+        <Button
+          type="link"
+          icon={<ArrowLeftOutlined style={{ fontSize: 14 }} />}
           onClick={() => navigate('/')}
           className="text-xs text-blue-600 hover:underline flex items-center gap-1"
         >
-          <ArrowLeftOutlined style={{ fontSize: 14 }} />
           返回文档列表
-        </button>
+        </Button>
       </div>
     )
   }

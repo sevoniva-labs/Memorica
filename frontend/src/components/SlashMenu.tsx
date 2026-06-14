@@ -17,6 +17,7 @@ import {
 } from '@ant-design/icons'
 import { useState, useEffect, useCallback, useRef, useMemo, type ElementType } from 'react'
 import { aiActionLabels, aiActionIcons, type AIAction } from '../ai/aiActions'
+import { Button } from 'antd'
 
 interface SlashItem {
   title: string
@@ -290,8 +291,9 @@ export default function SlashMenu({ editor, onAskAI, onCreateDiagram, onUploadIm
               const globalIdx = allItems.findIndex((candidate) => candidate.title === item.title)
               const Icon = item.icon
               return (
-                <button
+                <Button
                   key={item.title}
+                  type="text"
                   onClick={() => {
                     item.command(editor)
                     setShow(false)
@@ -303,7 +305,7 @@ export default function SlashMenu({ editor, onAskAI, onCreateDiagram, onUploadIm
                 >
                   <Icon className="text-gray-400" style={{ fontSize: 18 }} />
                   <span className="text-sm">{item.title}</span>
-                </button>
+                </Button>
               )
             })}
           </div>
@@ -316,8 +318,9 @@ export default function SlashMenu({ editor, onAskAI, onCreateDiagram, onUploadIm
           {filteredAI.map((item, idx) => {
             const globalIdx = filteredBlocks.length + idx
             return (
-              <button
+              <Button
                 key={item.key}
+                type="text"
                 onClick={() => {
                   onAskAI(item.key)
                   setShow(false)
@@ -329,7 +332,7 @@ export default function SlashMenu({ editor, onAskAI, onCreateDiagram, onUploadIm
               >
                 <span className="text-lg w-[18px] text-center">{item.icon}</span>
                 <span className="text-sm">{item.title}</span>
-              </button>
+              </Button>
             )
           })}
         </>

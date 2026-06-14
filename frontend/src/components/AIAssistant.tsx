@@ -15,6 +15,7 @@ import {
   SwapOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons'
+import { Button, Input } from 'antd'
 
 interface Props {
   editor: Editor | null
@@ -144,12 +145,12 @@ export default function AIAssistant({ editor, documentId, open, onClose, initial
           <ThunderboltOutlined className="text-blue-600" style={{ fontSize: 16 }} />
           <span className="text-sm font-semibold text-gray-800">AI 助手</span>
         </div>
-        <button
+        <Button
+          type="text"
+          icon={<CloseOutlined style={{ fontSize: 14 }} />}
           onClick={handleClose}
           className="p-1 rounded-md hover:bg-white/60 text-gray-400 hover:text-gray-600 transition"
-        >
-          <CloseOutlined style={{ fontSize: 14 }} />
-        </button>
+        />
       </div>
 
       <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
@@ -172,31 +173,34 @@ export default function AIAssistant({ editor, documentId, open, onClose, initial
             <div className="text-xs font-medium text-gray-500">快捷操作</div>
             <div className="grid grid-cols-3 gap-1.5">
               {quickActions.map((action) => (
-                <button
+                <Button
                   key={action}
+                  type="text"
                   onClick={() => runAI(action)}
                   className="flex flex-col items-center gap-1 p-2 rounded-lg border border-gray-100 hover:border-blue-200 hover:bg-blue-50/50 transition text-center"
+                  style={{ height: 'auto' }}
                 >
                   <span className="text-lg">{aiActionIcons[action]}</span>
                   <span className="text-[11px] text-gray-600 leading-tight">
                     {aiActionLabels[action]}
                   </span>
-                </button>
+                </Button>
               ))}
             </div>
 
             {/* 自定义 prompt */}
             {!showInput ? (
-              <button
+              <Button
+                type="dashed"
                 onClick={() => setShowInput(true)}
                 className="w-full text-xs text-blue-600 hover:text-blue-700 py-1.5 border border-dashed border-blue-200 rounded-lg hover:bg-blue-50/30 transition"
+                style={{ height: 'auto' }}
               >
                 {aiActionIcons.custom} 自定义指令...
-              </button>
+              </Button>
             ) : (
               <div className="space-y-2">
-                <input
-                  type="text"
+                <Input
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
                   onKeyDown={(e) => {
@@ -209,14 +213,15 @@ export default function AIAssistant({ editor, documentId, open, onClose, initial
                   autoFocus
                 />
                 <div className="flex gap-2">
-                  <button
+                  <Button
+                    type="primary"
                     onClick={() => runAI('custom')}
                     disabled={!customPrompt.trim()}
                     className="flex-1 text-xs py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                   >
                     发送
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => {
                       setShowInput(false)
                       setCustomPrompt('')
@@ -224,7 +229,7 @@ export default function AIAssistant({ editor, documentId, open, onClose, initial
                     className="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
                   >
                     取消
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -258,47 +263,50 @@ export default function AIAssistant({ editor, documentId, open, onClose, initial
             <div className="flex gap-1.5">
               {!streaming && (
                 <>
-                  <button
+                  <Button
+                    type="primary"
+                    icon={<SwapOutlined style={{ fontSize: 12 }} />}
                     onClick={handleReplace}
                     className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                   >
-                    <SwapOutlined style={{ fontSize: 12 }} />
                     {selectedText ? '替换' : '插入'}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    icon={<CheckOutlined style={{ fontSize: 12 }} />}
                     onClick={handleInsert}
                     className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition"
                   >
-                    <CheckOutlined style={{ fontSize: 12 }} />
                     在下方插入
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    type="text"
+                    icon={<CopyOutlined style={{ fontSize: 14 }} />}
                     onClick={handleCopy}
                     className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition"
                     title="复制"
-                  >
-                    <CopyOutlined style={{ fontSize: 14 }} />
-                  </button>
+                  />
                 </>
               )}
               {streaming && (
-                <button
+                <Button
+                  danger
+                  icon={<CloseOutlined style={{ fontSize: 12 }} />}
                   onClick={handleCancel}
                   className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 border border-red-200 text-red-500 rounded-lg hover:bg-red-50 transition"
                 >
-                  <CloseOutlined style={{ fontSize: 12 }} />
                   停止生成
-                </button>
+                </Button>
               )}
             </div>
 
             {!streaming && (
-              <button
+              <Button
+                type="text"
                 onClick={reset}
                 className="w-full text-xs text-gray-400 hover:text-gray-600 py-1 transition"
               >
                 重新选择操作
-              </button>
+              </Button>
             )}
           </div>
         )}

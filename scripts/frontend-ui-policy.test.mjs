@@ -13,6 +13,7 @@ const bannedDependencyNames = [
 
 const bannedSourcePattern = /(@douyinfe\/semi|@semi-bot|semi-ui|semi-icons|lucide-react|from ['"]lucide['"])/
 const bannedCssPattern = /(\.semi-|--semi-)/
+const nativeButtonPattern = /<button\b/
 
 async function collectFiles(root, predicate) {
   const entries = await readdir(root, { withFileTypes: true })
@@ -67,6 +68,27 @@ test('frontend css has no legacy Semi UI selectors or variables', async () => {
   }
 
   assert.deepEqual(offenders, [])
+})
+
+test('frontend source does not render native button elements', async () => {
+  const files = await collectFiles('frontend/src', (path) => path.endsWith('.tsx'))
+  const offenders = []
+
+  for (const file of files) {
+    const source = await readFile(file, 'utf8')
+    if (nativeButtonPattern.test(source)) offenders.push(file)
+  }
+
+  assert.deepEqual(offenders, [])
+})
+
+test('AI assistant uses Ant Design controls for commands and prompt input', async () => {
+  const source = await readFile('frontend/src/components/AIAssistant.tsx', 'utf8')
+
+  assert.match(source, /import \{[^}]*\bButton\b[^}]*\bInput\b[^}]*\} from 'antd'/s)
+  assert.match(source, /<Input\b[\s\S]*placeholder="输入你的指令，例如：把这段改写成诗歌"/)
+  assert.doesNotMatch(source, /<button\b/)
+  assert.doesNotMatch(source, /<input\b/)
 })
 
 test('vite manualChunks contains no legacy UI library buckets', async () => {

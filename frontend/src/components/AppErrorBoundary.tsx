@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { Button } from 'antd'
 
 interface Props {
   children: ReactNode
@@ -29,8 +30,8 @@ export default class AppErrorBoundary extends Component<Props, State> {
           <h1>页面暂时不可用</h1>
           <p>当前视图发生异常。你可以刷新页面，或返回文档工作台继续处理其他文档。</p>
           <div className="memorica-error-actions">
-            <button onClick={() => window.location.reload()}>刷新页面</button>
-            <a href="/">返回工作台</a>
+            <Button onClick={() => window.location.reload()}>刷新页面</Button>
+            <Button href="/" type="link">返回工作台</Button>
           </div>
         </div>
       </div>
