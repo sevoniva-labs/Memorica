@@ -88,6 +88,12 @@ E2E_BACKEND_HEALTH_URL=http://127.0.0.1:8080/actuator/health \
 npm run test:e2e -- editor-regression.spec.ts --workers=2
 ```
 
+To refresh the demo document and then run the same main E2E gate from the repository root, use:
+
+```bash
+make demo-e2e-local
+```
+
 If Docker/Testcontainers is available, also run:
 
 ```bash

@@ -146,6 +146,7 @@ make demo-seed-dry-run # 查看演示数据准备配置
 make demo-seed     # 创建 demo/viewer 用户、演示文档、版本、图示、附件和只读分享
 make demo-seed-test # 测试演示数据脚本的文档内容生成
 make dockerfile-policy-test # 检查 Docker 构建策略和代理诊断脚本
+make makefile-policy-test # 检查 Makefile 和预发布文档的本地门禁说明
 make docker-proxy-check # 检查 Docker 外网镜像拉取代理和容器运行时过期代理
 make build         # 构建后端、前端并检查协作服务语法
 make test          # 运行后端快速测试
@@ -155,6 +156,7 @@ make backend-unit-test     # 后端非 Testcontainers 测试
 make testcontainers-check  # 检查 Docker 是否可供 Testcontainers 使用
 make backend-integration-test # 后端 Testcontainers 集成测试
 make e2e-local             # 对已运行的本地服务执行主 E2E
+make demo-e2e-local        # 先准备 demo 数据，再执行主 E2E
 make audit                 # 前端和协作服务生产依赖审计
 make verify-local          # 本地快速验证，不启动浏览器服务
 make db-backup     # 备份 PostgreSQL
@@ -180,6 +182,12 @@ E2E_BASE_URL=http://localhost:5173 \
 E2E_API_BASE_URL=http://127.0.0.1:8080/api/v1 \
 E2E_BACKEND_HEALTH_URL=http://127.0.0.1:8080/actuator/health \
 npm run test:e2e -- editor-regression.spec.ts --workers=2
+```
+
+如果要在完整本地栈上先刷新演示数据再跑主回归，可在前端、API、协作服务和基础设施均已启动后运行：
+
+```bash
+make demo-e2e-local
 ```
 
 后端默认 `./gradlew test` 只运行不依赖 Testcontainers 的测试；`make backend-integration-test` 会先执行 `make testcontainers-check`，确认 Docker CLI 可访问后再运行 PostgreSQL Testcontainers 集成测试。若本机 Docker CLI 可用但 Testcontainers 报 “Could not find a valid Docker environment”，先检查 Docker Desktop/Colima、active docker context、socket 和 `DOCKER_HOST`；CI 的 `check` 仍会运行单元测试与集成测试。

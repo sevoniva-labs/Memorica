@@ -1,15 +1,15 @@
 .PHONY: \
 	help \
-	dev dev-down dev-logs setup clean demo-seed demo-seed-dry-run demo-seed-test dockerfile-policy-test docker-proxy-check \
+	dev dev-down dev-logs setup clean demo-seed demo-seed-dry-run demo-seed-test dockerfile-policy-test docker-proxy-check makefile-policy-test \
 	build ci lint test verify-local audit \
 	backend-build backend-test backend-unit-test backend-integration-test backend-check backend-lint testcontainers-check \
-	frontend-install frontend-dev frontend-build frontend-lint frontend-check frontend-audit e2e-local \
+	frontend-install frontend-dev frontend-build frontend-lint frontend-check frontend-audit e2e-local demo-e2e-local \
 	hocuspocus-install hocuspocus-check hocuspocus-audit \
 	db-migrate db-new-migration db-backup db-restore \
 	docker-build docker-push
 
 help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # --- Local Development ---
 
@@ -33,6 +33,9 @@ demo-seed-test: ## Test demo seed content generation without calling local servi
 
 dockerfile-policy-test: ## Verify Docker build policy and proxy diagnostics
 	node --test scripts/dockerfile-policy.test.mjs scripts/docker-proxy-check.test.mjs
+
+makefile-policy-test: ## Verify Makefile and pre-release docs expose local gates
+	node --test scripts/makefile-policy.test.mjs
 
 # --- Backend ---
 
@@ -86,6 +89,8 @@ e2e-local: ## Run local E2E against already-running frontend, API, and collabora
 		E2E_BACKEND_HEALTH_URL=http://127.0.0.1:8080/actuator/health \
 		npm run test:e2e -- editor-regression.spec.ts --workers=2
 
+demo-e2e-local: demo-seed e2e-local ## Seed demo data and run the main local E2E gate
+
 # --- Collaboration ---
 
 hocuspocus-install: ## Install collaboration service dependencies
@@ -131,7 +136,7 @@ lint: backend-lint frontend-lint hocuspocus-check ## Run all linters and syntax 
 
 test: backend-unit-test ## Run fast backend tests
 
-verify-local: backend-unit-test frontend-check hocuspocus-check demo-seed-test dockerfile-policy-test audit ## Run local checks that do not require browser services
+verify-local: backend-unit-test frontend-check hocuspocus-check demo-seed-test dockerfile-policy-test makefile-policy-test audit ## Run local checks that do not require browser services
 
 # --- Database ---
 
