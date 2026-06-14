@@ -148,6 +148,7 @@ make demo-seed-test # 测试演示数据脚本的文档内容生成
 make dockerfile-policy-test # 检查 Docker 构建策略和代理诊断脚本
 make makefile-policy-test # 检查 Makefile 和预发布文档的本地门禁说明
 make cloudflare-pages-policy-test # 检查 Cloudflare Pages 前端部署文档和配置
+make cloudflare-pages-preflight # 检查 Pages 直传部署前的公网 API/WSS 配置
 make docker-proxy-check # 检查 Docker 外网镜像拉取代理和容器运行时过期代理
 make build         # 构建后端、前端并检查协作服务语法
 make test          # 运行后端快速测试
@@ -276,7 +277,7 @@ kubectl apply -f k8s/service.yaml
 
 ### Cloudflare Pages
 
-当前最稳的免费额度路径是先把前端部署到 Cloudflare Pages，后端继续运行在 Docker Compose、VPS、Kubernetes 或通过 Cloudflare Tunnel 暴露的现有服务上。完整配置、环境变量和后端边界见 [docs/cloudflare-pages.md](docs/cloudflare-pages.md)。
+当前最稳的免费额度路径是先把前端部署到 Cloudflare Pages，后端继续运行在 Docker Compose、VPS、Kubernetes 或通过 Cloudflare Tunnel 暴露的现有服务上。Cloudflare Pages 项目名为 `memorica-frontend`，临时域名为 `https://memorica-frontend-5ut.pages.dev`。完整配置、环境变量、部署前检查和后端边界见 [docs/cloudflare-pages.md](docs/cloudflare-pages.md)。
 
 ## 监控
 

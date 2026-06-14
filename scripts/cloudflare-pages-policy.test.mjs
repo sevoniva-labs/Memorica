@@ -2,6 +2,10 @@ import assert from 'node:assert/strict'
 import { access, readFile } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { test } from 'node:test'
+import {
+  readViteEnv,
+  validateCloudflarePagesPreflight,
+} from './cloudflare-pages-preflight.mjs'
 
 test('frontend has a Cloudflare Pages wrangler config for direct deploys', async () => {
   const source = await readFile('frontend/wrangler.jsonc', 'utf8')
@@ -20,6 +24,53 @@ test('Cloudflare Pages docs explain frontend build settings and runtime environm
   assert.match(source, /VITE_API_BASE_URL/)
   assert.match(source, /VITE_WS_URL/)
   assert.match(source, /VITE_DRAWIO_URL/)
+})
+
+test('Cloudflare Pages preflight accepts public API and WebSocket origins', () => {
+  const result = validateCloudflarePagesPreflight({
+    wranglerSource: '{"name":"memorica-frontend","pages_build_output_dir":"./dist"}',
+    envSource: [
+      'VITE_API_BASE_URL=https://api.memorica.example',
+      'VITE_WS_URL=wss://api.memorica.example/ws',
+      'VITE_DRAWIO_URL=https://embed.diagrams.net/',
+    ].join('\n'),
+  })
+
+  assert.equal(result.ok, true)
+  assert.deepEqual(result.errors, [])
+})
+
+test('Cloudflare Pages preflight rejects empty or local backend origins', () => {
+  const empty = validateCloudflarePagesPreflight({
+    wranglerSource: '{"name":"memorica-frontend","pages_build_output_dir":"./dist"}',
+    envSource: 'VITE_API_BASE_URL=\nVITE_WS_URL=\n',
+  })
+  assert.equal(empty.ok, false)
+  assert.match(empty.errors.join('\n'), /VITE_API_BASE_URL/)
+  assert.match(empty.errors.join('\n'), /VITE_WS_URL/)
+
+  const local = validateCloudflarePagesPreflight({
+    wranglerSource: '{"name":"memorica-frontend","pages_build_output_dir":"./dist"}',
+    envSource: [
+      'VITE_API_BASE_URL=http://localhost:8080',
+      'VITE_WS_URL=ws://127.0.0.1:1234',
+      'VITE_DRAWIO_URL=http://localhost:8081/',
+    ].join('\n'),
+  })
+  assert.equal(local.ok, false)
+  assert.match(local.errors.join('\n'), /localhost/)
+  assert.match(local.errors.join('\n'), /127\.0\.0\.1/)
+  assert.match(local.errors.join('\n'), /wss:\/\//)
+})
+
+test('Cloudflare Pages preflight reads Vite env files', () => {
+  assert.deepEqual(
+    readViteEnv('VITE_API_BASE_URL=https://api.example.test\n# comment\nVITE_WS_URL="wss://api.example.test/ws"\n'),
+    {
+      VITE_API_BASE_URL: 'https://api.example.test',
+      VITE_WS_URL: 'wss://api.example.test/ws',
+    }
+  )
 })
 
 test('Cloudflare deployment docs state backend free-tier boundary and practical path', async () => {
@@ -46,6 +97,7 @@ test('Makefile and release docs include the Cloudflare Pages policy check', asyn
   const checklist = await readFile('docs/release-checklist.md', 'utf8')
 
   assert.match(makefile, /^cloudflare-pages-policy-test: ## Verify Cloudflare Pages deployment docs and config$/m)
+  assert.match(makefile, /^cloudflare-pages-preflight: ## Check Cloudflare Pages direct deployment readiness$/m)
   assert.match(makefile, /^verify-local: .* cloudflare-pages-policy-test .*## Run local checks that do not require browser services$/m)
   assert.match(readme, /docs\/cloudflare-pages\.md/)
   assert.match(checklist, /docs\/cloudflare-pages\.md/)

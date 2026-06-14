@@ -24,6 +24,35 @@ npx wrangler pages deploy dist --project-name memorica-frontend
 
 The source-controlled `frontend/wrangler.jsonc` records the Pages project name and build output directory for local direct deploys.
 
+## Current Project
+
+Cloudflare Pages project `memorica-frontend` has been created on the connected account with the temporary domain:
+
+```text
+https://memorica-frontend-5ut.pages.dev
+```
+
+At the time this runbook was added, the project had no successful deployment yet. Direct upload still requires a local Wrangler session (`npx wrangler login`) or a scoped API token, then:
+
+```bash
+cd frontend
+npm ci --registry=https://registry.npmmirror.com
+npm run build
+npx wrangler whoami
+npx wrangler pages deploy dist --project-name memorica-frontend
+```
+
+Before uploading, run the deployment preflight with the public backend values that will be compiled into the Pages build:
+
+```bash
+VITE_API_BASE_URL=https://api.example.com \
+VITE_WS_URL=wss://api.example.com/ws \
+VITE_DRAWIO_URL=https://embed.diagrams.net/ \
+make cloudflare-pages-preflight
+```
+
+If `VITE_API_BASE_URL` or `VITE_WS_URL` is empty, the app can still build, but the deployed Pages site will call its own `/api/v1` and `/ws` paths. That is not usable until those paths are backed by a public HTTPS/WSS backend or a Cloudflare Tunnel origin.
+
 ## Runtime Environment
 
 Set these Cloudflare Pages environment variables in both preview and production:
