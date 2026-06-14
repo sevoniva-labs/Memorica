@@ -14,6 +14,7 @@ import {
   FormOutlined,
   PartitionOutlined,
 } from '@ant-design/icons'
+import { safeDiagramDownloadName } from '../diagram/files'
 
 export interface DiagramAttrs {
   xml: string
@@ -45,10 +46,6 @@ function previewSrc(svg?: string) {
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(value)}`
   }
   return value
-}
-
-function safeFileName(value: string) {
-  return value.replace(/[\\/:*?"<>|]/g, '_')
 }
 
 function DiagramView({ node, selected, updateAttributes, editor, getPos }: NodeViewProps) {
@@ -94,7 +91,7 @@ function DiagramView({ node, selected, updateAttributes, editor, getPos }: NodeV
       objectUrl = URL.createObjectURL(new Blob([attrs.svg], { type: 'image/svg+xml;charset=utf-8' }))
       link.href = objectUrl
     }
-    link.download = `${safeFileName(title)}.svg`
+    link.download = safeDiagramDownloadName(title)
     link.click()
     if (objectUrl) URL.revokeObjectURL(objectUrl)
   }
