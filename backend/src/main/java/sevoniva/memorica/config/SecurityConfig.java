@@ -66,14 +66,8 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim)
-                .filter(origin -> !origin.isBlank())
-                .toList();
-        List<String> originPatterns = Arrays.stream(allowedOriginPatterns.split(","))
-                .map(String::trim)
-                .filter(origin -> !origin.isBlank())
-                .toList();
+        List<String> origins = parseCorsValues(allowedOrigins, "cors.allowed-origins");
+        List<String> originPatterns = parseCorsValues(allowedOriginPatterns, "cors.allowed-origin-patterns");
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(origins);
         config.setAllowedOriginPatterns(originPatterns);
@@ -84,6 +78,17 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
+    }
+
+    private List<String> parseCorsValues(String value, String propertyName) {
+        List<String> values = Arrays.stream((value == null ? "" : value).split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .toList();
+        if (values.contains("*")) {
+            throw new IllegalStateException(propertyName + " must not contain '*' because credentials are enabled");
+        }
+        return values;
     }
 
     @Bean
