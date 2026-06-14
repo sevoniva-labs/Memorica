@@ -1,6 +1,6 @@
 .PHONY: \
 	help \
-	dev dev-down dev-logs setup clean \
+	dev dev-down dev-logs setup clean demo-seed demo-seed-dry-run \
 	build ci lint test verify-local audit \
 	backend-build backend-test backend-unit-test backend-integration-test backend-check backend-lint testcontainers-check \
 	frontend-install frontend-dev frontend-build frontend-lint frontend-check frontend-audit e2e-local \
@@ -21,6 +21,12 @@ dev-down: ## Stop all services
 
 dev-logs: ## Tail all service logs
 	docker compose -f docker/docker-compose.yml logs -f
+
+demo-seed: ## Seed demo users, document, versions, diagram, attachment, and viewer sharing
+	node scripts/seed-demo.mjs
+
+demo-seed-dry-run: ## Show demo seed configuration without calling local services
+	node scripts/seed-demo.mjs --dry-run
 
 # --- Backend ---
 

@@ -86,6 +86,15 @@ cd frontend && npm run dev
 - 用户名：`demo`
 - 密码：`Memorica2026`
 
+完整本地栈启动后，可以准备一篇可演示文档：
+
+```bash
+make demo-seed-dry-run
+make demo-seed
+```
+
+脚本会通过 API 确保 `demo` 和 `demo_viewer` 用户存在，创建或复用 `Memorica 预发布演示文档`，上传一个 PDF 附件，保存两个版本，并授予 `demo_viewer` 只读权限。默认 API 地址是 `http://127.0.0.1:8080/api/v1`，可用 `MEMORICA_API_BASE`、`MEMORICA_DEMO_USERNAME`、`MEMORICA_DEMO_PASSWORD` 等环境变量覆盖。
+
 ### 国内源
 
 仓库根目录的 `.npmrc` 已配置 npm 使用 `https://registry.npmmirror.com`。后端 Gradle Wrapper 使用腾讯云 Gradle 分发镜像，Maven 依赖优先走阿里云 public 仓库，失败时再回落到 Maven Central。
@@ -131,6 +140,8 @@ make help
 # 开发
 make dev           # 启动所有服务
 make dev-down      # 停止所有服务
+make demo-seed-dry-run # 查看演示数据准备配置
+make demo-seed     # 创建 demo/viewer 用户、演示文档、版本、图示、附件和只读分享
 make build         # 构建后端、前端并检查协作服务语法
 make test          # 运行后端快速测试
 make lint          # 运行代码检查

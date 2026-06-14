@@ -21,12 +21,19 @@ Use this account for local demo checks:
 Before a demo, confirm the account can log in. If the local database was recreated and the account is missing, create it through the registration UI or API:
 
 ```bash
+make demo-seed-dry-run
+make demo-seed
+```
+
+The seed command uses the public API to ensure `demo` and `demo_viewer` exist, create or reuse `Memorica 预发布演示文档`, upload a PDF attachment, save two versions with Draw.io content, and grant `demo_viewer` readonly access. If the API reports that users already exist, the script logs in with the configured passwords and continues.
+
+If you only need to recreate the account manually, use:
+
+```bash
 curl -X POST http://127.0.0.1:8080/api/v1/auth/register \
   -H 'Content-Type: application/json' \
   -d '{"username":"demo","email":"demo@memorica.local","password":"Memorica2026"}'
 ```
-
-If the API reports the user already exists, continue with the login check.
 
 ## Three-Minute Demo Script
 
