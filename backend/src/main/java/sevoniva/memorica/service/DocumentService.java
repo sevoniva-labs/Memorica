@@ -216,11 +216,18 @@ public class DocumentService {
     public ApiResponse<DocumentResponse> updateDocumentMeta(String id, String title, Boolean isPublic) {
         Document doc = documentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("文档不存在"));
-        checkManageAccess(doc);
-        if (title != null && !title.isBlank()) {
-            doc.setTitle(title);
+        boolean hasTitleUpdate = title != null && !title.isBlank();
+        boolean hasVisibilityUpdate = isPublic != null;
+        if (hasVisibilityUpdate) {
+            checkManageAccess(doc);
         }
-        if (isPublic != null) {
+        if (hasTitleUpdate) {
+            checkWriteAccess(doc);
+            doc.setTitle(title);
+        } else if (!hasVisibilityUpdate) {
+            checkManageAccess(doc);
+        }
+        if (hasVisibilityUpdate) {
             doc.setIsPublic(isPublic);
         }
         documentRepository.save(doc);

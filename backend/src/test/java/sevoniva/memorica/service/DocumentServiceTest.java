@@ -178,6 +178,37 @@ class DocumentServiceTest {
     }
 
     @Test
+    void updateDocument_shouldAllowEditorToRenameTitle() {
+        User otherOwner = User.builder().id(99L).username("other").build();
+        Document doc = Document.builder()
+                .id("doc-1").title("Title").owner(otherOwner).ownerName("other")
+                .workspaceId("team-1").isPublic(false).build();
+        when(documentRepository.findById("doc-1")).thenReturn(Optional.of(doc));
+        when(permissionService.canWrite("doc-1", 1L)).thenReturn(true);
+        when(documentRepository.save(any(Document.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var result = documentService.updateDocumentMeta("doc-1", "Editor Title", null);
+
+        assertEquals("Editor Title", result.getData().getTitle());
+        assertTrue(result.getData().getCanWrite());
+        assertFalse(result.getData().getCanManage());
+        verify(documentRepository).save(doc);
+    }
+
+    @Test
+    void updateDocument_shouldDenyEditorChangingVisibility() {
+        User otherOwner = User.builder().id(99L).username("other").build();
+        Document doc = Document.builder()
+                .id("doc-1").title("Title").owner(otherOwner).ownerName("other")
+                .workspaceId("team-1").isPublic(false).build();
+        when(documentRepository.findById("doc-1")).thenReturn(Optional.of(doc));
+
+        assertThrows(AccessDeniedException.class,
+                () -> documentService.updateDocumentMeta("doc-1", null, true));
+        verify(documentRepository, never()).save(any(Document.class));
+    }
+
+    @Test
     void updateDocument_shouldAllowWorkspaceAdmin() {
         User otherOwner = User.builder().id(99L).username("other").build();
         Document doc = Document.builder()
