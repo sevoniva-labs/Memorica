@@ -2001,6 +2001,60 @@ body {
   font-weight: 700;
 }
 
+.memorica-find-bar {
+  background: rgb(255 255 255 / 94%);
+  backdrop-filter: blur(12px);
+}
+
+.memorica-find-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.memorica-find-fields {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memorica-find-row.ant-space {
+  width: 100%;
+}
+
+.memorica-find-row .ant-space-item:first-child {
+  flex: 1;
+  min-width: 180px;
+}
+
+.memorica-find-input.ant-input-affix-wrapper {
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.memorica-find-icon {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.memorica-find-count.ant-typography {
+  min-width: 42px;
+  margin: 0;
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.memorica-find-row .ant-btn {
+  border-radius: 8px;
+}
+
+.memorica-find-replace-row {
+  padding-left: 24px;
+}
+
 .memorica-count-pill {
   display: inline-flex;
   align-items: center;

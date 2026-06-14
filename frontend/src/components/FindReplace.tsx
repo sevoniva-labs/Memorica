@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Editor } from '@tiptap/react'
 import { CloseOutlined, DownOutlined, SearchOutlined, SwapOutlined, UpOutlined } from '@ant-design/icons'
+import { Button, Input, Space, Tooltip, Typography } from 'antd'
+import type { InputRef } from 'antd'
 
 interface Props {
   editor: Editor | null
@@ -8,13 +10,15 @@ interface Props {
   onClose: () => void
 }
 
+const { Text } = Typography
+
 export default function FindReplace({ editor, open, onClose }: Props) {
   const [find, setFind] = useState('')
   const [replace, setReplace] = useState('')
   const [showReplace, setShowReplace] = useState(false)
   const [currentMatch, setCurrentMatch] = useState(0)
   const [totalMatches, setTotalMatches] = useState(0)
-  const findInputRef = useRef<HTMLInputElement>(null)
+  const findInputRef = useRef<InputRef>(null)
 
   // 简单的文本搜索高亮
   const findAll = useCallback(() => {
@@ -93,81 +97,96 @@ export default function FindReplace({ editor, open, onClose }: Props) {
   if (!open) return null
 
   return (
-    <div className="sticky top-12 z-30 bg-white border-b border-gray-200 shadow-sm">
-      <div className="max-w-[900px] mx-auto px-8 py-3">
-        <div className="flex items-start gap-3">
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <SearchOutlined className="text-gray-400" style={{ fontSize: 14 }} />
-              <input
+    <div className="memorica-find-bar sticky top-12 z-30 bg-white border-b border-gray-200 shadow-sm">
+      <div className="memorica-find-inner max-w-[900px] mx-auto px-8 py-3">
+        <div className="memorica-find-panel">
+          <div className="memorica-find-fields">
+            <Space className="memorica-find-row" size="small" align="center">
+              <Input
                 ref={findInputRef}
-                type="text"
                 value={find}
                 onChange={(e) => setFind(e.target.value)}
                 placeholder="查找..."
-                className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-md outline-none focus:border-blue-400 transition"
+                prefix={<SearchOutlined className="memorica-find-icon" />}
+                allowClear
+                size="small"
+                className="memorica-find-input"
               />
               {totalMatches > 0 && (
-                <span className="text-xs text-gray-400 whitespace-nowrap">
+                <Text type="secondary" className="memorica-find-count">
                   {currentMatch} / {totalMatches}
-                </span>
+                </Text>
               )}
-              <button
-                onClick={() => goToMatch('prev')}
-                disabled={totalMatches === 0}
-                className="p-1 rounded hover:bg-gray-100 text-gray-500 disabled:opacity-30 transition"
-              >
-                <UpOutlined style={{ fontSize: 16 }} />
-              </button>
-              <button
-                onClick={() => goToMatch('next')}
-                disabled={totalMatches === 0}
-                className="p-1 rounded hover:bg-gray-100 text-gray-500 disabled:opacity-30 transition"
-              >
-                <DownOutlined style={{ fontSize: 16 }} />
-              </button>
-              <button
+              <Tooltip title="上一个匹配">
+                <Button
+                  aria-label="上一个匹配"
+                  onClick={() => goToMatch('prev')}
+                  disabled={totalMatches === 0}
+                  icon={<UpOutlined />}
+                  size="small"
+                  type="text"
+                />
+              </Tooltip>
+              <Tooltip title="下一个匹配">
+                <Button
+                  aria-label="下一个匹配"
+                  onClick={() => goToMatch('next')}
+                  disabled={totalMatches === 0}
+                  icon={<DownOutlined />}
+                  size="small"
+                  type="text"
+                />
+              </Tooltip>
+              <Button
+                aria-pressed={showReplace}
+                icon={<SwapOutlined />}
                 onClick={() => setShowReplace(!showReplace)}
-                className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition"
+                size="small"
+                type="text"
               >
                 {showReplace ? '隐藏替换' : '替换'}
-              </button>
-            </div>
+              </Button>
+            </Space>
 
             {showReplace && (
-              <div className="flex items-center gap-2 pl-5">
-                <SwapOutlined className="text-gray-400" style={{ fontSize: 14 }} />
-                <input
-                  type="text"
+              <Space className="memorica-find-row memorica-find-replace-row" size="small" align="center">
+                <Input
                   value={replace}
                   onChange={(e) => setReplace(e.target.value)}
                   placeholder="替换为..."
-                  className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-md outline-none focus:border-blue-400 transition"
+                  prefix={<SwapOutlined className="memorica-find-icon" />}
+                  allowClear
+                  size="small"
+                  className="memorica-find-input"
                 />
-                <button
+                <Button
                   onClick={doReplace}
                   disabled={!find}
-                  className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-40 transition"
+                  size="small"
+                  type="primary"
                 >
                   替换
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={doReplaceAll}
                   disabled={!find}
-                  className="text-xs px-3 py-1.5 border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-40 transition"
+                  size="small"
                 >
                   全部替换
-                </button>
-              </div>
+                </Button>
+              </Space>
             )}
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition"
-          >
-            <CloseOutlined style={{ fontSize: 16 }} />
-          </button>
+          <Tooltip title="关闭查找替换">
+            <Button
+              aria-label="关闭查找替换"
+              onClick={onClose}
+              icon={<CloseOutlined />}
+              size="small"
+              type="text"
+            />
+          </Tooltip>
         </div>
       </div>
     </div>
