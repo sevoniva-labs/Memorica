@@ -85,6 +85,15 @@ test('application layout menu items use Ant Design buttons', async () => {
   assert.doesNotMatch(source, /<button\b/)
 })
 
+test('attachment node actions use Ant Design buttons and tooltips', async () => {
+  const source = await readFile('frontend/src/extensions/Attachment.tsx', 'utf8')
+
+  assert.match(source, /import \{[^}]*\bButton\b[^}]*\bTooltip\b[^}]*\} from 'antd'/s)
+  assert.match(source, /<Tooltip\b[\s\S]*title="打开附件"/)
+  assert.match(source, /<Button\b[\s\S]*className="memorica-attachment-action"[\s\S]*data-testid="memorica-attachment-open"/)
+  assert.doesNotMatch(source, /<button\b/)
+})
+
 test('frontend-check runs the UI stack policy test', async () => {
   const source = await readFile('Makefile', 'utf8')
 

@@ -6,7 +6,8 @@ import {
   mergeAttributes,
   type NodeViewProps,
 } from '@tiptap/react'
-import { DownloadOutlined, FileTextOutlined, LoadingOutlined } from '@ant-design/icons'
+import { Button, Tooltip } from 'antd'
+import { DownloadOutlined, FileTextOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import { apiErrorMessage, getFileUrl } from '../api/client'
 
@@ -94,16 +95,18 @@ function AttachmentView({ node }: NodeViewProps) {
           </div>
         )}
       </div>
-      <button
-        type="button"
-        className="memorica-attachment-action"
-        onClick={openFile}
-        disabled={loading}
-        data-testid="memorica-attachment-open"
-      >
-        {loading ? <LoadingOutlined spin style={{ fontSize: 15 }} /> : <DownloadOutlined style={{ fontSize: 15 }} />}
-        <span>打开</span>
-      </button>
+      <Tooltip title="打开附件">
+        <Button
+          className="memorica-attachment-action"
+          onClick={openFile}
+          disabled={loading}
+          loading={loading}
+          icon={<DownloadOutlined style={{ fontSize: 15 }} />}
+          data-testid="memorica-attachment-open"
+        >
+          打开
+        </Button>
+      </Tooltip>
     </NodeViewWrapper>
   )
 }
