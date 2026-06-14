@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 
 const nodeDockerfiles = ['frontend/Dockerfile', 'hocuspocus/Dockerfile']
+const dockerfiles = ['backend/Dockerfile', 'frontend/Dockerfile', 'hocuspocus/Dockerfile']
 const dockerContexts = ['backend', 'frontend', 'hocuspocus']
 
 for (const file of nodeDockerfiles) {
@@ -28,6 +29,14 @@ for (const file of nodeDockerfiles) {
     const source = await readFile(file, 'utf8')
 
     assert.match(source, /npm ci .*--audit=false\b/)
+  })
+}
+
+for (const file of dockerfiles) {
+  test(`${file} clears stale proxy settings before health checks`, async () => {
+    const source = await readFile(file, 'utf8')
+
+    assert.match(source, /CMD HTTP_PROXY= HTTPS_PROXY= http_proxy= https_proxy= ALL_PROXY= all_proxy= wget/)
   })
 }
 

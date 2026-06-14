@@ -7,7 +7,7 @@ COPY src/ src/
 USER memorica
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -qO- --header="Upgrade: websocket" http://localhost:${HOCUSPOCUS_PORT:-1234}/health || exit 1
+    CMD HTTP_PROXY= HTTPS_PROXY= http_proxy= https_proxy= ALL_PROXY= all_proxy= wget -qO- --header="Upgrade: websocket" http://localhost:${HOCUSPOCUS_PORT:-1234}/health || exit 1
 
 EXPOSE ${HOCUSPOCUS_PORT:-1234}
 CMD ["node", "src/server.js"]
