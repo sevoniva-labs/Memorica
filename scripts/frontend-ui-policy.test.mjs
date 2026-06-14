@@ -81,5 +81,5 @@ test('frontend-check runs the UI stack policy test', async () => {
   const source = await readFile('Makefile', 'utf8')
 
   assert.match(source, /^frontend-ui-policy-test: ## Verify frontend uses only the approved Ant Design UI stack$/m)
-  assert.match(source, /^frontend-check: frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test ## Run frontend lint, Ant Design checks, and production build$/m)
+  assert.match(source, /^frontend-check: frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test ## Run frontend lint, Ant Design checks, and production build$/m)
 })

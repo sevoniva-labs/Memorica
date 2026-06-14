@@ -4,11 +4,11 @@ import { test } from 'node:test'
 import { buildProxySummary, isLoopbackProxy } from './docker-proxy-check.mjs'
 
 test('isLoopbackProxy detects loopback proxy hosts that break inside containers', () => {
-  assert.equal(isLoopbackProxy('http://127.0.0.1:6666'), true)
-  assert.equal(isLoopbackProxy('http://localhost:6666'), true)
-  assert.equal(isLoopbackProxy('http://[::1]:6666'), true)
-  assert.equal(isLoopbackProxy('http://host.docker.internal:6666'), false)
-  assert.equal(isLoopbackProxy('http://10.25.24.240:6666'), false)
+  assert.equal(isLoopbackProxy('http://127.0.0.1:18080'), true)
+  assert.equal(isLoopbackProxy('http://localhost:18080'), true)
+  assert.equal(isLoopbackProxy('http://[::1]:18080'), true)
+  assert.equal(isLoopbackProxy('http://host.docker.internal:18080'), false)
+  assert.equal(isLoopbackProxy('http://10.25.24.240:18080'), false)
 })
 
 test('buildProxySummary explains daemon image pulls separately from container runtime proxies', () => {
@@ -19,8 +19,8 @@ test('buildProxySummary explains daemon image pulls separately from container ru
       noProxy: 'hubproxy.docker.internal',
     },
     dockerConfigProxy: {
-      httpProxy: 'http://127.0.0.1:6666',
-      httpsProxy: 'http://127.0.0.1:6666',
+      httpProxy: 'http://127.0.0.1:18080',
+      httpsProxy: 'http://127.0.0.1:18080',
     },
     hostLanIp: '10.25.24.240',
   })
