@@ -238,6 +238,28 @@ test('drawio export error keeps the dialog open and does not insert a diagram', 
   await expect(page.getByTestId('memorica-diagram-node')).toHaveCount(0);
 });
 
+test('drawio malformed export without data or xml stays retryable', async ({ page }) => {
+  await mockDrawioFrame(page);
+  await openEditor(page);
+  await openDrawioFromBlankTemplate(page);
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('可以开始编辑图示');
+
+  await page.getByRole('button', { name: '保存图示' }).click();
+  await page.evaluate(() => {
+    const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
+    if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
+    window.dispatchEvent(new MessageEvent('message', {
+      data: JSON.stringify({ event: 'export' }),
+      source: iframe.contentWindow,
+    }));
+  });
+
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('图示编辑器出现异常');
+  await expect(page.locator('.memorica-drawio-frame')).toBeVisible();
+  await expect(page.getByRole('button', { name: '重试保存' })).toBeVisible();
+  await expect(page.getByTestId('memorica-diagram-node')).toHaveCount(0);
+});
+
 test('drawio save stays disabled until the embedded editor is ready', async ({ page }) => {
   await openEditor(page);
   await page.route('**/embed.diagrams.net/**', async (route) => {
