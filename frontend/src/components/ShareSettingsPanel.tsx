@@ -15,11 +15,17 @@ import {
   CloseOutlined,
   DeleteOutlined,
   GlobalOutlined,
-  LoadingOutlined,
   LockOutlined,
   SafetyOutlined,
   TeamOutlined,
 } from '@ant-design/icons'
+import { Alert, Button, Drawer, Input, List, Select, Space, Spin, Switch, Tag, Typography } from 'antd'
+
+const { Text, Title } = Typography
+const shareRoleOptions = [
+  { value: 'viewer', label: '可查看' },
+  { value: 'editor', label: '可编辑' },
+]
 
 interface Props {
   docId: string
@@ -88,8 +94,6 @@ export default function ShareSettingsPanel({ docId, open, onClose }: Props) {
     return () => window.clearTimeout(timer)
   }, [loadSharing, open])
 
-  if (!open) return null
-
   const updatePublic = async (isPublic: boolean) => {
     setSaving(true)
     setError('')
@@ -132,152 +136,198 @@ export default function ShareSettingsPanel({ docId, open, onClose }: Props) {
     }
   }
 
-  return (
-    <div className="memorica-share-overlay" onMouseDown={onClose}>
-      <aside className="memorica-share-panel" onMouseDown={(event) => event.stopPropagation()}>
-        <header className="memorica-share-head">
-          <div>
-            <span className="memorica-share-kicker">协作设置</span>
-            <h2>分享与权限</h2>
-          </div>
-          <button onClick={onClose} aria-label="关闭分享设置">
-            <CloseOutlined style={{ fontSize: 18 }} />
-          </button>
-        </header>
-
-        {loading ? (
-          <div className="memorica-share-loading">
-            <LoadingOutlined spin style={{ fontSize: 18 }} />
-            加载权限配置
-          </div>
-        ) : (
-          <>
-            {error && <div className="memorica-share-error">{error}</div>}
-
-            <section className="memorica-share-section">
-              <div className="memorica-share-section-title">
-                {sharing?.isPublic ? <GlobalOutlined style={{ fontSize: 18 }} /> : <LockOutlined style={{ fontSize: 18 }} />}
-                <div>
-                  <strong>{sharing?.isPublic ? '公开文档' : '私密文档'}</strong>
-                  <span>
-                    {sharing?.isPublic
-                      ? '登录用户可查看，编辑仍需授权。'
-                      : '空间成员可查看；空间管理员和文档编辑者可编辑。'}
-                  </span>
-                </div>
-              </div>
-              <button
-                className={sharing?.isPublic ? 'memorica-share-toggle active' : 'memorica-share-toggle'}
-                disabled={saving}
-                onClick={() => updatePublic(!sharing?.isPublic)}
-              >
-                {sharing?.isPublic ? <CheckOutlined style={{ fontSize: 15 }} /> : null}
-                {sharing?.isPublic ? '已公开' : '设为公开'}
-              </button>
-            </section>
-
-            <section className="memorica-share-section vertical">
-              <div className="memorica-share-section-title">
-                <TeamOutlined style={{ fontSize: 18 }} />
-                <div>
-                  <strong>添加协作者</strong>
-                  <span>输入用户名或邮箱，授予查看或编辑权限。</span>
-                </div>
-              </div>
-              <div className="memorica-share-form">
-                <input
-                  data-testid="memorica-share-username"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                  placeholder="username 或 email"
-                />
-                <select value={role} onChange={(event) => setRole(event.target.value as 'viewer' | 'editor')}>
-                  <option value="viewer">可查看</option>
-                  <option value="editor">可编辑</option>
-                </select>
-                <button
-                  data-testid="memorica-share-add-member"
-                  disabled={saving || !username.trim()}
-                  onClick={grantAccess}
-                >
-                  添加
-                </button>
-              </div>
-            </section>
-
-            <section className="memorica-share-section vertical">
-              <div className="memorica-share-section-title">
-                <BankOutlined style={{ fontSize: 18 }} />
-                <div>
-                  <strong>空间访问</strong>
-                  <span>
-                    {sharing?.workspaceName || '当前空间'} 内 {sharing?.workspaceMembers?.length || 0} 个成员默认可查看，管理员可编辑。
-                  </span>
-                </div>
-              </div>
-              <div className="memorica-share-members" data-testid="memorica-share-workspace-members">
-                {sharing?.workspaceMembers?.map((member) => (
-                  <div className="memorica-share-member workspace" key={member.userId}>
-                    <div>
-                      <strong>{member.displayName || member.username}</strong>
-                      <span>{member.email || member.username}</span>
-                    </div>
-                    <em>{workspaceRoleLabel(member.role)}</em>
-                    <span className="memorica-share-member-note">
-                      {member.role === 'owner' || member.role === 'admin' ? '可编辑' : '可查看'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="memorica-share-section vertical">
-              <div className="memorica-share-section-title">
-                <SafetyOutlined style={{ fontSize: 18 }} />
-                <div>
-                  <strong>单文档授权</strong>
-                  <span>{sharing?.members.length || 0} 个成员拥有文档级权限，可单独授予编辑能力。</span>
-                </div>
-              </div>
-              <div className="memorica-share-members" data-testid="memorica-share-document-members">
-                {sharing?.members.map((member) => (
-                  <div className="memorica-share-member" key={member.userId}>
-                    <div>
-                      <strong>{member.displayName || member.username}</strong>
-                      <span>{member.email || member.username}</span>
-                    </div>
-                    <em>{roleLabel(member.role)}</em>
-                    {member.role !== 'owner' && (
-                      <button disabled={saving} onClick={() => revokeAccess(member.userId)} aria-label="移除协作者">
-                        <DeleteOutlined style={{ fontSize: 15 }} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="memorica-share-section vertical">
-              <div className="memorica-share-section-title">
-                <SafetyOutlined style={{ fontSize: 18 }} />
-                <div>
-                  <strong>最近审计</strong>
-                  <span>分享、保存和删除等关键操作会留痕。</span>
-                </div>
-              </div>
-              <div className="memorica-audit-list">
-                {auditLogs.map((log) => (
-                  <div className="memorica-audit-item" key={log.id}>
-                    <span>{formatDate(log.createdAt)}</span>
-                    <strong>{log.action}</strong>
-                    <em>{log.username}</em>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </>
-        )}
-      </aside>
+  const drawerTitle = (
+    <div>
+      <Text type="secondary" className="memorica-share-kicker">协作设置</Text>
+      <Title level={4} className="memorica-share-title">分享与权限</Title>
     </div>
+  )
+
+  return (
+    <Drawer
+      className="memorica-share-panel"
+      closeIcon={<CloseOutlined />}
+      destroyOnHidden
+      open={open}
+      onClose={onClose}
+      rootClassName="memorica-share-drawer"
+      title={drawerTitle}
+      width="min(460px, 100vw)"
+      styles={{ body: { padding: 0 } }}
+    >
+      {loading ? (
+        <div className="memorica-share-loading">
+          <Spin size="small" />
+          <Text type="secondary">加载权限配置</Text>
+        </div>
+      ) : (
+        <>
+          {error && <Alert className="memorica-share-error" showIcon type="error" message={error} />}
+
+          <section className="memorica-share-section">
+            <div className="memorica-share-section-title">
+              {sharing?.isPublic ? <GlobalOutlined style={{ fontSize: 18 }} /> : <LockOutlined style={{ fontSize: 18 }} />}
+              <div>
+                <strong>{sharing?.isPublic ? '公开文档' : '私密文档'}</strong>
+                <span>
+                  {sharing?.isPublic
+                    ? '登录用户可查看，编辑仍需授权。'
+                    : '空间成员可查看；空间管理员和文档编辑者可编辑。'}
+                </span>
+              </div>
+            </div>
+            <Space size={8}>
+              <Tag bordered={false} color={sharing?.isPublic ? 'blue' : 'default'}>
+                {sharing?.isPublic ? '已公开' : '未公开'}
+              </Tag>
+              <Switch
+                aria-label="切换公开访问"
+                checked={sharing?.isPublic === true}
+                checkedChildren={<CheckOutlined />}
+                disabled={saving}
+                loading={saving}
+                onChange={updatePublic}
+                unCheckedChildren={<LockOutlined />}
+              />
+            </Space>
+          </section>
+
+          <section className="memorica-share-section vertical">
+            <div className="memorica-share-section-title">
+              <TeamOutlined style={{ fontSize: 18 }} />
+              <div>
+                <strong>添加协作者</strong>
+                <span>输入用户名或邮箱，授予查看或编辑权限。</span>
+              </div>
+            </div>
+            <div className="memorica-share-form">
+              <Input
+                data-testid="memorica-share-username"
+                disabled={saving}
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                onPressEnter={grantAccess}
+                placeholder="username 或 email"
+              />
+              <Select
+                value={role}
+                disabled={saving}
+                onChange={setRole}
+                options={shareRoleOptions}
+              />
+              <Button
+                data-testid="memorica-share-add-member"
+                disabled={!username.trim()}
+                loading={saving}
+                onClick={grantAccess}
+                type="primary"
+              >
+                添加
+              </Button>
+            </div>
+          </section>
+
+          <section className="memorica-share-section vertical">
+            <div className="memorica-share-section-title">
+              <BankOutlined style={{ fontSize: 18 }} />
+              <div>
+                <strong>空间访问</strong>
+                <span>
+                  {sharing?.workspaceName || '当前空间'} 内 {sharing?.workspaceMembers?.length || 0} 个成员默认可查看，管理员可编辑。
+                </span>
+              </div>
+            </div>
+            <List
+              className="memorica-share-members"
+              data-testid="memorica-share-workspace-members"
+              dataSource={sharing?.workspaceMembers || []}
+              locale={{ emptyText: '暂无空间成员' }}
+              renderItem={(member) => (
+                <List.Item
+                  className="memorica-share-member workspace"
+                  actions={[
+                    <Tag bordered={false} color="blue" key="workspace-role">{workspaceRoleLabel(member.role)}</Tag>,
+                    <Tag bordered={false} color={member.role === 'owner' || member.role === 'admin' ? 'green' : 'default'} key="workspace-access">
+                      {member.role === 'owner' || member.role === 'admin' ? '可编辑' : '可查看'}
+                    </Tag>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    title={member.displayName || member.username}
+                    description={member.email || member.username}
+                  />
+                </List.Item>
+              )}
+            />
+          </section>
+
+          <section className="memorica-share-section vertical">
+            <div className="memorica-share-section-title">
+              <SafetyOutlined style={{ fontSize: 18 }} />
+              <div>
+                <strong>单文档授权</strong>
+                <span>{sharing?.members.length || 0} 个成员拥有文档级权限，可单独授予编辑能力。</span>
+              </div>
+            </div>
+            <List
+              className="memorica-share-members"
+              data-testid="memorica-share-document-members"
+              dataSource={sharing?.members || []}
+              locale={{ emptyText: '暂无文档级授权' }}
+              renderItem={(member) => {
+                const actions = [
+                  <Tag bordered={false} color={member.role === 'owner' ? 'gold' : 'blue'} key="document-role">
+                    {roleLabel(member.role)}
+                  </Tag>,
+                ]
+                if (member.role !== 'owner') {
+                  actions.push(
+                    <Button
+                      aria-label="移除协作者"
+                      disabled={saving}
+                      icon={<DeleteOutlined />}
+                      key="revoke"
+                      onClick={() => revokeAccess(member.userId)}
+                      size="small"
+                      type="text"
+                    />,
+                  )
+                }
+                return (
+                  <List.Item className="memorica-share-member" actions={actions}>
+                    <List.Item.Meta
+                      title={member.displayName || member.username}
+                      description={member.email || member.username}
+                    />
+                  </List.Item>
+                )
+              }}
+            />
+          </section>
+
+          <section className="memorica-share-section vertical">
+            <div className="memorica-share-section-title">
+              <SafetyOutlined style={{ fontSize: 18 }} />
+              <div>
+                <strong>最近审计</strong>
+                <span>分享、保存和删除等关键操作会留痕。</span>
+              </div>
+            </div>
+            <List
+              className="memorica-audit-list"
+              dataSource={auditLogs}
+              locale={{ emptyText: '暂无审计记录' }}
+              renderItem={(log) => (
+                <List.Item className="memorica-audit-item">
+                  <Text type="secondary">{formatDate(log.createdAt)}</Text>
+                  <Text strong>{log.action}</Text>
+                  <Text type="secondary">{log.username}</Text>
+                </List.Item>
+              )}
+            />
+          </section>
+        </>
+      )}
+    </Drawer>
   )
 }

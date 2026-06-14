@@ -648,35 +648,35 @@ body {
   cursor: pointer;
 }
 
-.memorica-share-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  display: flex;
-  justify-content: flex-end;
+.memorica-share-drawer .ant-drawer-mask {
   background: rgba(15, 23, 42, 0.14);
 }
 
-.memorica-share-panel {
-  width: min(460px, 100vw);
-  height: 100%;
-  overflow-y: auto;
-  border-left: 1px solid #e7eaf0;
-  background: #fff;
+.memorica-share-drawer .ant-drawer-content-wrapper {
   box-shadow: -24px 0 48px rgba(16, 24, 40, 0.14);
 }
 
-.memorica-share-head {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.memorica-share-panel .ant-drawer-header {
   padding: 22px 24px 18px;
   border-bottom: 1px solid #eef0f3;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(12px);
+}
+
+.memorica-share-panel .ant-drawer-title {
+  min-width: 0;
+}
+
+.memorica-share-panel .ant-drawer-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: #667085;
+}
+
+.memorica-share-panel .ant-drawer-close:hover {
+  color: #1f2329;
+  background: #f5f6f8;
 }
 
 .memorica-share-kicker {
@@ -686,34 +686,11 @@ body {
   font-size: 12px;
 }
 
-.memorica-share-head h2 {
-  margin: 0;
+.memorica-share-title.ant-typography {
+  margin: 0 !important;
   color: #111827;
   font-size: 20px;
   line-height: 1.25;
-}
-
-.memorica-share-head button,
-.memorica-share-member button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 8px;
-  color: #667085;
-  background: transparent;
-  cursor: pointer;
-}
-
-.memorica-share-head button {
-  width: 34px;
-  height: 34px;
-}
-
-.memorica-share-head button:hover,
-.memorica-share-member button:hover {
-  color: #1f2329;
-  background: #f5f6f8;
 }
 
 .memorica-share-loading,
@@ -733,8 +710,7 @@ body {
 }
 
 .memorica-share-error {
-  color: #b42318;
-  background: #fff4f4;
+  display: block;
 }
 
 .memorica-share-section {
@@ -782,72 +758,36 @@ body {
   line-height: 1.5;
 }
 
-.memorica-share-toggle,
-.memorica-share-form button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 34px;
-  flex: 0 0 auto;
-  gap: 6px;
-  border: 1px solid #d0d5dd;
-  border-radius: 8px;
-  padding: 0 12px;
-  color: #344054;
-  background: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.memorica-share-toggle.active,
-.memorica-share-form button {
-  border-color: #245bdb;
-  color: #fff;
-  background: #245bdb;
-}
-
-.memorica-share-toggle:disabled,
-.memorica-share-form button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
 .memorica-share-form {
   display: grid;
   grid-template-columns: 1fr 108px auto;
   gap: 8px;
 }
 
-.memorica-share-form input,
-.memorica-share-form select {
+.memorica-share-form .ant-input,
+.memorica-share-form .ant-select-selector,
+.memorica-share-form .ant-btn {
   min-width: 0;
   height: 36px;
-  border: 1px solid #d0d5dd;
   border-radius: 8px;
-  padding: 0 10px;
-  color: #111827;
-  background: #fff;
   font-size: 13px;
-  outline: none;
 }
 
-.memorica-share-form input:focus,
-.memorica-share-form select:focus {
-  border-color: #245bdb;
-  box-shadow: 0 0 0 3px rgba(36, 91, 219, 0.12);
+.memorica-share-form .ant-select-selection-item,
+.memorica-share-form .ant-select-selection-placeholder {
+  font-size: 13px;
 }
 
-.memorica-share-members,
-.memorica-audit-list {
+.memorica-share-members .ant-list-items,
+.memorica-audit-list .ant-list-items {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.memorica-share-member {
+.memorica-share-member.ant-list-item {
   display: grid;
-  grid-template-columns: 1fr auto 32px;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   min-height: 52px;
@@ -857,20 +797,16 @@ body {
   background: #fafbfc;
 }
 
-.memorica-share-member.workspace {
-  grid-template-columns: 1fr auto auto;
+.memorica-share-member.ant-list-item.workspace {
   background: #fff;
 }
 
-.memorica-share-member div {
-  display: flex;
+.memorica-share-member .ant-list-item-meta {
   min-width: 0;
-  flex-direction: column;
-  gap: 2px;
 }
 
-.memorica-share-member strong,
-.memorica-audit-item strong {
+.memorica-share-member .ant-list-item-meta-title {
+  margin-bottom: 2px;
   overflow: hidden;
   color: #111827;
   font-size: 13px;
@@ -878,48 +814,43 @@ body {
   white-space: nowrap;
 }
 
-.memorica-share-member span,
-.memorica-audit-item span,
-.memorica-audit-item em {
+.memorica-share-member .ant-list-item-meta-description {
   overflow: hidden;
   color: #667085;
   font-size: 12px;
-  font-style: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.memorica-share-member em {
-  padding: 4px 8px;
-  border-radius: 999px;
-  color: #245bdb;
-  background: #eef3ff;
-  font-size: 12px;
-  font-style: normal;
-  white-space: nowrap;
+.memorica-share-member .ant-list-item-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: 10px;
 }
 
-.memorica-share-member-note {
-  padding: 4px 8px;
-  border-radius: 999px;
-  color: #178a4f !important;
-  background: #f3fbf6;
-  font-size: 12px !important;
-  white-space: nowrap;
+.memorica-share-member .ant-list-item-action > li {
+  padding: 0;
 }
 
-.memorica-share-member button {
-  width: 32px;
-  height: 32px;
+.memorica-share-member .ant-list-item-action-split {
+  display: none;
 }
 
-.memorica-audit-item {
+.memorica-audit-item.ant-list-item {
   display: grid;
   grid-template-columns: 82px 1fr auto;
   align-items: center;
   gap: 10px;
   padding: 9px 0;
   border-bottom: 1px solid #f1f3f6;
+}
+
+.memorica-audit-item .ant-typography {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 编辑器容器 */
