@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Modal } from 'antd'
-import { CheckOutlined, CloseOutlined, LoadingOutlined } from '@ant-design/icons'
+import { CheckOutlined, CloseOutlined, LoadingOutlined, ReloadOutlined } from '@ant-design/icons'
 import type { DiagramAttrs } from '../extensions/Diagram'
 import { BLANK_DIAGRAM_XML } from '../diagram/templates'
 
@@ -60,6 +60,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
   const message = DRAWIO_STATE_MESSAGES[state]
   const saving = state === 'saving'
   const canceling = state === 'canceling'
+  const retryable = state === 'timeout' || state === 'error'
 
   useEffect(() => {
     stateRef.current = state
@@ -141,6 +142,12 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
       return
     }
 
+    if (payload.event === 'error') {
+      clearSaveTimer()
+      setState('error')
+      return
+    }
+
     if (payload.event === 'exit') {
       cancelDrawio()
     }
@@ -188,12 +195,12 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
             </Button>
             <Button
               type="primary"
-              icon={saving ? <LoadingOutlined spin /> : <CheckOutlined />}
+              icon={saving ? <LoadingOutlined spin /> : retryable ? <ReloadOutlined /> : <CheckOutlined />}
               loading={saving}
               disabled={canceling}
               onClick={handleSave}
             >
-              保存图示
+              {retryable ? '重试保存' : '保存图示'}
             </Button>
           </div>
         </div>

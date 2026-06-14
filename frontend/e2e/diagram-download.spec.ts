@@ -165,3 +165,37 @@ test('drawio exit event closes without inserting a diagram', async ({ page }) =>
   await expect(page.locator('.memorica-drawio-frame')).not.toBeVisible({ timeout: 5_000 });
   await expect(page.getByTestId('memorica-diagram-node')).toHaveCount(0);
 });
+
+test('drawio save timeout shows an explicit retry action', async ({ page }) => {
+  await openEditor(page);
+  await openDrawioFromBlankTemplate(page);
+
+  await page.clock.install();
+  await page.getByRole('button', { name: '保存图示' }).click();
+  await page.clock.fastForward(12_100);
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('保存没有响应');
+  await expect(page.getByRole('button', { name: '重试保存' })).toBeVisible();
+
+  await page.getByRole('button', { name: '重试保存' }).click();
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('正在保存图示');
+});
+
+test('drawio error event shows retry action and remains recoverable', async ({ page }) => {
+  await openEditor(page);
+  await openDrawioFromBlankTemplate(page);
+
+  await page.evaluate(() => {
+    const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
+    if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
+    window.dispatchEvent(new MessageEvent('message', {
+      data: JSON.stringify({ event: 'error' }),
+      source: iframe.contentWindow,
+    }));
+  });
+
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('图示编辑器出现异常');
+  await expect(page.getByRole('button', { name: '重试保存' })).toBeVisible();
+
+  await page.getByRole('button', { name: '重试保存' }).click();
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('正在保存图示');
+});
