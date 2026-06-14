@@ -190,6 +190,32 @@ test('drawio save requests a direct svg export from the embedded editor', async 
     .toContainEqual(expect.objectContaining({ action: 'export', format: 'svg' }));
 });
 
+test('drawio save event without xml still requests an svg export', async ({ page }) => {
+  await mockDrawioFrame(page);
+  await openEditor(page);
+  await openDrawioFromBlankTemplate(page);
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('可以开始编辑图示');
+
+  await page.evaluate(() => {
+    const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
+    if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
+    window.dispatchEvent(new MessageEvent('message', {
+      data: JSON.stringify({ event: 'save' }),
+      source: iframe.contentWindow,
+    }));
+  });
+
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('正在保存图示');
+  await expect
+    .poll(
+      async () => page.evaluate(() => (
+        (window as Window & { __drawioHostMessages?: Array<Record<string, unknown>> }).__drawioHostMessages || []
+      )),
+      { timeout: 1_000 }
+    )
+    .toContainEqual(expect.objectContaining({ action: 'export', format: 'svg' }));
+});
+
 test('drawio save stays disabled until the embedded editor is ready', async ({ page }) => {
   await openEditor(page);
   await page.route('**/embed.diagrams.net/**', async (route) => {

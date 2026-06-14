@@ -139,6 +139,15 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     postToDrawio(payload)
   }, [postToDrawio])
 
+  const beginSave = useCallback((xml?: string) => {
+    setState('saving')
+    requestExport(xml)
+    clearSaveTimer()
+    saveTimerRef.current = window.setTimeout(() => {
+      setState('timeout')
+    }, DRAWIO_SAVE_TIMEOUT_MS)
+  }, [clearSaveTimer, requestExport])
+
   const handleMessage = useCallback((event: MessageEvent) => {
     if (event.source !== iframeRef.current?.contentWindow) return
     const payload = parseDrawioMessage(event.data)
@@ -161,8 +170,8 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
       return
     }
 
-    if (payload.event === 'save' && payload.xml) {
-      requestExport(payload.xml)
+    if (payload.event === 'save') {
+      beginSave(payload.xml)
       return
     }
 
@@ -188,7 +197,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     if (payload.event === 'exit') {
       cancelDrawio()
     }
-  }, [cancelDrawio, clearInitTimer, clearSaveTimer, initialTitle, initialXml, onSave, postToDrawio, requestExport])
+  }, [beginSave, cancelDrawio, clearInitTimer, clearSaveTimer, initialTitle, initialXml, onSave, postToDrawio])
 
   useEffect(() => {
     if (!open) return
@@ -209,12 +218,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
 
   const handleSave = () => {
     if (canceling || ['loading', 'saving', 'initTimeout'].includes(stateRef.current)) return
-    setState('saving')
-    requestExport()
-    clearSaveTimer()
-    saveTimerRef.current = window.setTimeout(() => {
-      setState('timeout')
-    }, DRAWIO_SAVE_TIMEOUT_MS)
+    beginSave()
   }
 
   return (
