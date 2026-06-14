@@ -6,6 +6,8 @@ import lombok.Data;
 
 @Data
 public class AiGenerateRequest {
+    private String documentId;
+
     @NotBlank
     private String action;
 

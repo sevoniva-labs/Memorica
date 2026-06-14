@@ -441,7 +441,8 @@ test('AI provider can generate real content when enabled', async ({ request }) =
   test.skip(process.env.E2E_RUN_AI !== 'true', 'Set E2E_RUN_AI=true to run the provider-backed AI check.');
 
   const auth = await registerTestUser(request, 'ai');
-  const result = await generateAI(request, auth, 'Memorica 是一个多人协作在线文档产品。请用一句话总结。');
+  const document = await createDocument(request, auth, uniqueName('AI 验证'));
+  const result = await generateAI(request, auth, document.id, 'Memorica 是一个多人协作在线文档产品。请用一句话总结。');
 
   expect(result.provider).toBe('deepseek');
   expect(result.text.trim().length).toBeGreaterThan(0);

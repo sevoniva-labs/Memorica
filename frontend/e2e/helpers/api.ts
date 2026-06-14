@@ -136,10 +136,10 @@ export async function expectLatestVersionNotContains(
     .not.toContain(unexpected);
 }
 
-export async function generateAI(request: APIRequestContext, auth: TestAuth, text: string) {
+export async function generateAI(request: APIRequestContext, auth: TestAuth, documentId: string, text: string) {
   const response = await request.post(`${API_BASE}/ai/generate`, {
     headers: { Authorization: `Bearer ${auth.accessToken}` },
-    data: { action: 'summarize', text },
+    data: { documentId, action: 'summarize', text },
   });
   await expectOk(response, 'Generate AI response');
   return (await response.json()).data as { provider: string; model: string; text: string };

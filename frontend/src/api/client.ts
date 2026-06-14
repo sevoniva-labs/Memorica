@@ -123,6 +123,7 @@ export interface DocumentVersionDetail extends DocumentVersion {
 }
 
 export interface AIGenerateRequest {
+  documentId: string
   action: string
   text: string
   customPrompt?: string

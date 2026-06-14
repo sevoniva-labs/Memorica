@@ -1011,7 +1011,7 @@ export default function CollabEditor({
       {aiOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/20 backdrop-blur-sm">
           <div className="w-full max-w-sm">
-            <AIAssistant editor={editor} open={aiOpen} onClose={() => { setAiOpen(false); setAiInitialAction(null) }} initialAction={aiInitialAction} />
+            <AIAssistant editor={editor} documentId={docId} open={aiOpen} onClose={() => { setAiOpen(false); setAiInitialAction(null) }} initialAction={aiInitialAction} />
           </div>
         </div>
       )}
@@ -1019,7 +1019,7 @@ export default function CollabEditor({
       {/* AI 助手 - 桌面端浮动面板 */}
       {aiOpen && (
         <div className="fixed right-6 top-24 z-30 hidden lg:block">
-          <AIAssistant editor={editor} open={aiOpen} onClose={() => { setAiOpen(false); setAiInitialAction(null) }} initialAction={aiInitialAction} />
+          <AIAssistant editor={editor} documentId={docId} open={aiOpen} onClose={() => { setAiOpen(false); setAiInitialAction(null) }} initialAction={aiInitialAction} />
         </div>
       )}
 

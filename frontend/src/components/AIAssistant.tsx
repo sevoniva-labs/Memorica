@@ -18,12 +18,13 @@ import {
 
 interface Props {
   editor: Editor | null
+  documentId: string
   open: boolean
   onClose: () => void
   initialAction?: AIAction | null
 }
 
-export default function AIAssistant({ editor, open, onClose, initialAction }: Props) {
+export default function AIAssistant({ editor, documentId, open, onClose, initialAction }: Props) {
   const [streaming, setStreaming] = useState(false)
   const [result, setResult] = useState('')
   const [customPrompt, setCustomPrompt] = useState('')
@@ -52,6 +53,7 @@ export default function AIAssistant({ editor, open, onClose, initialAction }: Pr
 
     try {
       const response = await generateAI({
+        documentId,
         action,
         text,
         customPrompt: action === 'custom' ? customPrompt : undefined,
@@ -66,7 +68,7 @@ export default function AIAssistant({ editor, open, onClose, initialAction }: Pr
     } finally {
       setStreaming(false)
     }
-  }, [customPrompt, editor, getSelectedText, streaming])
+  }, [customPrompt, documentId, editor, getSelectedText, streaming])
 
   // 监听 initialAction，自动执行
   useEffect(() => {
