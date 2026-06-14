@@ -1785,6 +1785,15 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
+.memorica-quick-button:disabled {
+  cursor: not-allowed;
+}
+
+.memorica-quick-button:disabled .memorica-quick-card {
+  opacity: 0.58;
+  box-shadow: none;
+}
+
 .memorica-quick-icon {
   display: inline-flex;
   align-items: center;
@@ -1793,10 +1802,6 @@ body {
   height: 40px;
   flex-shrink: 0;
   border-radius: 10px;
-  font-size: 18px;
-}
-
-.memorica-quick-icon .semi-icon {
   font-size: 18px;
 }
 
@@ -1845,21 +1850,6 @@ body {
   white-space: nowrap;
 }
 
-.memorica-toolbar-right .semi-button {
-  height: 32px;
-  border-radius: 7px;
-  font-size: 13px;
-  transition: all 0.15s ease;
-}
-
-.memorica-toolbar-right .semi-button:hover {
-  background: #f3f4f6;
-}
-
-.memorica-toolbar-right .semi-button-primary {
-  background: #2563eb !important;
-}
-
 .memorica-count-pill {
   display: inline-flex;
   align-items: center;
@@ -1886,6 +1876,11 @@ body {
 
 .memorica-breadcrumb button:hover {
   color: var(--memo-blue);
+}
+
+.memorica-list-error {
+  margin-bottom: 12px;
+  border-radius: 8px;
 }
 
 /* Fly Tabs */

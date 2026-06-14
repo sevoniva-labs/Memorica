@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
+  Alert,
   App as AntdApp,
   Avatar,
   Button,
@@ -115,6 +116,14 @@ export default function DocumentListPage() {
   const [moveVisible, setMoveVisible] = useState(false)
   const [moveTargetId, setMoveTargetId] = useState('')
   const [folderOptions, setFolderOptions] = useState<DocumentItem[]>([])
+  const [listError, setListError] = useState('')
+  const [creatingDocument, setCreatingDocument] = useState(false)
+  const [creatingFolder, setCreatingFolder] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const [moving, setMoving] = useState(false)
+  const [favoriteId, setFavoriteId] = useState<string>()
+  const [deletingId, setDeletingId] = useState<string>()
+  const [restoringId, setRestoringId] = useState<string>()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
@@ -133,15 +142,18 @@ export default function DocumentListPage() {
   ) => {
     if (nextTab === 'workspace' && !workspaceId) {
       setDocs([])
+      setListError('')
       setLoading(false)
       return
     }
     setLoading(true)
+    setListError('')
     try {
       const data = await loadDocuments(nextTab, workspaceId, nextQuery, nextParentId)
       setDocs(data)
     } catch {
       setDocs([])
+      setListError('文档列表加载失败，请检查网络后重试')
       message.error('文档列表加载失败')
     } finally {
       setLoading(false)
@@ -156,17 +168,24 @@ export default function DocumentListPage() {
     let loadingTimer: ReturnType<typeof setTimeout> | null = null
 
     loadingTimer = setTimeout(() => {
-      if (!cancelled) setLoading(true)
+      if (!cancelled) {
+        setLoading(true)
+        setListError('')
+      }
     }, 120)
 
     const request = loadDocuments(tab, activeWorkspaceId, query, currentParentId)
     request
       .then((data) => {
-        if (!cancelled) setDocs(data)
+        if (!cancelled) {
+          setDocs(data)
+          setListError('')
+        }
       })
       .catch(() => {
         if (!cancelled) {
           setDocs([])
+          setListError('文档列表加载失败，请检查网络后重试')
           message.error('文档列表加载失败')
         }
       })
@@ -205,17 +224,21 @@ export default function DocumentListPage() {
   }, [docs, query])
 
   const handleCreate = async (title = '未命名文档') => {
+    if (creatingDocument) return
+    setCreatingDocument(true)
     try {
       const doc = await createDocument(title, activeWorkspaceId, canUseFolders ? currentParentId : undefined)
       navigate(`/doc/${doc.id}`)
     } catch {
       message.error('创建文档失败')
+      setCreatingDocument(false)
     }
   }
 
   const handleCreateFolder = async () => {
     const title = folderName.trim()
-    if (!title) return
+    if (!title || creatingFolder) return
+    setCreatingFolder(true)
     try {
       await createFolder(title, activeWorkspaceId, currentParentId)
       setFolderModalVisible(false)
@@ -224,30 +247,42 @@ export default function DocumentListPage() {
       fetchDocuments()
     } catch {
       message.error('创建文件夹失败')
+    } finally {
+      setCreatingFolder(false)
     }
   }
 
   const handleDelete = async (id: string) => {
+    if (deletingId) return
+    setDeletingId(id)
     try {
       await deleteDocument(id)
       message.success('文档已删除')
       fetchDocuments()
     } catch {
       message.error('删除失败')
+    } finally {
+      setDeletingId(undefined)
     }
   }
 
   const handleRestore = async (id: string) => {
+    if (restoringId) return
+    setRestoringId(id)
     try {
       await restoreDocument(id)
       message.success('文档已恢复')
       fetchDocuments()
     } catch {
       message.error('恢复失败')
+    } finally {
+      setRestoringId(undefined)
     }
   }
 
   const handleFavorite = async (record: DocumentItem) => {
+    if (favoriteId) return
+    setFavoriteId(record.id)
     try {
       const next = await setDocumentFavorite(record.id, !record.isFavorite)
       setDocs((items) => items.map((item) => (item.id === record.id ? { ...item, isFavorite: next.isFavorite } : item)))
@@ -256,6 +291,8 @@ export default function DocumentListPage() {
       }
     } catch {
       message.error('收藏状态更新失败')
+    } finally {
+      setFavoriteId(undefined)
     }
   }
 
@@ -266,7 +303,8 @@ export default function DocumentListPage() {
   }
 
   const handleRename = async () => {
-    if (!activeRecord || !renameValue.trim()) return
+    if (!activeRecord || !renameValue.trim() || renaming) return
+    setRenaming(true)
     try {
       await updateDocumentMeta(activeRecord.id, renameValue.trim())
       setRenameVisible(false)
@@ -275,6 +313,8 @@ export default function DocumentListPage() {
       fetchDocuments()
     } catch {
       message.error('重命名失败')
+    } finally {
+      setRenaming(false)
     }
   }
 
@@ -293,7 +333,8 @@ export default function DocumentListPage() {
   }
 
   const handleMove = async () => {
-    if (!activeRecord) return
+    if (!activeRecord || moving) return
+    setMoving(true)
     try {
       await moveDocument(activeRecord.id, moveTargetId || null)
       setMoveVisible(false)
@@ -302,6 +343,8 @@ export default function DocumentListPage() {
       fetchDocuments()
     } catch {
       message.error('移动失败')
+    } finally {
+      setMoving(false)
     }
   }
 
@@ -391,6 +434,8 @@ export default function DocumentListPage() {
             icon={<UndoOutlined />}
             type="text"
             size="small"
+            loading={restoringId === record.id}
+            disabled={Boolean(restoringId)}
             onClick={(event) => {
               event.stopPropagation()
               handleRestore(record.id)
@@ -404,6 +449,8 @@ export default function DocumentListPage() {
                 icon={record.isFavorite ? <StarFilled /> : <StarOutlined />}
                 type="text"
                 size="small"
+                loading={favoriteId === record.id}
+                disabled={Boolean(favoriteId)}
                 onClick={(event) => {
                   event.stopPropagation()
                   handleFavorite(record)
@@ -417,6 +464,7 @@ export default function DocumentListPage() {
                   icon={<EditOutlined />}
                   type="text"
                   size="small"
+                  disabled={renaming || moving || deletingId === record.id}
                   onClick={(event) => {
                     event.stopPropagation()
                     openRename(record)
@@ -427,6 +475,7 @@ export default function DocumentListPage() {
                   icon={<FolderOpenOutlined />}
                   type="text"
                   size="small"
+                  disabled={renaming || moving || deletingId === record.id}
                   onClick={(event) => {
                     event.stopPropagation()
                     openMove(record)
@@ -436,7 +485,7 @@ export default function DocumentListPage() {
                   title="确定删除这个文档？"
                   description="删除后文档会进入回收站，可从回收站恢复。"
                   okText="删除"
-                  okButtonProps={{ danger: true }}
+                  okButtonProps={{ danger: true, loading: deletingId === record.id }}
                   cancelText="取消"
                   onConfirm={() => handleDelete(record.id)}
                 >
@@ -446,6 +495,8 @@ export default function DocumentListPage() {
                     type="text"
                     danger
                     size="small"
+                    loading={deletingId === record.id}
+                    disabled={Boolean(deletingId)}
                     onClick={(event) => event.stopPropagation()}
                   />
                 </Popconfirm>
@@ -481,6 +532,7 @@ export default function DocumentListPage() {
       color: '#3b82f6',
       bg: '#eff6ff',
       onClick: () => handleCreate(),
+      disabled: creatingDocument,
     },
     {
       title: '导入',
@@ -497,6 +549,7 @@ export default function DocumentListPage() {
       color: '#8b5cf6',
       bg: '#f5f3ff',
       onClick: () => handleCreate('模板文档'),
+      disabled: creatingDocument,
     },
   ]
 
@@ -539,7 +592,13 @@ export default function DocumentListPage() {
       <div className="memorica-empty-title">{emptyConfig.title}</div>
       <div className="memorica-empty-desc">{emptyConfig.desc}</div>
       {emptyConfig.showBtn && (
-        <Button icon={<PlusOutlined />} type="primary" onClick={() => handleCreate()}>
+        <Button
+          disabled={creatingDocument}
+          icon={<PlusOutlined />}
+          loading={creatingDocument}
+          type="primary"
+          onClick={() => handleCreate()}
+        >
           新建文档
         </Button>
       )}
@@ -579,7 +638,13 @@ export default function DocumentListPage() {
       <main className="memorica-content">
         <div className="memorica-quick-grid">
           {quickActions.map((action) => (
-            <button className="memorica-quick-button" key={action.title} type="button" onClick={action.onClick}>
+            <button
+              className="memorica-quick-button"
+              disabled={action.disabled}
+              key={action.title}
+              type="button"
+              onClick={action.onClick}
+            >
               <div className="memorica-quick-card">
                 <span className="memorica-quick-icon" style={{ color: action.color, background: action.bg }}>
                   {action.icon}
@@ -615,6 +680,7 @@ export default function DocumentListPage() {
                 icon={<FolderOpenOutlined />}
                 type="text"
                 size="small"
+                disabled={creatingFolder}
                 onClick={() => setFolderModalVisible(true)}
               >
                 文件夹
@@ -625,6 +691,8 @@ export default function DocumentListPage() {
               icon={<PlusOutlined />}
               type="primary"
               size="small"
+              disabled={creatingDocument}
+              loading={creatingDocument}
               onClick={() => handleCreate()}
             >
               新建
@@ -647,6 +715,21 @@ export default function DocumentListPage() {
             ))}
           </div>
         </div>
+
+        {listError && (
+          <Alert
+            data-testid="memorica-list-error"
+            className="memorica-list-error"
+            type="error"
+            showIcon
+            message={listError}
+            action={
+              <Button data-testid="memorica-list-retry" size="small" onClick={() => fetchDocuments()}>
+                重试
+              </Button>
+            }
+          />
+        )}
 
         <Skeleton loading={loading} active paragraph={{ rows: 4 }} className="memorica-skeleton">
           <ProTable<WorkspaceRow>
@@ -679,7 +762,9 @@ export default function DocumentListPage() {
         open={folderModalVisible}
         okText="创建"
         cancelText="取消"
+        confirmLoading={creatingFolder}
         onCancel={() => {
+          if (creatingFolder) return
           setFolderModalVisible(false)
           setFolderName('')
         }}
@@ -689,6 +774,7 @@ export default function DocumentListPage() {
           autoFocus
           placeholder="文件夹名称"
           value={folderName}
+          disabled={creatingFolder}
           onChange={(event) => setFolderName(event.target.value)}
           onPressEnter={handleCreateFolder}
         />
@@ -698,7 +784,9 @@ export default function DocumentListPage() {
         open={renameVisible}
         okText="保存"
         cancelText="取消"
+        confirmLoading={renaming}
         onCancel={() => {
+          if (renaming) return
           setRenameVisible(false)
           setActiveRecord(undefined)
         }}
@@ -708,6 +796,7 @@ export default function DocumentListPage() {
           autoFocus
           placeholder="名称"
           value={renameValue}
+          disabled={renaming}
           onChange={(event) => setRenameValue(event.target.value)}
           onPressEnter={handleRename}
         />
@@ -717,7 +806,9 @@ export default function DocumentListPage() {
         open={moveVisible}
         okText="移动"
         cancelText="取消"
+        confirmLoading={moving}
         onCancel={() => {
+          if (moving) return
           setMoveVisible(false)
           setActiveRecord(undefined)
         }}
@@ -726,6 +817,7 @@ export default function DocumentListPage() {
         <Select
           value={moveTargetId}
           onChange={setMoveTargetId}
+          disabled={moving}
           style={{ width: '100%' }}
           options={[
             { value: '', label: '根目录' },
