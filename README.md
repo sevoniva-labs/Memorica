@@ -236,6 +236,14 @@ docker compose -f docker/docker-compose.yml up -d --build
 
 生产环境建议把 diagrams.net 部署在可信域名下，并通过 `VITE_DRAWIO_URL` 指向该地址。国内网络下也建议使用自托管或内网可访问的 drawio 地址。
 
+如果打开图示时遇到 `invalid stored block lengths`，先运行诊断：
+
+```bash
+make drawio-diagnostics
+```
+
+该命令会验证仓库内 Draw.io 模板是否仍是 diagrams.net 需要的 raw-deflate base64 格式，并输出当前 `VITE_DRAWIO_URL` 来源。若模板正常，问题通常不是模板源码损坏，而是已保存图示 XML 被截断、被当普通 XML 写入 `<diagram>`，或保存/export 事件没有返回完整 `xml/data`；优先从版本历史恢复，再重新保存图示。内网部署时，浏览器必须能直接访问 `VITE_DRAWIO_URL`，外网镜像下载失败则在 Docker daemon 或 Docker Desktop 配当前可用网卡代理，不要继续使用已经失效的 `127.0.0.1` 代理。
+
 ## 部署
 
 ### Docker Compose
