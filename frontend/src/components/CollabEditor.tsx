@@ -41,6 +41,7 @@ import { Diagram, type DiagramActionPayload, type DiagramAttrs, type DiagramEdit
 import type { DiagramTemplate } from '../diagram/templates'
 import { Attachment, type AttachmentAttrs } from '../extensions/Attachment'
 import { DocumentImage } from '../extensions/DocumentImage'
+import { ATTACHMENT_ACCEPT, IMAGE_ACCEPT, validateUploadFile } from '../files/uploadPolicy'
 import { apiErrorMessage, getVersion, listVersions, updateDocumentMeta, saveVersion, saveVersionKeepalive, uploadFile } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { useSidebar } from '../contexts/SidebarContext'
@@ -705,6 +706,12 @@ export default function CollabEditor({
     event.target.value = ''
     if (!file || !editor || !canEdit || uploadingFile) return
 
+    const validation = validateUploadFile(file, target)
+    if (!validation.ok) {
+      message.warning(validation.message)
+      return
+    }
+
     setUploadingFile(true)
     setVersionSaveState('saving')
     try {
@@ -882,7 +889,7 @@ export default function CollabEditor({
         ref={imageInputRef}
         data-testid="memorica-image-upload"
         type="file"
-        accept="image/*"
+        accept={IMAGE_ACCEPT}
         hidden
         onChange={(event) => void uploadSelectedFile(event, 'image')}
       />
@@ -890,7 +897,7 @@ export default function CollabEditor({
         ref={attachmentInputRef}
         data-testid="memorica-attachment-upload"
         type="file"
-        accept="image/*,application/pdf"
+        accept={ATTACHMENT_ACCEPT}
         hidden
         onChange={(event) => void uploadSelectedFile(event, 'attachment')}
       />
