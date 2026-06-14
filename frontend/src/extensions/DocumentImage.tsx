@@ -29,7 +29,12 @@ function DocumentImageView({ node }: NodeViewProps) {
   }
 
   return (
-    <NodeViewWrapper className="memorica-document-image" data-type="document-image" contentEditable={false}>
+    <NodeViewWrapper
+      className="memorica-document-image"
+      data-type="document-image"
+      data-testid="memorica-document-image-node"
+      contentEditable={false}
+    >
       {src ? (
         <img src={src} alt={attrs.alt || attrs.title || '图片'} title={attrs.title} onError={refresh} />
       ) : (

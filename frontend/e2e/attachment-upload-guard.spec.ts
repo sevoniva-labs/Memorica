@@ -76,7 +76,7 @@ test('unsupported attachment type is rejected before upload', async ({ page }) =
     buffer: Buffer.from('plain text is not supported'),
   });
 
-  await expect(page.getByText('仅支持 JPG、PNG、GIF、WebP 图片或 PDF 文件')).toBeVisible();
+  await expect(page.getByTestId('memorica-upload-status')).toContainText('仅支持 JPG、PNG、GIF、WebP 图片或 PDF 文件');
   expect(uploadRequests).toBe(0);
 });
 
@@ -98,7 +98,7 @@ test('oversized attachment is rejected before upload', async ({ page }) => {
     buffer: Buffer.alloc(10 * 1024 * 1024 + 1),
   });
 
-  await expect(page.getByText('文件不能超过 10 MB')).toBeVisible();
+  await expect(page.getByTestId('memorica-upload-status')).toContainText('文件不能超过 10 MB');
   expect(uploadRequests).toBe(0);
 });
 
@@ -132,6 +132,56 @@ test('attachment upload shows progress and success status', async ({ page }) => 
   await expect(page.getByTestId('memorica-upload-status')).toContainText('正在上传 sample.pdf');
   await expect(page.getByTestId('memorica-upload-status')).toContainText('文件已插入：sample.pdf');
   await expect(page.locator('.memorica-attachment-node')).toContainText('sample.pdf');
+  expect(uploadRequests).toBe(1);
+});
+
+test('image upload shows success status and inserts an image node', async ({ page }) => {
+  let uploadRequests = 0;
+  await openEditor(page);
+  await page.route('**/api/v1/files/upload', async (route) => {
+    uploadRequests += 1;
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          objectName: 'sample.png',
+          url: 'https://example.test/sample.png',
+          originalName: 'sample.png',
+          contentType: 'image/png',
+          sizeBytes: 96,
+          documentId: document.id,
+        },
+      }),
+    });
+  });
+  await page.route('**/api/v1/files/view/sample.png', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          objectName: 'sample.png',
+          url: 'data:image/png;base64,iVBORw0KGgo=',
+          originalName: 'sample.png',
+          contentType: 'image/png',
+          sizeBytes: 96,
+          documentId: document.id,
+        },
+      }),
+    });
+  });
+
+  await page.setInputFiles('[data-testid="memorica-image-upload"]', {
+    name: 'sample.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from([
+      0x89, 0x50, 0x4e, 0x47,
+      0x0d, 0x0a, 0x1a, 0x0a,
+    ]),
+  });
+
+  await expect(page.getByTestId('memorica-upload-status')).toContainText('文件已插入：sample.png');
+  await expect(page.getByTestId('memorica-document-image-node')).toBeVisible();
+  await expect(page.getByTestId('memorica-document-image-node').locator('img')).toHaveAttribute('alt', 'sample.png');
   expect(uploadRequests).toBe(1);
 });
 
