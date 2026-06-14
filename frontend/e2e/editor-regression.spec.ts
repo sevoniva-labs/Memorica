@@ -642,6 +642,20 @@ test('uploaded attachment persists and follows document sharing permissions', as
   const fileInfo = await getFileInfo(request, viewer, objectName);
   expect(fileInfo.originalName).toBe(fileName);
   expect(fileInfo.url).toContain(objectName);
+
+  await loginByStorage(page, viewer);
+  await openEditorForDocument(page, document.id);
+
+  await expect(page.locator('.memorica-editor-save-status')).toContainText('只读', { timeout: 12_000 });
+  await expect(page.locator('.memorica-attachment-node')).toContainText(fileName, { timeout: 15_000 });
+  await expect(page.getByTestId('memorica-attachment-open')).toBeVisible();
+  await expect(page.getByTestId('memorica-attachment-upload')).toBeDisabled();
+  await expect(page.getByTestId('memorica-image-upload')).toBeDisabled();
+
+  await page.locator('button[title="更多"]').click();
+  await expect(page.getByText('上传附件')).not.toBeVisible();
+  await expect(page.getByText('上传图片')).not.toBeVisible();
+  await expect(page.getByText('插入图示')).not.toBeVisible();
 });
 
 test('restored attachment version remains openable', async ({ page, request }) => {
