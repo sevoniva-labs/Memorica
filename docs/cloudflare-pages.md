@@ -45,12 +45,20 @@ Optional GitHub repository variables:
 ```text
 CLOUDFLARE_PAGES_PROJECT_NAME=memorica-frontend
 CLOUDFLARE_PAGES_BRANCH=main
+CLOUDFLARE_PAGES_URL=https://memorica-frontend-5ut.pages.dev
+MEMORICA_DEMO_USERNAME=demo
 VITE_API_BASE_URL=https://api.example.com
 VITE_WS_URL=wss://api.example.com/ws
 VITE_DRAWIO_URL=https://embed.diagrams.net/
 ```
 
-The workflow installs frontend dependencies with `https://registry.npmmirror.com`, runs lint and build, then deploys `frontend/dist` with Wrangler. Set `CLOUDFLARE_PAGES_BRANCH=main` when a development branch should update the Pages production temporary domain. If `VITE_API_BASE_URL` and `VITE_WS_URL` are empty, the Pages deployment will still serve the static frontend, but login, API calls, file access, and collaboration will not be usable until a public HTTPS/WSS backend is configured.
+Optional GitHub repository secret:
+
+```text
+MEMORICA_DEMO_PASSWORD=Memorica2026
+```
+
+The workflow installs frontend dependencies with `https://registry.npmmirror.com`, runs lint and build, deploys `frontend/dist` with Wrangler, then runs `scripts/cloudflare-demo-smoke.mjs` against the deployed Pages URL. Set `CLOUDFLARE_PAGES_BRANCH=main` when a development branch should update the Pages production temporary domain. If `VITE_API_BASE_URL` and `VITE_WS_URL` are empty, the Pages deployment will still serve the static frontend, but login, API calls, file access, and collaboration will not be usable until a public HTTPS/WSS backend is configured.
 
 ## Current Project
 
@@ -100,7 +108,7 @@ VITE_WS_URL=wss://<current-ws-tunnel>.trycloudflare.com \
 make cloudflare-demo-smoke
 ```
 
-The smoke command checks the Pages root, demo login, browser-required CORS headers, workspaces, recent documents, and the seeded `Memorica 预发布演示文档`. It intentionally does not create tunnels or mutate GitHub variables. If it fails after the local machine sleeps, Docker restarts, or a tunnel container exits, start fresh tunnels and update the GitHub variables before redeploying.
+The smoke command checks the Pages root, demo login, browser-required CORS headers, workspaces, recent documents, the seeded `Memorica 预发布演示文档`, and a real WebSocket open against `VITE_WS_URL`. It intentionally does not create tunnels or mutate GitHub variables. If it fails after the local machine sleeps, Docker restarts, or a tunnel container exits, start fresh tunnels and update the GitHub variables before redeploying.
 
 ## Runtime Environment
 

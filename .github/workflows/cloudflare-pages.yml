@@ -10,6 +10,7 @@ on:
       - .github/workflows/cloudflare-pages.yml
       - frontend/**
       - scripts/cloudflare-pages-*.mjs
+      - scripts/cloudflare-demo-smoke*.mjs
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,6 +32,9 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_PAGES_PROJECT_NAME: ${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME || 'memorica-frontend' }}
       CLOUDFLARE_PAGES_BRANCH: ${{ vars.CLOUDFLARE_PAGES_BRANCH || github.ref_name }}
+      CLOUDFLARE_PAGES_URL: ${{ vars.CLOUDFLARE_PAGES_URL || 'https://memorica-frontend-5ut.pages.dev' }}
+      MEMORICA_DEMO_USERNAME: ${{ vars.MEMORICA_DEMO_USERNAME || 'demo' }}
+      MEMORICA_DEMO_PASSWORD: ${{ secrets.MEMORICA_DEMO_PASSWORD || 'Memorica2026' }}
       VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
       VITE_WS_URL: ${{ vars.VITE_WS_URL }}
       VITE_DRAWIO_URL: ${{ vars.VITE_DRAWIO_URL || 'https://embed.diagrams.net/' }}
@@ -50,6 +54,9 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "CLOUDFLARE_ACCOUNT_ID repository variable is missing"; exit 1; }
           test -n "$CLOUDFLARE_API_TOKEN" || { echo "CLOUDFLARE_API_TOKEN repository secret is missing"; exit 1; }
 
+      - name: Preflight Cloudflare Pages config
+        run: node scripts/cloudflare-pages-preflight.mjs --skip-dist
+
       - name: Install frontend dependencies
         run: npm ci --registry=https://registry.npmmirror.com
         working-directory: frontend
@@ -68,3 +75,6 @@ jobs:
             --project-name "$CLOUDFLARE_PAGES_PROJECT_NAME" \
             --branch "$CLOUDFLARE_PAGES_BRANCH"
         working-directory: frontend
+
+      - name: Smoke test Cloudflare demo
+        run: node scripts/cloudflare-demo-smoke.mjs

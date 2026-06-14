@@ -207,7 +207,9 @@ VITE_WS_URL=wss://<current-ws-tunnel>.trycloudflare.com \
 make cloudflare-demo-smoke
 ```
 
-该 smoke 会检查 Pages 根页面、demo 登录、浏览器必需的 CORS 响应、工作区列表、最近文档以及 `Memorica 预发布演示文档` 是否可见。`trycloudflare.com` 地址是临时地址，Docker 或 tunnel 停止后就需要重新获取并更新 GitHub Pages 变量。
+该 smoke 会检查 Pages 根页面、demo 登录、浏览器必需的 CORS 响应、工作区列表、最近文档、`Memorica 预发布演示文档` 是否可见，以及协作 WebSocket 是否能打开。`trycloudflare.com` 地址是临时地址，Docker 或 tunnel 停止后就需要重新获取并更新 GitHub Pages 变量。
+
+GitHub Actions 的 Cloudflare Pages workflow 在部署后也会运行同一个 smoke。更新临时 tunnel 后，要同步更新仓库变量 `VITE_API_BASE_URL`、`VITE_WS_URL`，必要时更新 `CLOUDFLARE_PAGES_URL` 和 demo 账号变量，再触发一次部署验证。
 
 ### 文件存储配置
 
