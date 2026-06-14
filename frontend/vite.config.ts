@@ -9,6 +9,25 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined
+          const normalizedId = id.replaceAll('\\', '/')
+          const mermaidOnlyPackages = [
+            '/node_modules/mermaid/',
+            '/node_modules/@mermaid-js/',
+            '/node_modules/@braintree/sanitize-url/',
+            '/node_modules/@iconify/utils/',
+            '/node_modules/@upsetjs/venn.js/',
+            '/node_modules/cytoscape',
+            '/node_modules/dagre-d3-es/',
+            '/node_modules/dompurify/',
+            '/node_modules/es-toolkit/',
+            '/node_modules/khroma/',
+            '/node_modules/roughjs/',
+            '/node_modules/ts-dedent/',
+            '/node_modules/uuid/',
+          ]
+          if (mermaidOnlyPackages.some((dependency) => normalizedId.includes(dependency)) || /\/node_modules\/d3(?:-|\/)/.test(normalizedId)) {
+            return 'vendor-mermaid'
+          }
           if (id.includes('katex')) {
             return 'vendor-katex'
           }

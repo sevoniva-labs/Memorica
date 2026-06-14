@@ -1,5 +1,9 @@
+import { Extension } from '@tiptap/core'
 import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import { Fragment, Slice } from '@tiptap/pm/model'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
+import type { EditorView } from '@tiptap/pm/view'
 import { Placeholder } from '@tiptap/extension-placeholder'
 import { Underline } from '@tiptap/extension-underline'
 import { Link } from '@tiptap/extension-link'
@@ -21,6 +25,7 @@ import { Youtube } from '@tiptap/extension-youtube'
 import { CharacterCount } from '@tiptap/extension-character-count'
 import Mathematics from '@tiptap/extension-mathematics'
 import { Emoji } from '@tiptap/extension-emoji'
+import { Markdown } from '@tiptap/markdown'
 import { DragHandle } from '@tiptap/extension-drag-handle-react'
 import { Collaboration } from '@tiptap/extension-collaboration'
 import CollaborationCaret from '@tiptap/extension-collaboration-caret'
@@ -41,6 +46,7 @@ import { Diagram, type DiagramActionPayload, type DiagramAttrs, type DiagramEdit
 import type { DiagramTemplate } from '../diagram/templates'
 import { Attachment, type AttachmentAttrs } from '../extensions/Attachment'
 import { DocumentImage } from '../extensions/DocumentImage'
+import { MermaidCodeBlock } from '../extensions/MermaidCodeBlock'
 import { ATTACHMENT_ACCEPT, IMAGE_ACCEPT, validateUploadFile } from '../files/uploadPolicy'
 import { apiErrorMessage, getVersion, listVersions, updateDocumentMeta, saveVersion, saveVersionKeepalive, uploadFile } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
@@ -182,6 +188,45 @@ function formatSavedAt(value: Date | null) {
   return value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+function looksLikeMarkdownPaste(text: string) {
+  if (!text.trim() || !text.includes('\n')) return false
+  return /(^|\n)\s{0,3}(#{1,6}\s+\S|[-*+]\s+\S|\d+\.\s+\S|>\s+\S|```[a-zA-Z0-9_-]*|~~~[a-zA-Z0-9_-]*|\|.+\|)\s*/.test(text)
+}
+
+function insertMarkdownPaste(editor: Editor, view: EditorView, text: string) {
+  const parsed = editor.markdown?.parse(text)
+  if (parsed?.content?.length) {
+    const fragment = Fragment.fromArray(parsed.content.map((node) => view.state.schema.nodeFromJSON(node)))
+    view.dispatch(view.state.tr.replaceSelection(new Slice(fragment, 0, 0)).scrollIntoView())
+    return true
+  }
+  return editor.commands.insertContent(text, { contentType: 'markdown' })
+}
+
+function createMarkdownPasteExtension() {
+  return Extension.create({
+    name: 'memoricaMarkdownPaste',
+    addProseMirrorPlugins() {
+      const editor = this.editor
+      return [
+        new Plugin({
+          key: new PluginKey('memoricaMarkdownPaste'),
+          props: {
+            handlePaste(view, event) {
+              if (!editor.isEditable) return false
+              const text = event.clipboardData?.getData('text/plain') || ''
+              if (!looksLikeMarkdownPaste(text)) return false
+              const inserted = insertMarkdownPaste(editor, view, text)
+              if (inserted) event.preventDefault()
+              return inserted
+            },
+          },
+        }),
+      ]
+    },
+  })
+}
+
 export default function CollabEditor({
   docId = 'default-doc',
   userName = '匿名用户',
@@ -271,6 +316,7 @@ export default function CollabEditor({
         link: false,
         underline: false,
         undoRedo: false, // Collaboration 自带历史管理，禁用默认的 undoRedo
+        codeBlock: false,
       }),
       Placeholder.configure({
         placeholder: ({ node }) => {
@@ -304,8 +350,17 @@ export default function CollabEditor({
       Youtube.configure({ inline: false, width: 640, height: 360, HTMLAttributes: { class: 'youtube-embed' } }),
       CharacterCount.configure({ mode: 'textSize' }),
       Mathematics.configure({ katexOptions: { throwOnError: false } }),
+      MermaidCodeBlock.configure({
+        languageClassPrefix: 'language-',
+        HTMLAttributes: { class: 'memorica-code-block' },
+      }),
+      createMarkdownPasteExtension(),
       Attachment,
       Diagram,
+      Markdown.configure({
+        indentation: { style: 'space', size: 2 },
+        markedOptions: { gfm: true },
+      }),
       // 协作扩展
       Collaboration.configure({ document: yDoc }),
       CollaborationCaret.configure({

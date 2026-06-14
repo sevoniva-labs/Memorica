@@ -3,7 +3,7 @@
 	dev dev-down dev-logs setup clean demo-seed demo-seed-dry-run demo-seed-test dockerfile-policy-test docker-proxy-check makefile-policy-test \
 	build ci lint test verify-local audit \
 	backend-build backend-test backend-unit-test backend-integration-test backend-check backend-lint testcontainers-check \
-	frontend-install frontend-dev frontend-build frontend-lint frontend-check frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test frontend-collab-editor-policy-test frontend-bubble-menu-policy-test frontend-diagram-template-format-test frontend-diagram-template-picker-policy-test frontend-diagram-node-policy-test frontend-audit e2e-local demo-e2e-local \
+	frontend-install frontend-dev frontend-build frontend-lint frontend-check frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test frontend-collab-editor-policy-test frontend-bubble-menu-policy-test frontend-diagram-template-format-test frontend-diagram-template-picker-policy-test frontend-diagram-node-policy-test frontend-markdown-mermaid-policy-test frontend-audit e2e-local demo-e2e-local \
 	hocuspocus-install hocuspocus-check hocuspocus-audit \
 	db-migrate db-new-migration db-backup db-restore \
 	docker-build docker-push
@@ -115,7 +115,10 @@ frontend-diagram-template-picker-policy-test: ## Verify Draw.io template picker 
 frontend-diagram-node-policy-test: ## Verify Draw.io diagram node uses Ant Design controls
 	node --test scripts/frontend-diagram-node-antd.test.mjs
 
-frontend-check: frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test frontend-collab-editor-policy-test frontend-bubble-menu-policy-test frontend-diagram-template-format-test frontend-diagram-template-picker-policy-test frontend-diagram-node-policy-test ## Run frontend lint, Ant Design checks, and production build
+frontend-markdown-mermaid-policy-test: ## Verify Markdown paste and Mermaid editor support
+	node --test scripts/frontend-markdown-mermaid.test.mjs
+
+frontend-check: frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test frontend-collab-editor-policy-test frontend-bubble-menu-policy-test frontend-diagram-template-format-test frontend-diagram-template-picker-policy-test frontend-diagram-node-policy-test frontend-markdown-mermaid-policy-test ## Run frontend lint, Ant Design checks, and production build
 	cd frontend && npm run lint && npm run antd:doctor && npm run antd:lint && npm run build
 
 frontend-audit: ## Audit frontend production dependencies

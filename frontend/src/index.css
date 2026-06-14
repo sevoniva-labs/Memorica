@@ -1040,6 +1040,56 @@ body {
   font-size: inherit;
 }
 
+.notion-editor .memorica-code-block {
+  color: #1f2329;
+}
+
+.notion-editor .memorica-mermaid-block {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #e7eaf0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.notion-editor .memorica-mermaid-preview {
+  min-height: 180px;
+  padding: 18px;
+  overflow-x: auto;
+  color: #667085;
+  font-size: 13px;
+  background:
+    linear-gradient(#f5f7fb 1px, transparent 1px),
+    linear-gradient(90deg, #f5f7fb 1px, transparent 1px),
+    #fff;
+  background-size: 20px 20px;
+}
+
+.notion-editor .memorica-mermaid-svg {
+  min-width: max-content;
+}
+
+.notion-editor .memorica-mermaid-svg svg {
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.notion-editor .memorica-mermaid-source {
+  margin: 0;
+  border-top: 1px solid #eef0f3;
+  border-radius: 0;
+  background: #fafbfc;
+}
+
+.notion-editor .memorica-mermaid-error {
+  color: #b42318;
+  white-space: pre-wrap;
+}
+
 /* 链接 */
 .notion-editor a {
   color: #2563eb;

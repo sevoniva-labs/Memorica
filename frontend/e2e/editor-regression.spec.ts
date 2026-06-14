@@ -54,6 +54,14 @@ async function currentDocumentId(page: Page) {
   return match![1];
 }
 
+async function pastePlainText(page: Page, selector: string, text: string) {
+  const origin = new URL(page.url()).origin;
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
+  await page.evaluate((value) => navigator.clipboard.writeText(value), text);
+  await page.locator(selector).click();
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+V' : 'Control+V');
+}
+
 test.beforeAll(async ({ request }) => {
   await expectBackendReady(request);
 });
@@ -298,6 +306,36 @@ test('editor shell scrolls long documents', async ({ page, request }) => {
       return element.scrollTop > 0;
     })
   ).resolves.toBeTruthy();
+});
+
+test('editor pastes Markdown as structured content with Mermaid preview', async ({ page, request }) => {
+  const auth = await registerTestUser(request, 'mdpaste');
+  const document = await createDocument(request, auth, uniqueName('Markdown 粘贴验证'));
+  const markdown = [
+    '# Markdown 标题',
+    '',
+    '- 第一项',
+    '- 第二项',
+    '',
+    '```mermaid',
+    'graph TD',
+    '  A[开始] --> B[完成]',
+    '```',
+  ].join('\n');
+
+  await loginByStorage(page, auth);
+  await openEditorForDocument(page, document.id);
+  await waitForCollaboration(page);
+
+  await page.locator('.notion-editor').click();
+  await pastePlainText(page, '.notion-editor', markdown);
+
+  await expect(page.locator('.notion-editor h1')).toContainText('Markdown 标题');
+  await expect(page.locator('.notion-editor li')).toHaveCount(2);
+  await expect(page.locator('.notion-editor li').first()).toContainText('第一项');
+  await expect(page.getByTestId('memorica-mermaid-block')).toBeVisible();
+  await expect(page.getByTestId('memorica-mermaid-source')).toContainText('graph TD');
+  await expect(page.getByTestId('memorica-mermaid-preview')).toContainText(/(渲染中|开始|完成)/);
 });
 
 test('drawio save timeout keeps the dialog open and allows retry', async ({ page, request }) => {
