@@ -111,5 +111,58 @@ class AuthServiceTest {
 
         var result = authService.login(req);
         assertNotNull(result.getData());
+        verify(auditService).log(eq(1L), eq("testuser"), eq("AUTH_LOGIN"),
+                eq("USER"), eq("1"), eq("User logged in"), isNull());
+    }
+
+    @Test
+    void refreshToken_shouldRotateAndBlacklistOldToken() {
+        when(jwtUtil.validateToken("old-refresh-token")).thenReturn(true);
+        when(jwtUtil.isRefreshToken("old-refresh-token")).thenReturn(true);
+        when(tokenBlacklistService.isBlacklisted("old-refresh-token")).thenReturn(false);
+        when(jwtUtil.getUserIdFromToken("old-refresh-token")).thenReturn(1L);
+        when(jwtUtil.getEmailFromToken("old-refresh-token")).thenReturn("test@example.com");
+        when(jwtUtil.getUsernameFromToken("old-refresh-token")).thenReturn("testuser");
+        when(jwtUtil.getTokenExpiration("old-refresh-token")).thenReturn(1_800_000L);
+        when(jwtUtil.generateAccessToken(1L, "test@example.com", "testuser"))
+                .thenReturn("new-access-token");
+        when(jwtUtil.generateRefreshToken(1L, "test@example.com", "testuser"))
+                .thenReturn("new-refresh-token");
+
+        var result = authService.refreshToken("old-refresh-token");
+
+        assertNotNull(result.getData());
+        verify(tokenBlacklistService).blacklist("old-refresh-token", 1_800_000L);
+        verify(auditService).log(eq(1L), eq("testuser"), eq("AUTH_REFRESH"),
+                eq("USER"), eq("1"), eq("Refresh token rotated"), isNull());
+    }
+
+    @Test
+    void refreshToken_shouldRejectBlacklistedTokenWithoutRotating() {
+        when(jwtUtil.validateToken("old-refresh-token")).thenReturn(true);
+        when(jwtUtil.isRefreshToken("old-refresh-token")).thenReturn(true);
+        when(tokenBlacklistService.isBlacklisted("old-refresh-token")).thenReturn(true);
+
+        assertThrows(BadRequestException.class, () -> authService.refreshToken("old-refresh-token"));
+
+        verify(tokenBlacklistService, never()).blacklist(anyString(), anyLong());
+        verify(jwtUtil, never()).generateAccessToken(anyLong(), anyString(), anyString());
+        verify(jwtUtil, never()).generateRefreshToken(anyLong(), anyString(), anyString());
+        verify(auditService, never()).log(anyLong(), anyString(), eq("AUTH_REFRESH"),
+                anyString(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void logout_shouldBlacklistAccessTokenAndAudit() {
+        when(jwtUtil.getUserIdFromToken("access-token")).thenReturn(1L);
+        when(jwtUtil.getUsernameFromToken("access-token")).thenReturn("testuser");
+        when(jwtUtil.getTokenExpiration("access-token")).thenReturn(900_000L);
+
+        var result = authService.logout("access-token");
+
+        assertNull(result.getData());
+        verify(tokenBlacklistService).blacklist("access-token", 900_000L);
+        verify(auditService).log(eq(1L), eq("testuser"), eq("AUTH_LOGOUT"),
+                eq("USER"), eq("1"), eq("Access token revoked"), isNull());
     }
 }
