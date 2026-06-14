@@ -75,6 +75,7 @@ interface Props {
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'local'
 type SaveSource = 'manual' | 'auto' | 'restore'
+type UploadStatus = { state: 'uploading' | 'success' | 'error', text: string }
 
 interface PendingDiagram {
   xml: string
@@ -169,6 +170,12 @@ function shouldShowSavedAt(state: SaveState) {
   return state === 'saved' || state === 'idle'
 }
 
+function uploadFailureStatusText(issue: string) {
+  return issue.includes('无权') || issue.includes('权限')
+    ? `权限不足：${issue}`
+    : `上传失败：${issue}`
+}
+
 function formatSavedAt(value: Date | null) {
   if (!value) return ''
   return value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -199,6 +206,7 @@ export default function CollabEditor({
   const [renameDiagram, setRenameDiagram] = useState<DiagramActionPayload | null>(null)
   const [renameDiagramTitle, setRenameDiagramTitle] = useState('')
   const [deleteDiagram, setDeleteDiagram] = useState<DiagramActionPayload | null>(null)
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus | null>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting')
   const [connectionIssue, setConnectionIssue] = useState('')
@@ -708,18 +716,21 @@ export default function CollabEditor({
 
     const validation = validateUploadFile(file, target)
     if (!validation.ok) {
+      setUploadStatus({ state: 'error', text: validation.message })
       message.warning(validation.message)
       return
     }
 
+    setUploadStatus({ state: 'uploading', text: `正在上传 ${file.name}` })
     setUploadingFile(true)
     setVersionSaveState('saving')
     try {
       const uploaded = await uploadFile(file, docId)
+      const uploadedName = uploaded.originalName || file.name
       const attachmentAttrs: AttachmentAttrs = {
         objectName: uploaded.objectName,
         url: uploaded.url,
-        name: uploaded.originalName || file.name,
+        name: uploadedName,
         sizeBytes: uploaded.sizeBytes || file.size,
         contentType: uploaded.contentType || file.type,
         uploadedAt: new Date().toISOString(),
@@ -730,8 +741,8 @@ export default function CollabEditor({
           type: 'image',
           attrs: {
             src: uploaded.url,
-            alt: uploaded.originalName || file.name,
-            title: uploaded.originalName || file.name,
+            alt: uploadedName,
+            title: uploadedName,
             objectName: uploaded.objectName,
             contentType: uploaded.contentType || file.type,
             sizeBytes: uploaded.sizeBytes || file.size,
@@ -743,11 +754,14 @@ export default function CollabEditor({
 
       setVersionSaveState('saving')
       window.setTimeout(() => void saveCurrentVersionRef.current('auto'), 300)
+      setUploadStatus({ state: 'success', text: `文件已插入：${uploadedName}` })
       message.success('文件已插入')
     } catch (error) {
+      const issue = apiErrorMessage(error, '上传失败，请稍后重试')
+      setUploadStatus({ state: 'error', text: uploadFailureStatusText(issue) })
       setVersionSaveState('error')
       setSaveIssue('上传失败，文档内容没有丢失')
-      message.error(apiErrorMessage(error, '上传失败，请稍后重试'))
+      message.error(issue)
     } finally {
       setUploadingFile(false)
     }
@@ -906,6 +920,16 @@ export default function CollabEditor({
           <span>发现上次未保存的内容，更新时间 {new Date(recoverableDraft.updatedAt).toLocaleString()}</span>
           <button type="button" onClick={restoreLocalDraft}>恢复</button>
           <button type="button" onClick={discardLocalDraft}>忽略</button>
+        </div>
+      )}
+      {uploadStatus && (
+        <div
+          className="memorica-editor-upload-status"
+          data-state={uploadStatus.state}
+          data-testid="memorica-upload-status"
+        >
+          <span>{uploadStatus.text}</span>
+          <button type="button" onClick={() => setUploadStatus(null)}>关闭</button>
         </div>
       )}
       {mode === 'rich' && (

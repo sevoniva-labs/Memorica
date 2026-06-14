@@ -605,6 +605,49 @@ body {
   cursor: pointer;
 }
 
+.memorica-editor-upload-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 38px;
+  border-bottom: 1px solid #dbe7ff;
+  color: #245bdb;
+  background: #f6f9ff;
+  font-size: 13px;
+}
+
+.memorica-editor-upload-status[data-state="success"] {
+  border-color: #bbf7d0;
+  color: #12805c;
+  background: #ecfdf5;
+}
+
+.memorica-editor-upload-status[data-state="error"] {
+  border-color: #fed7aa;
+  color: #9a3412;
+  background: #fff7ed;
+}
+
+.memorica-editor-upload-status > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memorica-editor-upload-status button {
+  flex: 0 0 auto;
+  height: 24px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 0 9px;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .memorica-share-overlay {
   position: fixed;
   inset: 0;

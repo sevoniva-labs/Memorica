@@ -101,3 +101,59 @@ test('oversized attachment is rejected before upload', async ({ page }) => {
   await expect(page.getByText('文件不能超过 10 MB')).toBeVisible();
   expect(uploadRequests).toBe(0);
 });
+
+test('attachment upload shows progress and success status', async ({ page }) => {
+  let uploadRequests = 0;
+  await openEditor(page);
+  await page.route('**/api/v1/files/upload', async (route) => {
+    uploadRequests += 1;
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          objectName: 'sample.pdf',
+          url: 'https://example.test/sample.pdf',
+          originalName: 'sample.pdf',
+          contentType: 'application/pdf',
+          sizeBytes: 128,
+          documentId: document.id,
+        },
+      }),
+    });
+  });
+
+  await page.setInputFiles('[data-testid="memorica-attachment-upload"]', {
+    name: 'sample.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\nsample\n%%EOF\n'),
+  });
+
+  await expect(page.getByTestId('memorica-upload-status')).toContainText('正在上传 sample.pdf');
+  await expect(page.getByTestId('memorica-upload-status')).toContainText('文件已插入：sample.pdf');
+  await expect(page.locator('.memorica-attachment-node')).toContainText('sample.pdf');
+  expect(uploadRequests).toBe(1);
+});
+
+test('permission failure shows a stable upload failure status', async ({ page }) => {
+  let uploadRequests = 0;
+  await openEditor(page);
+  await page.route('**/api/v1/files/upload', async (route) => {
+    uploadRequests += 1;
+    await route.fulfill({
+      status: 403,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: '无权向该文档上传文件' }),
+    });
+  });
+
+  await page.setInputFiles('[data-testid="memorica-attachment-upload"]', {
+    name: 'private.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\nprivate\n%%EOF\n'),
+  });
+
+  await expect(page.getByTestId('memorica-upload-status')).toContainText('权限不足：无权向该文档上传文件');
+  await expect(page.locator('.memorica-attachment-node')).toHaveCount(0);
+  expect(uploadRequests).toBe(1);
+});
