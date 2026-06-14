@@ -50,6 +50,11 @@ function previewSrc(svg?: string) {
   return value
 }
 
+function staticAttr(attributes: Record<string, unknown>, name: string, fallback = '') {
+  const value = attributes[name]
+  return typeof value === 'string' && value.trim() ? value : fallback
+}
+
 function DiagramView({ node, selected, updateAttributes, editor, getPos }: NodeViewProps) {
   const attrs = node.attrs as DiagramAttrs
   const src = previewSrc(attrs.svg)
@@ -205,9 +210,39 @@ export const Diagram = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
+    const title = staticAttr(HTMLAttributes, 'data-title', '图示')
+    const xml = staticAttr(HTMLAttributes, 'data-xml')
+    const svg = staticAttr(HTMLAttributes, 'data-svg')
+    const src = previewSrc(svg)
+
     return [
       'div',
       mergeAttributes(HTMLAttributes, { 'data-type': 'diagram', class: 'memorica-diagram-static' }),
+      [
+        'div',
+        { class: 'memorica-diagram-head' },
+        [
+          'span',
+          { class: 'memorica-diagram-title' },
+          ['span', { class: 'memorica-diagram-static-icon', 'aria-hidden': 'true' }, '图示'],
+          title,
+        ],
+        ['span', { class: 'memorica-diagram-static-badge' }, '历史快照'],
+      ],
+      [
+        'div',
+        { class: 'memorica-diagram-canvas' },
+        src
+          ? ['img', { src, alt: title }]
+          : [
+              'div',
+              { class: 'memorica-diagram-empty' },
+              ['span', { class: 'memorica-diagram-empty-copy' },
+                ['strong', {}, '预览不可用'],
+                ['em', {}, xml ? 'XML 已保留，可在编辑器中重新生成预览' : '图示数据为空'],
+              ],
+            ],
+      ],
     ]
   },
 

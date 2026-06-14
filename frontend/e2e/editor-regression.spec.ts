@@ -540,6 +540,51 @@ test('restored diagram version remains editable', async ({ page, request }) => {
   await expectLatestVersionContains(request, auth, document.id, restoredMarker);
 });
 
+test('version history preview shows attachment and diagram summaries', async ({ page, request }) => {
+  const auth = await registerTestUser(request, 'previewasset');
+  const document = await createDocument(request, auth, uniqueName('历史预览资产验证'));
+  const diagramTitle = `历史预览图示 ${uniqueName('diagram')}`;
+  const diagramMarker = uniqueName('preview-diagram');
+  const fileName = `${uniqueName('previewfile')}.pdf`;
+
+  await loginByStorage(page, auth);
+  await openEditorForDocument(page, document.id);
+  await waitForCollaboration(page);
+
+  await page.locator('button[title="更多"]').click();
+  await page.getByText('插入图示').click();
+  await expect(page.getByTestId('memorica-diagram-template-picker')).toBeVisible();
+  await page.getByTestId('memorica-diagram-title').fill(diagramTitle);
+  await page.getByTestId('memorica-diagram-template-blank').click();
+  await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
+  await simulateDrawioExport(page, diagramMarker);
+
+  await page.setInputFiles('[data-testid="memorica-attachment-upload"]', {
+    name: fileName,
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\nhistory preview attachment\n%%EOF\n'),
+  });
+  await expect(page.locator('.memorica-attachment-node')).toContainText(fileName, { timeout: 15_000 });
+  await expectLatestVersionContains(request, auth, document.id, fileName);
+
+  const versions = await listVersions(request, auth, document.id);
+  let assetVersion: Awaited<ReturnType<typeof listVersions>>[number] | undefined;
+  for (const version of versions) {
+    const detail = await getVersion(request, auth, version.id);
+    if (detail.contentJson.includes(fileName) && detail.contentJson.includes(diagramMarker)) {
+      assetVersion = version;
+      break;
+    }
+  }
+  expect(assetVersion, 'Expected to find a version containing both attachment and diagram').toBeTruthy();
+
+  await page.goto(`/doc/${document.id}/versions`);
+  await page.getByRole('button', { name: new RegExp(`版本 ${assetVersion!.versionNumber}\\b`) }).click();
+
+  await expect(page.locator('.memorica-diagram-static')).toContainText(diagramTitle);
+  await expect(page.locator('.memorica-attachment-static')).toContainText(fileName);
+});
+
 test('uploaded attachment persists and follows document sharing permissions', async ({ page, request }) => {
   const owner = await registerTestUser(request, 'fileowner');
   const viewer = await registerTestUser(request, 'fileviewer');

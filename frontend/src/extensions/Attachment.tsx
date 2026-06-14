@@ -26,6 +26,11 @@ function formatSize(size?: number) {
   return `${(size / 1024 / 1024).toFixed(1)} MB`
 }
 
+function staticAttr(attributes: Record<string, unknown>, name: string, fallback = '') {
+  const value = attributes[name]
+  return typeof value === 'string' && value.trim() ? value : fallback
+}
+
 type AttachmentStatus = {
   state: 'error'
   text: string
@@ -150,9 +155,22 @@ export const Attachment = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
+    const title = staticAttr(HTMLAttributes, 'data-name', '附件')
+    const contentType = staticAttr(HTMLAttributes, 'data-content-type')
+    const sizeBytes = Number(HTMLAttributes['data-size-bytes'] || 0)
+    const meta = [contentType, formatSize(sizeBytes)].filter(Boolean).join(' · ') || '历史版本附件'
+
     return [
       'div',
       mergeAttributes(HTMLAttributes, { 'data-type': 'attachment', class: 'memorica-attachment-static' }),
+      ['div', { class: 'memorica-attachment-icon', 'aria-hidden': 'true' }, 'FILE'],
+      [
+        'div',
+        { class: 'memorica-attachment-copy' },
+        ['div', { class: 'memorica-attachment-title' }, title],
+        ['div', { class: 'memorica-attachment-meta' }, meta],
+      ],
+      ['span', { class: 'memorica-attachment-static-badge' }, '历史快照'],
     ]
   },
 
