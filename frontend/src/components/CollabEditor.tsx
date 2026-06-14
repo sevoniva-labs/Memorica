@@ -188,19 +188,40 @@ function formatSavedAt(value: Date | null) {
   return value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+const markdownBlockPattern =
+  /(^|\n)\s{0,3}(#{1,6}\s+\S|[-*+]\s+\S|\d+\.\s+\S|>\s+\S|```[a-zA-Z0-9_-]*|~~~[a-zA-Z0-9_-]*|\|.+\|)\s*/
+const markdownInlinePattern =
+  /(^|[\s([{])(\*\*[^*\n]+?\*\*|__[^_\n]+?__|`[^`\n]+?`|\[[^\]\n]+?\]\([^)]+\))/
+const mermaidStartPattern =
+  /^\s*((graph|flowchart)\s+(TB|TD|BT|RL|LR)\b|sequenceDiagram\b|classDiagram(?:-v2)?\b|stateDiagram(?:-v2)?\b|erDiagram\b|journey\b|gantt\b|pie\b|gitGraph\b|mindmap\b|timeline\b|quadrantChart\b|requirementDiagram\b|C4Context\b|block-beta\b|packet-beta\b|xychart-beta\b|sankey-beta\b)/
+
+function looksLikeRawMermaidPaste(text: string) {
+  const trimmed = text.trim()
+  if (!trimmed || /^(```|~~~)\s*mermaid\b/i.test(trimmed)) return false
+  return mermaidStartPattern.test(trimmed)
+}
+
+function normalizeMarkdownPaste(text: string) {
+  return looksLikeRawMermaidPaste(text)
+    ? `\`\`\`mermaid\n${text.trim()}\n\`\`\``
+    : text
+}
+
 function looksLikeMarkdownPaste(text: string) {
-  if (!text.trim() || !text.includes('\n')) return false
-  return /(^|\n)\s{0,3}(#{1,6}\s+\S|[-*+]\s+\S|\d+\.\s+\S|>\s+\S|```[a-zA-Z0-9_-]*|~~~[a-zA-Z0-9_-]*|\|.+\|)\s*/.test(text)
+  const trimmed = text.trim()
+  if (!trimmed) return false
+  return looksLikeRawMermaidPaste(trimmed) || markdownBlockPattern.test(trimmed) || markdownInlinePattern.test(trimmed)
 }
 
 function insertMarkdownPaste(editor: Editor, view: EditorView, text: string) {
-  const parsed = editor.markdown?.parse(text)
+  const markdown = normalizeMarkdownPaste(text)
+  const parsed = editor.markdown?.parse(markdown)
   if (parsed?.content?.length) {
     const fragment = Fragment.fromArray(parsed.content.map((node) => view.state.schema.nodeFromJSON(node)))
     view.dispatch(view.state.tr.replaceSelection(new Slice(fragment, 0, 0)).scrollIntoView())
     return true
   }
-  return editor.commands.insertContent(text, { contentType: 'markdown' })
+  return editor.commands.insertContent(markdown, { contentType: 'markdown' })
 }
 
 function createMarkdownPasteExtension() {

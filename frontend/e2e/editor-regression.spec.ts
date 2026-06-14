@@ -338,6 +338,40 @@ test('editor pastes Markdown as structured content with Mermaid preview', async 
   await expect(page.getByTestId('memorica-mermaid-preview')).toContainText(/(渲染中|开始|完成)/);
 });
 
+test('editor recognizes single-line Markdown paste', async ({ page, request }) => {
+  const auth = await registerTestUser(request, 'mdsingle');
+  const document = await createDocument(request, auth, uniqueName('单行 Markdown 粘贴验证'));
+  const title = `单行 Markdown ${uniqueName('heading')}`;
+
+  await loginByStorage(page, auth);
+  await openEditorForDocument(page, document.id);
+  await waitForCollaboration(page);
+
+  await page.locator('.notion-editor').click();
+  await pastePlainText(page, '.notion-editor', `# ${title}`);
+
+  await expect(page.locator('.notion-editor h1')).toContainText(title);
+});
+
+test('editor renders raw Mermaid paste as a preview block', async ({ page, request }) => {
+  const auth = await registerTestUser(request, 'mdrawmermaid');
+  const document = await createDocument(request, auth, uniqueName('裸 Mermaid 粘贴验证'));
+  const mermaid = [
+    'graph TD',
+    '  A[开始] --> B[完成]',
+  ].join('\n');
+
+  await loginByStorage(page, auth);
+  await openEditorForDocument(page, document.id);
+  await waitForCollaboration(page);
+
+  await page.locator('.notion-editor').click();
+  await pastePlainText(page, '.notion-editor', mermaid);
+
+  await expect(page.getByTestId('memorica-mermaid-block')).toBeVisible();
+  await expect(page.getByTestId('memorica-mermaid-source')).toContainText('graph TD');
+});
+
 test('drawio save timeout keeps the dialog open and allows retry', async ({ page, request }) => {
   const auth = await registerTestUser(request, 'diatime');
   const document = await createDocument(request, auth, uniqueName('图示超时验证'));
