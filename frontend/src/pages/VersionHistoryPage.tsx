@@ -43,6 +43,7 @@ export default function VersionHistoryPage() {
   const [doc, setDoc] = useState<DocumentItem | null>(null)
   const [versions, setVersions] = useState<DocumentVersion[]>([])
   const [selectedVersion, setSelectedVersion] = useState<DocumentVersionDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState('')
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -55,11 +56,13 @@ export default function VersionHistoryPage() {
       const data = await fetchHistory(docId)
       setDoc(data.doc)
       setVersions(data.versions)
+      setDetailLoading(false)
       setDetailError('')
       setLoadError('')
     } catch (error) {
       setVersions([])
       setSelectedVersion(null)
+      setDetailLoading(false)
       setDetailError('')
       setLoadError(apiErrorMessage(error, '历史版本加载失败，请稍后重试'))
     } finally {
@@ -76,6 +79,7 @@ export default function VersionHistoryPage() {
         if (cancelled) return
         setDoc(data.doc)
         setVersions(data.versions)
+        setDetailLoading(false)
         setDetailError('')
         setLoadError('')
       })
@@ -83,6 +87,7 @@ export default function VersionHistoryPage() {
         if (cancelled) return
         setVersions([])
         setSelectedVersion(null)
+        setDetailLoading(false)
         setDetailError('')
         setLoadError(apiErrorMessage(error, '历史版本加载失败，请稍后重试'))
       })
@@ -98,11 +103,14 @@ export default function VersionHistoryPage() {
   const handleSelect = async (versionId: number) => {
     setSelectedVersion(null)
     setDetailError('')
+    setDetailLoading(true)
     try {
       const v = await getVersion(versionId)
       setSelectedVersion(v)
     } catch (error) {
       setDetailError(apiErrorMessage(error, '版本详情加载失败，请稍后重试'))
+    } finally {
+      setDetailLoading(false)
     }
   }
 
@@ -234,7 +242,19 @@ export default function VersionHistoryPage() {
             </div>
 
             <div className="lg:col-span-2">
-              {detailError ? (
+              {detailLoading ? (
+                <Card className="border-gray-100 text-center" styles={{ body: { padding: 48 } }}>
+                  <Space
+                    direction="vertical"
+                    align="center"
+                    size={12}
+                    data-testid="memorica-version-detail-loading"
+                  >
+                    <Spin />
+                    <Text type="secondary">版本详情加载中...</Text>
+                  </Space>
+                </Card>
+              ) : detailError ? (
                 <Card className="border-gray-100" styles={{ body: { padding: 24 } }}>
                   <Alert
                     showIcon

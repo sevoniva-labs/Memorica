@@ -36,7 +36,11 @@ async function openVersionHistory(
   page: Page,
   canWrite: boolean,
   versions = [version],
-  options: { versionDetailStatus?: number; versionDetailBody?: unknown } = {}
+  options: {
+    versionDetailStatus?: number;
+    versionDetailBody?: unknown;
+    versionDetailDelayMs?: number;
+  } = {}
 ) {
   await page.addInitScript(() => {
     window.localStorage.setItem('accessToken', 'mock-access-token');
@@ -67,6 +71,9 @@ async function openVersionHistory(
     });
   });
   await page.route(`**/api/v1/documents/versions/${version.id}`, async (route) => {
+    if (options.versionDetailDelayMs) {
+      await new Promise((resolve) => setTimeout(resolve, options.versionDetailDelayMs));
+    }
     if (options.versionDetailStatus) {
       await route.fulfill({
         status: options.versionDetailStatus,
@@ -110,6 +117,15 @@ test('editor can restore a selected version', async ({ page }) => {
   await page.getByRole('button', { name: /版本 1/ }).click();
 
   await expect(page.getByRole('button', { name: '恢复此版本' })).toBeVisible();
+});
+
+test('version detail request shows a loading state before preview renders', async ({ page }) => {
+  await openVersionHistory(page, true, [version], { versionDetailDelayMs: 600 });
+
+  await page.getByRole('button', { name: /版本 1/ }).click();
+
+  await expect(page.getByTestId('memorica-version-detail-loading')).toContainText('版本详情加载中');
+  await expect(page.getByText('历史版本正文')).toBeVisible();
 });
 
 test('version detail load failure shows an inline error', async ({ page }) => {
