@@ -4,26 +4,31 @@ import { isAxiosError } from 'axios'
 import { login, register } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { FileTextOutlined } from '@ant-design/icons'
+import { Alert, Button, Card, Form, Input, Typography } from 'antd'
+
+const { Text, Title } = Typography
+
+interface LoginValues {
+  username: string
+  password: string
+  email?: string
+}
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true)
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const storeLogin = useAuthStore((s) => s.login)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (values: LoginValues) => {
     setError('')
     setLoading(true)
     try {
       const data = isLogin
-        ? await login(username, password)
-        : await register(username, password, email)
+        ? await login(values.username, values.password)
+        : await register(values.username, values.password, values.email || '')
       storeLogin(data.accessToken, data.refreshToken, data.user)
       navigate('/')
     } catch (err: unknown) {
@@ -37,71 +42,78 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
+      <Card className="w-full max-w-sm shadow-sm" styles={{ body: { padding: 32 } }}>
         <div className="flex items-center justify-center gap-2 mb-6">
           <FileTextOutlined className="text-blue-600" style={{ fontSize: 28 }} />
-          <h1 className="text-xl font-bold text-gray-900">Memorica</h1>
+          <Title level={3} className="!mb-0 !text-xl">
+            Memorica
+          </Title>
         </div>
-        <h2 className="text-center text-sm text-gray-500 mb-6">
+        <Text type="secondary" className="block text-center mb-6">
           {isLogin ? '登录您的账号' : '注册新账号'}
-        </h2>
+        </Text>
         {error && (
-          <div className="mb-4 text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</div>
+          <Alert className="mb-4" type="error" showIcon message={error} />
         )}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">用户名</label>
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-              placeholder="请输入用户名"
-            />
-          </div>
+        <Form<LoginValues>
+          layout="vertical"
+          requiredMark={false}
+          onFinish={handleSubmit}
+        >
+          <Form.Item
+            label="用户名"
+            name="username"
+            rules={[{ required: true, message: '请输入用户名' }]}
+          >
+            <Input autoComplete="username" placeholder="请输入用户名" />
+          </Form.Item>
           {!isLogin && (
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">邮箱</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required={!isLogin}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                placeholder="请输入邮箱"
-              />
-            </div>
+            <Form.Item
+              label="邮箱"
+              name="email"
+              preserve={false}
+              rules={[
+                { required: true, message: '请输入邮箱' },
+                { type: 'email', message: '请输入有效邮箱' },
+              ]}
+            >
+              <Input autoComplete="email" placeholder="请输入邮箱" type="email" />
+            </Form.Item>
           )}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">密码</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          <Form.Item
+            label="密码"
+            name="password"
+            rules={[{ required: true, message: '请输入密码' }]}
+          >
+            <Input.Password
+              autoComplete={isLogin ? 'current-password' : 'new-password'}
               placeholder="请输入密码"
             />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-          >
-            {loading ? '请稍候...' : isLogin ? '登录' : '注册'}
-          </button>
-        </form>
-        <p className="mt-4 text-center text-xs text-gray-500">
-          {isLogin ? '还没有账号？' : '已有账号？'}
-          <button
-            onClick={() => { setIsLogin(!isLogin); setError('') }}
-            className="text-blue-600 hover:underline ml-1"
+          </Form.Item>
+          <Form.Item className="!mb-0">
+            <Button type="primary" htmlType="submit" block loading={loading}>
+              {isLogin ? '登录' : '注册'}
+            </Button>
+          </Form.Item>
+        </Form>
+        <div className="mt-4 text-center">
+          <Text type="secondary" className="text-xs">
+            {isLogin ? '还没有账号？' : '已有账号？'}
+          </Text>
+          <Button
+            type="link"
+            size="small"
+            className="!px-1"
+            onClick={() => {
+              setIsLogin(!isLogin)
+              setError('')
+            }}
           >
             {isLogin ? '立即注册' : '去登录'}
-          </button>
-        </p>
-      </div>
+          </Button>
+        </div>
+      </Card>
     </div>
   )
 }

@@ -7,6 +7,7 @@ import {
   generateAI,
   getDocument,
   getFileInfo,
+  getVersion,
   getLatestVersionContent,
   grantDocumentAccess,
   listVersions,
@@ -403,13 +404,23 @@ test('restored diagram version remains editable', async ({ page, request }) => {
   await openDrawioDialog(page);
   await simulateDrawioExport(page, firstMarker);
   await expectLatestVersionContains(request, auth, document.id, firstMarker);
+  const versionsWithDiagram = await listVersions(request, auth, document.id);
+  let diagramVersion: Awaited<ReturnType<typeof listVersions>>[number] | undefined;
+  for (const version of versionsWithDiagram) {
+    const detail = await getVersion(request, auth, version.id);
+    if (detail.contentJson.includes(firstMarker)) {
+      diagramVersion = version;
+      break;
+    }
+  }
+  expect(diagramVersion, 'Expected to find the version containing the diagram marker').toBeTruthy();
 
   await page.locator('.notion-editor').click();
   await page.keyboard.type(` ${uniqueName('later-text')}`);
   await expect(page.locator('.memorica-editor-save-status')).toContainText('已保存', { timeout: 12_000 });
 
   await page.goto(`/doc/${document.id}/versions`);
-  await page.getByRole('button', { name: /版本 1/ }).click();
+  await page.getByRole('button', { name: new RegExp(`版本 ${diagramVersion!.versionNumber}\\b`) }).click();
   await page.getByRole('button', { name: '恢复此版本' }).click();
   await expect(page.getByTestId('memorica-diagram-node')).toBeVisible({ timeout: 15_000 });
 
