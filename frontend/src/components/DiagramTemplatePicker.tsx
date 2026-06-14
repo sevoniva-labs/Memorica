@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Input, Modal, Segmented } from 'antd'
+import { Button, Empty, Input, Modal, Segmented, Tag } from 'antd'
 import { PartitionOutlined, SearchOutlined } from '@ant-design/icons'
 import {
   DIAGRAM_TEMPLATES,
@@ -24,6 +24,13 @@ const categoryOptions: Array<{ label: string, value: CategoryFilter }> = [
   { label: '系统', value: 'system' },
   { label: '规划', value: 'planning' },
 ]
+
+const categoryLabels: Record<DiagramTemplateCategory, string> = {
+  basic: '基础',
+  process: '流程',
+  system: '系统',
+  planning: '规划',
+}
 
 function readRecentTemplates(): DiagramTemplateId[] {
   try {
@@ -130,36 +137,50 @@ export default function DiagramTemplatePicker({ open, onCancel, onSelect }: Prop
             <span>最近使用</span>
             <div>
               {recentTemplates.map((template) => (
-                <button
+                <Button
                   key={template.id}
-                  type="button"
+                  className="memorica-diagram-template-recent-btn"
                   onClick={() => confirmTemplate(template)}
+                  size="small"
                 >
                   {template.name}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
         )}
-        <div className="memorica-diagram-template-grid">
-          {filteredTemplates.map((template) => (
-            <button
-              key={template.id}
-              type="button"
-              className="memorica-diagram-template"
-              data-testid={`memorica-diagram-template-${template.id}`}
-              onClick={() => confirmTemplate(template)}
-            >
-              <span className="memorica-diagram-template-icon" style={{ color: template.accent, background: `${template.accent}14` }}>
-                <PartitionOutlined style={{ fontSize: 18 }} />
-              </span>
-              <span className="memorica-diagram-template-copy">
-                <strong>{template.name}</strong>
-                <em>{template.description}</em>
-              </span>
-            </button>
-          ))}
-        </div>
+        {filteredTemplates.length > 0 ? (
+          <div className="memorica-diagram-template-grid">
+            {filteredTemplates.map((template) => (
+              <Button
+                block
+                key={template.id}
+                className="memorica-diagram-template"
+                data-testid={`memorica-diagram-template-${template.id}`}
+                onClick={() => confirmTemplate(template)}
+              >
+                <span className="memorica-diagram-template-icon" style={{ color: template.accent, background: `${template.accent}14` }}>
+                  <PartitionOutlined style={{ fontSize: 18 }} />
+                </span>
+                <span className="memorica-diagram-template-copy">
+                  <span className="memorica-diagram-template-title-row">
+                    <strong>{template.name}</strong>
+                    <Tag bordered={false} color={template.accent}>
+                      {categoryLabels[template.category]}
+                    </Tag>
+                  </span>
+                  <em>{template.description}</em>
+                </span>
+              </Button>
+            ))}
+          </div>
+        ) : (
+          <Empty
+            className="memorica-diagram-template-empty"
+            description="没有找到匹配的图示模板"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        )}
       </div>
     </Modal>
   )

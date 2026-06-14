@@ -8,6 +8,9 @@ const user = {
   color: '#245bdb',
 };
 
+const mockAccessToken = 'e30.eyJleHAiOjQxMDI0NDQ4MDB9.mock';
+const mockRefreshToken = 'mock-refresh-token';
+
 const document = {
   id: 'template-doc',
   title: '模板验证文档',
@@ -26,13 +29,19 @@ const document = {
 
 async function openTemplatePicker(page: Page) {
   await page.addInitScript(() => {
-    window.localStorage.setItem('accessToken', 'mock-access-token');
+    window.localStorage.setItem('accessToken', 'e30.eyJleHAiOjQxMDI0NDQ4MDB9.mock');
     window.localStorage.setItem('refreshToken', 'mock-refresh-token');
   });
   await page.route('**/api/v1/auth/me', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({ data: user }),
+    });
+  });
+  await page.route('**/api/v1/auth/refresh', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ data: { accessToken: mockAccessToken, refreshToken: mockRefreshToken } }),
     });
   });
   await page.route('**/api/v1/documents/recent**', async (route) => {

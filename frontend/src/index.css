@@ -1506,17 +1506,17 @@ body {
   min-width: 0;
 }
 
-.memorica-diagram-template-recent button {
+.memorica-diagram-template-recent-btn.ant-btn {
   border: 1px solid #d9e2f2;
   border-radius: 999px;
-  padding: 4px 10px;
   color: #245bdb;
   background: #f8fbff;
   font-size: 12px;
-  cursor: pointer;
 }
 
-.memorica-diagram-template-recent button:hover {
+.memorica-diagram-template-recent-btn.ant-btn:hover,
+.memorica-diagram-template-recent-btn.ant-btn:focus-visible {
+  color: #1d4ed8;
   border-color: #9db7f7;
   background: #eef4ff;
 }
@@ -1527,11 +1527,13 @@ body {
   gap: 10px;
 }
 
-.memorica-diagram-template {
+.memorica-diagram-template.ant-btn {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 12px;
   width: 100%;
+  height: auto;
   min-height: 82px;
   border: 1px solid #e7eaf0;
   border-radius: 8px;
@@ -1539,11 +1541,13 @@ body {
   color: #1f2329;
   background: #fff;
   text-align: left;
-  cursor: pointer;
+  white-space: normal;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.memorica-diagram-template:hover {
+.memorica-diagram-template.ant-btn:hover,
+.memorica-diagram-template.ant-btn:focus-visible {
+  color: #1f2329;
   border-color: #bacefd;
   box-shadow: 0 10px 24px rgba(31, 35, 41, 0.08);
   transform: translateY(-1px);
@@ -1566,16 +1570,39 @@ body {
   gap: 4px;
 }
 
+.memorica-diagram-template-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .memorica-diagram-template-copy strong {
   color: #1f2329;
   font-size: 14px;
   font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .memorica-diagram-template-copy em {
   color: #667085;
   font-size: 12px;
   font-style: normal;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+.memorica-diagram-template-copy .ant-tag {
+  flex: 0 0 auto;
+  margin-inline-end: 0;
+  font-size: 11px;
+  line-height: 20px;
+}
+
+.memorica-diagram-template-empty {
+  padding: 24px 0 18px;
 }
 
 @media (max-width: 640px) {

@@ -45,5 +45,5 @@ test('frontend-check runs the share panel Ant Design policy test', async () => {
   const source = await readFile('Makefile', 'utf8')
 
   assert.match(source, /^frontend-share-panel-policy-test: ## Verify share settings panel uses Ant Design controls$/m)
-  assert.match(source, /^frontend-check: frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test frontend-collab-editor-policy-test frontend-bubble-menu-policy-test ## Run frontend lint, Ant Design checks, and production build$/m)
+  assert.match(source, /^frontend-check: frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test frontend-collab-editor-policy-test frontend-bubble-menu-policy-test frontend-diagram-template-picker-policy-test ## Run frontend lint, Ant Design checks, and production build$/m)
 })
