@@ -9,6 +9,7 @@ import {
   getFileInfo,
   getLatestVersionContent,
   grantDocumentAccess,
+  listVersions,
   loginByStorage,
   registerTestUser,
   uniqueName,
@@ -130,6 +131,44 @@ test('viewer can open a shared document but cannot edit or invoke AI', async ({ 
   await expect(page.getByText('上传图片')).not.toBeVisible();
   await expect(page.getByText('上传附件')).not.toBeVisible();
   await expect(page.getByText('切换为富文本')).not.toBeVisible();
+});
+
+test('readonly viewer ignores restore deep links', async ({ page, request }) => {
+  const owner = await registerTestUser(request, 'rdlown');
+  const viewer = await registerTestUser(request, 'rdlview');
+  const document = await createDocument(request, owner, uniqueName('只读恢复深链'));
+  const firstText = `只读恢复正文 ${uniqueName('restore-deeplink')}`;
+
+  await loginByStorage(page, owner);
+  await openEditorForDocument(page, document.id);
+  await waitForCollaboration(page);
+
+  await page.locator('.notion-editor').click();
+  await page.keyboard.type(firstText);
+  await expect(page.locator('.memorica-editor-save-status')).toContainText('已保存', { timeout: 12_000 });
+  await expectLatestVersionContains(request, owner, document.id, firstText);
+
+  const versions = await listVersions(request, owner, document.id);
+  expect(versions.length).toBeGreaterThan(0);
+  const versionId = versions[0].id;
+
+  await grantDocumentAccess(request, owner, document.id, viewer.user.username, 'viewer');
+
+  let versionDetailRequests = 0;
+  await page.route(`**/api/v1/documents/versions/${versionId}`, async (route) => {
+    versionDetailRequests += 1;
+    await route.continue();
+  });
+
+  await loginByStorage(page, viewer);
+  await page.goto(`/doc/${document.id}?restoreVersion=${versionId}`);
+  await expect(page.locator('.memorica-editor-shell')).toBeVisible();
+  await waitForCollaboration(page);
+  await expect(page.locator('.memorica-editor-save-status')).toContainText('只读', { timeout: 12_000 });
+  await page.waitForTimeout(1_000);
+
+  expect(versionDetailRequests).toBe(0);
+  await expect(page).toHaveURL(new RegExp(`/doc/${document.id}$`));
 });
 
 test('shared documents tab shows documents explicitly shared with the current user', async ({ page, request }) => {

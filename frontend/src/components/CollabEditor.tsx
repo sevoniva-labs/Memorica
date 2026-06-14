@@ -616,6 +616,10 @@ export default function CollabEditor({
     const versionId = Number(searchParams.get('restoreVersion'))
     if (!editor || !connected || !versionId || restoredVersionRef.current === versionId) return
     restoredVersionRef.current = versionId
+    if (!canEdit) {
+      window.history.replaceState(null, '', `/doc/${docId}`)
+      return
+    }
     getVersion(versionId)
       .then((version) => {
         editor.commands.setContent(JSON.parse(version.contentJson || '{}'))
@@ -625,7 +629,7 @@ export default function CollabEditor({
       .catch(() => {
         setVersionSaveState('error')
       })
-  }, [connected, docId, editor, saveCurrentVersion, searchParams])
+  }, [canEdit, connected, docId, editor, saveCurrentVersion, searchParams])
 
   const reconnectCollaboration = () => {
     setConnectionStatus('connecting')
