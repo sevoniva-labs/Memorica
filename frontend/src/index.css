@@ -1345,6 +1345,48 @@ body {
   padding-top: 4px;
 }
 
+.memorica-diagram-picker-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.memorica-diagram-template-recent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+}
+
+.memorica-diagram-template-recent > span {
+  flex: 0 0 auto;
+  color: #667085;
+  font-size: 12px;
+}
+
+.memorica-diagram-template-recent > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.memorica-diagram-template-recent button {
+  border: 1px solid #d9e2f2;
+  border-radius: 999px;
+  padding: 4px 10px;
+  color: #245bdb;
+  background: #f8fbff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.memorica-diagram-template-recent button:hover {
+  border-color: #9db7f7;
+  background: #eef4ff;
+}
+
 .memorica-diagram-template-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1403,6 +1445,10 @@ body {
 }
 
 @media (max-width: 640px) {
+  .memorica-diagram-picker-tools {
+    grid-template-columns: 1fr;
+  }
+
   .memorica-diagram-template-grid {
     grid-template-columns: 1fr;
   }
