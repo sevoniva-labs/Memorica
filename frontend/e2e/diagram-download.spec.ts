@@ -7,6 +7,8 @@ const user = {
   email: 'download@example.test',
   color: '#245bdb',
 };
+const mockAccessToken = `e30.${Buffer.from(JSON.stringify({ exp: 4102444800 })).toString('base64url')}.sig`;
+const mockRefreshToken = `e30.${Buffer.from(JSON.stringify({ exp: 4102444800 })).toString('base64url')}.sig`;
 
 const document = {
   id: 'download-doc',
@@ -25,10 +27,10 @@ const document = {
 };
 
 async function openEditor(page: Page) {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('accessToken', 'mock-access-token');
-    window.localStorage.setItem('refreshToken', 'mock-refresh-token');
-  });
+  await page.addInitScript(({ accessToken, refreshToken }) => {
+    window.localStorage.setItem('accessToken', accessToken);
+    window.localStorage.setItem('refreshToken', refreshToken);
+  }, { accessToken: mockAccessToken, refreshToken: mockRefreshToken });
   await page.route('**/api/v1/auth/me', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
@@ -111,6 +113,41 @@ async function openDrawioFromBlankTemplate(page: Page, title = '临时图示') {
   await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
 }
 
+async function mockDrawioFrame(page: Page) {
+  await page.addInitScript(() => {
+    const win = window as Window & { __drawioHostMessages?: Array<Record<string, unknown>> };
+    win.__drawioHostMessages = [];
+    window.addEventListener('message', (event) => {
+      if (typeof event.data !== 'string') return;
+      try {
+        const payload = JSON.parse(event.data) as Record<string, unknown>;
+        if (payload.event === 'memorica-test-host-message' && payload.payload) {
+          win.__drawioHostMessages?.push(JSON.parse(payload.payload as string) as Record<string, unknown>);
+        }
+      } catch {
+        return;
+      }
+    });
+  });
+  await page.route('**/embed.diagrams.net/**', async (route) => {
+    await route.fulfill({
+      contentType: 'text/html',
+      body: `<!doctype html>
+        <script>
+          window.addEventListener('message', function(event) {
+            parent.postMessage(JSON.stringify({
+              event: 'memorica-test-host-message',
+              payload: event.data
+            }), '*');
+          });
+          window.setTimeout(function() {
+            parent.postMessage(JSON.stringify({ event: 'init' }), '*');
+          }, 0);
+        </script>`,
+    });
+  });
+}
+
 test('diagram svg download falls back to a safe filename when the title is invalid', async ({ page }) => {
   await openEditor(page);
   await insertDiagram(page, '///');
@@ -133,6 +170,24 @@ test('diagram without svg preview still exposes XML edit fallback', async ({ pag
 
   await diagram.getByTestId('memorica-diagram-action-edit').click();
   await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
+});
+
+test('drawio save requests a direct svg export from the embedded editor', async ({ page }) => {
+  await mockDrawioFrame(page);
+  await openEditor(page);
+  await openDrawioFromBlankTemplate(page);
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('可以开始编辑图示');
+
+  await page.getByRole('button', { name: '保存图示' }).click();
+
+  await expect
+    .poll(
+      async () => page.evaluate(() => (
+        (window as Window & { __drawioHostMessages?: Array<Record<string, unknown>> }).__drawioHostMessages || []
+      )),
+      { timeout: 1_000 }
+    )
+    .toContainEqual(expect.objectContaining({ action: 'export', format: 'svg' }));
 });
 
 test('drawio cancel shows canceling state and does not insert a diagram', async ({ page }) => {

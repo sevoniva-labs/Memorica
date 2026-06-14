@@ -127,14 +127,15 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     scheduleInitTimeout()
   }, [clearCancelTimer, clearSaveTimer, scheduleInitTimeout])
 
-  const requestExport = useCallback((xml: string) => {
-    pendingXmlRef.current = xml
-    postToDrawio({
+  const requestExport = useCallback((xml?: string) => {
+    if (xml) pendingXmlRef.current = xml
+    const payload: Record<string, unknown> = {
       action: 'export',
       format: 'svg',
-      xml,
       spin: '正在生成预览',
-    })
+    }
+    if (xml) payload.xml = xml
+    postToDrawio(payload)
   }, [postToDrawio])
 
   const handleMessage = useCallback((event: MessageEvent) => {
@@ -208,7 +209,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
   const handleSave = () => {
     if (canceling) return
     setState('saving')
-    postToDrawio({ action: 'save' })
+    requestExport()
     clearSaveTimer()
     saveTimerRef.current = window.setTimeout(() => {
       setState('timeout')
