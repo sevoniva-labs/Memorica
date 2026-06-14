@@ -32,7 +32,7 @@ const version = {
   createdAt: '2026-06-14T08:30:00.000Z',
 };
 
-async function openVersionHistory(page: Page, canWrite: boolean) {
+async function openVersionHistory(page: Page, canWrite: boolean, versions = [version]) {
   await page.addInitScript(() => {
     window.localStorage.setItem('accessToken', 'mock-access-token');
     window.localStorage.setItem('refreshToken', 'mock-refresh-token');
@@ -58,7 +58,7 @@ async function openVersionHistory(page: Page, canWrite: boolean) {
   await page.route(`**/api/v1/documents/${document.id}/versions**`, async (route) => {
     await route.fulfill({
       contentType: 'application/json',
-      body: JSON.stringify({ data: { content: [version] } }),
+      body: JSON.stringify({ data: { content: versions } }),
     });
   });
   await page.route(`**/api/v1/documents/versions/${version.id}`, async (route) => {
@@ -97,6 +97,16 @@ test('editor can restore a selected version', async ({ page }) => {
   await page.getByRole('button', { name: /版本 1/ }).click();
 
   await expect(page.getByRole('button', { name: '恢复此版本' })).toBeVisible();
+});
+
+test('version list shows word count changes between versions', async ({ page }) => {
+  const firstVersion = { ...version, id: 3101, versionNumber: 1, wordCount: 3 };
+  const secondVersion = { ...version, id: 3102, versionNumber: 2, wordCount: 12 };
+
+  await openVersionHistory(page, true, [secondVersion, firstVersion]);
+
+  await expect(page.getByTestId('memorica-version-word-delta-3102')).toContainText('+9 词');
+  await expect(page.getByTestId('memorica-version-word-delta-3101')).toContainText('初始');
 });
 
 test('version history load failure shows retry action', async ({ page }) => {

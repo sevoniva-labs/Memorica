@@ -16,11 +16,23 @@ import {
   RollbackOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { Alert, Button, Spin } from 'antd'
+import { Alert, Button, Spin, Tag } from 'antd'
 
 async function fetchHistory(docId: string) {
   const [doc, versions] = await Promise.all([getDocument(docId), listVersions(docId)])
   return { doc, versions: versions || [] }
+}
+
+function versionWordDelta(version: DocumentVersion, versions: DocumentVersion[]) {
+  const ordered = [...versions].sort((a, b) => a.versionNumber - b.versionNumber)
+  const index = ordered.findIndex((item) => item.id === version.id)
+  const previous = index > 0 ? ordered[index - 1] : null
+  if (!previous) return { text: '初始', color: 'default' }
+
+  const delta = (version.wordCount || 0) - (previous.wordCount || 0)
+  if (delta > 0) return { text: `+${delta} 词`, color: 'green' }
+  if (delta < 0) return { text: `${delta} 词`, color: 'red' }
+  return { text: '无变化', color: 'default' }
 }
 
 export default function VersionHistoryPage() {
@@ -147,32 +159,45 @@ export default function VersionHistoryPage() {
                 {versions.length === 0 && (
                   <p className="text-sm text-gray-400 py-4 text-center">暂无历史版本</p>
                 )}
-                {versions.map((v) => (
-                  <button
-                    key={v.id}
-                    onClick={() => handleSelect(v.id)}
-                    className={`w-full text-left rounded-lg border p-3 transition ${
-                      selectedVersion?.id === v.id
-                        ? 'border-blue-300 bg-blue-50'
-                        : 'border-gray-100 bg-white hover:border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-900">版本 {v.versionNumber}</span>
-                      <span className="text-xs text-gray-400">{v.wordCount} 词</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <UserOutlined style={{ fontSize: 12 }} />
-                        {v.editorName}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <ClockCircleOutlined style={{ fontSize: 12 }} />
-                        {formatDate(v.createdAt)}
-                      </span>
-                    </div>
-                  </button>
-                ))}
+                {versions.map((v) => {
+                  const delta = versionWordDelta(v, versions)
+                  return (
+                    <button
+                      key={v.id}
+                      onClick={() => handleSelect(v.id)}
+                      className={`w-full text-left rounded-lg border p-3 transition ${
+                        selectedVersion?.id === v.id
+                          ? 'border-blue-300 bg-blue-50'
+                          : 'border-gray-100 bg-white hover:border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1 gap-2">
+                        <span className="text-sm font-medium text-gray-900">版本 {v.versionNumber}</span>
+                        <span className="flex items-center gap-2 text-xs text-gray-400">
+                          {v.wordCount} 词
+                          <Tag
+                            bordered={false}
+                            color={delta.color}
+                            className="m-0 text-[11px]"
+                            data-testid={`memorica-version-word-delta-${v.id}`}
+                          >
+                            {delta.text}
+                          </Tag>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <UserOutlined style={{ fontSize: 12 }} />
+                          {v.editorName}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <ClockCircleOutlined style={{ fontSize: 12 }} />
+                          {formatDate(v.createdAt)}
+                        </span>
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
