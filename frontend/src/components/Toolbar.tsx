@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Editor } from '@tiptap/react'
+import { Button, Dropdown, Tooltip } from 'antd'
+import type { MenuProps } from 'antd'
 import {
   AlignCenterOutlined,
   AlignLeftOutlined,
@@ -70,14 +72,12 @@ export default function Toolbar({ editor, onCreateDiagram, onUploadImage, onUplo
 
   if (!editor) return null
 
-  const btnClass = (active: boolean) =>
-    `p-2 rounded-lg transition-all duration-150 flex items-center justify-center ${
-      active
-        ? 'bg-blue-100 text-blue-700'
-        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-    }`
-
   const richChain = () => editor.chain().focus() as unknown as RichTextChain
+  const activeFont = editor.getAttributes('textStyle').fontFamily as string | undefined
+  const activeColor = editor.getAttributes('textStyle').color as string | undefined
+
+  const buttonClass = (active: boolean, extra = '') =>
+    `memorica-editor-toolbar-button ${active ? 'memorica-editor-toolbar-button-active' : ''} ${extra}`.trim()
 
   const addImage = () => {
     const url = window.prompt('图片 URL:')
@@ -112,142 +112,250 @@ export default function Toolbar({ editor, onCreateDiagram, onUploadImage, onUplo
     setShowFontPicker(false)
   }
 
+  const renderToolbarButton = (
+    title: string,
+    icon: ReactNode,
+    onClick: () => void,
+    options: { active?: boolean; disabled?: boolean; className?: string } = {},
+  ) => (
+    <Tooltip title={title}>
+      <Button
+        aria-label={title}
+        className={buttonClass(options.active === true, options.className)}
+        disabled={options.disabled}
+        icon={icon}
+        onClick={onClick}
+        size="small"
+        type="text"
+      />
+    </Tooltip>
+  )
+
+  const fontMenu: MenuProps = {
+    items: fonts.map((font) => ({
+      key: font.value || 'default',
+      label: <span style={{ fontFamily: font.value || undefined }}>{font.label}</span>,
+    })),
+    selectedKeys: [activeFont || 'default'],
+    onClick: ({ key }) => {
+      const selectedFont = fonts.find((font) => (font.value || 'default') === key)
+      if (selectedFont) setFontFamily(selectedFont.value)
+    },
+  }
+
+  const colorDropdown = (
+    <div className="memorica-editor-toolbar-dropdown memorica-editor-toolbar-color-grid">
+      {colors.map((color) => (
+        <Tooltip key={color} title={color}>
+          <Button
+            aria-label={`文字颜色 ${color}`}
+            className="memorica-editor-toolbar-swatch"
+            onClick={() => setFontColor(color)}
+            size="small"
+            style={{ backgroundColor: color }}
+            type="text"
+          />
+        </Tooltip>
+      ))}
+      <Tooltip title="清除颜色">
+        <Button
+          aria-label="清除颜色"
+          className="memorica-editor-toolbar-swatch memorica-editor-toolbar-clear-swatch"
+          onClick={() => {
+            richChain().unsetColor().run()
+            setShowColorPicker(false)
+          }}
+          size="small"
+          type="text"
+        >
+          ×
+        </Button>
+      </Tooltip>
+    </div>
+  )
+
   return (
     <div className="sticky top-12 z-40 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
       <div className="max-w-[900px] mx-auto px-4 py-2">
         <div className="flex items-center gap-1 flex-wrap">
           {/* 撤销重做 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className={btnClass(false)} title="撤销"><UndoOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className={btnClass(false)} title="重做"><RedoOutlined style={{ fontSize: 16 }} /></button>
+            {renderToolbarButton('撤销', <UndoOutlined />, () => editor.chain().focus().undo().run(), {
+              disabled: !editor.can().undo(),
+            })}
+            {renderToolbarButton('重做', <RedoOutlined />, () => editor.chain().focus().redo().run(), {
+              disabled: !editor.can().redo(),
+            })}
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
           {/* 基础格式 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => editor.chain().focus().toggleBold().run()} className={btnClass(editor.isActive('bold'))} title="加粗"><BoldOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={() => editor.chain().focus().toggleItalic().run()} className={btnClass(editor.isActive('italic'))} title="斜体"><ItalicOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={btnClass(editor.isActive('underline'))} title="下划线"><UnderlineOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={() => editor.chain().focus().toggleStrike().run()} className={btnClass(editor.isActive('strike'))} title="删除线"><StrikethroughOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={() => editor.chain().focus().toggleHighlight().run()} className={btnClass(editor.isActive('highlight'))} title="高亮"><HighlightOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={() => editor.chain().focus().toggleCode().run()} className={btnClass(editor.isActive('code'))} title="代码"><CodeOutlined style={{ fontSize: 16 }} /></button>
+            {renderToolbarButton('加粗', <BoldOutlined />, () => editor.chain().focus().toggleBold().run(), {
+              active: editor.isActive('bold'),
+            })}
+            {renderToolbarButton('斜体', <ItalicOutlined />, () => editor.chain().focus().toggleItalic().run(), {
+              active: editor.isActive('italic'),
+            })}
+            {renderToolbarButton('下划线', <UnderlineOutlined />, () => editor.chain().focus().toggleUnderline().run(), {
+              active: editor.isActive('underline'),
+            })}
+            {renderToolbarButton('删除线', <StrikethroughOutlined />, () => editor.chain().focus().toggleStrike().run(), {
+              active: editor.isActive('strike'),
+            })}
+            {renderToolbarButton('高亮', <HighlightOutlined />, () => editor.chain().focus().toggleHighlight().run(), {
+              active: editor.isActive('highlight'),
+            })}
+            {renderToolbarButton('代码', <CodeOutlined />, () => editor.chain().focus().toggleCode().run(), {
+              active: editor.isActive('code'),
+            })}
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
           {/* 上标下标 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => richChain().toggleSubscript().run()} className={btnClass(editor.isActive('subscript'))} title="下标"><SubnodeOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={() => richChain().toggleSuperscript().run()} className={btnClass(editor.isActive('superscript'))} title="上标"><FontSizeOutlined style={{ fontSize: 16 }} /></button>
+            {renderToolbarButton('下标', <SubnodeOutlined />, () => richChain().toggleSubscript().run(), {
+              active: editor.isActive('subscript'),
+            })}
+            {renderToolbarButton('上标', <FontSizeOutlined />, () => richChain().toggleSuperscript().run(), {
+              active: editor.isActive('superscript'),
+            })}
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
           {/* 颜色 */}
-          <div className="relative mr-2">
-            <button
-              onClick={() => { setShowColorPicker(!showColorPicker); setShowFontPicker(false) }}
-              className={btnClass(!!editor.getAttributes('textStyle').color)}
-              title="文字颜色"
+          <div className="mr-2">
+            <Dropdown
+              destroyOnHidden
+              menu={{ items: [] }}
+              onOpenChange={(open) => {
+                setShowColorPicker(open)
+                if (open) setShowFontPicker(false)
+              }}
+              open={showColorPicker}
+              popupRender={() => colorDropdown}
+              trigger={['click']}
             >
-              <BgColorsOutlined style={{ fontSize: 16 }} />
-              <span
-                className="absolute bottom-1 left-1/2 -translate-x-1/2 w-3 h-0.5 rounded-full"
-                style={{ backgroundColor: editor.getAttributes('textStyle').color || 'transparent' }}
+              <Button
+                aria-label="文字颜色"
+                className={buttonClass(!!activeColor, 'memorica-editor-toolbar-color-trigger')}
+                icon={(
+                  <span className="memorica-editor-toolbar-color-icon">
+                    <BgColorsOutlined />
+                    <span
+                      className="memorica-editor-toolbar-color-bar"
+                      style={{ backgroundColor: activeColor || 'transparent' }}
+                    />
+                  </span>
+                )}
+                size="small"
+                type="text"
               />
-            </button>
-            {showColorPicker && (
-              <div className="absolute top-full left-0 mt-1 p-2 bg-white border border-gray-200 rounded-lg shadow-xl grid grid-cols-5 gap-1 z-50">
-                {colors.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setFontColor(c)}
-                    className="w-5 h-5 rounded-full border border-gray-200 hover:scale-110 transition"
-                    style={{ backgroundColor: c }}
-                    title={c}
-                  />
-                ))}
-                <button
-                  onClick={() => { richChain().unsetColor().run(); setShowColorPicker(false) }}
-                  className="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center text-[10px] text-gray-400 hover:text-gray-600"
-                  title="清除颜色"
-                >
-                  ×
-                </button>
-              </div>
-            )}
+            </Dropdown>
           </div>
 
           {/* 字体 */}
-          <div className="relative mr-2">
-            <button
-              onClick={() => { setShowFontPicker(!showFontPicker); setShowColorPicker(false) }}
-              className={btnClass(false)}
-              title="字体"
+          <div className="mr-2">
+            <Dropdown
+              destroyOnHidden
+              menu={fontMenu}
+              onOpenChange={(open) => {
+                setShowFontPicker(open)
+                if (open) setShowColorPicker(false)
+              }}
+              open={showFontPicker}
+              trigger={['click']}
             >
-              <FontSizeOutlined style={{ fontSize: 16 }} />
-            </button>
-            {showFontPicker && (
-              <div className="absolute top-full left-0 mt-1 py-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-[140px]">
-                {fonts.map((f) => (
-                  <button
-                    key={f.label}
-                    onClick={() => setFontFamily(f.value)}
-                    className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition"
-                    style={{ fontFamily: f.value || undefined }}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            )}
+              <Button
+                aria-label="字体"
+                className={buttonClass(false)}
+                icon={<FontSizeOutlined />}
+                size="small"
+                type="text"
+              />
+            </Dropdown>
           </div>
 
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
           {/* 标题 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={btnClass(editor.isActive('heading', { level: 1 }))} title="H1"><span className="text-[11px] font-semibold leading-none">H1</span></button>
-            <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={btnClass(editor.isActive('heading', { level: 2 }))} title="H2"><span className="text-[11px] font-semibold leading-none">H2</span></button>
-            <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={btnClass(editor.isActive('heading', { level: 3 }))} title="H3"><span className="text-[11px] font-semibold leading-none">H3</span></button>
+            {renderToolbarButton(
+              'H1',
+              <span className="memorica-editor-toolbar-text-icon">H1</span>,
+              () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
+              { active: editor.isActive('heading', { level: 1 }) },
+            )}
+            {renderToolbarButton(
+              'H2',
+              <span className="memorica-editor-toolbar-text-icon">H2</span>,
+              () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
+              { active: editor.isActive('heading', { level: 2 }) },
+            )}
+            {renderToolbarButton(
+              'H3',
+              <span className="memorica-editor-toolbar-text-icon">H3</span>,
+              () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
+              { active: editor.isActive('heading', { level: 3 }) },
+            )}
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
           {/* 列表 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={btnClass(editor.isActive('bulletList'))} title="无序列表"><UnorderedListOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={btnClass(editor.isActive('orderedList'))} title="有序列表"><OrderedListOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={() => editor.chain().focus().toggleTaskList().run()} className={btnClass(editor.isActive('taskList'))} title="任务列表"><CheckSquareOutlined style={{ fontSize: 16 }} /></button>
+            {renderToolbarButton('无序列表', <UnorderedListOutlined />, () => editor.chain().focus().toggleBulletList().run(), {
+              active: editor.isActive('bulletList'),
+            })}
+            {renderToolbarButton('有序列表', <OrderedListOutlined />, () => editor.chain().focus().toggleOrderedList().run(), {
+              active: editor.isActive('orderedList'),
+            })}
+            {renderToolbarButton('任务列表', <CheckSquareOutlined />, () => editor.chain().focus().toggleTaskList().run(), {
+              active: editor.isActive('taskList'),
+            })}
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
           {/* 对齐 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={btnClass(editor.isActive({ textAlign: 'left' }))} title="左对齐"><AlignLeftOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={btnClass(editor.isActive({ textAlign: 'center' }))} title="居中"><AlignCenterOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={btnClass(editor.isActive({ textAlign: 'right' }))} title="右对齐"><AlignRightOutlined style={{ fontSize: 16 }} /></button>
+            {renderToolbarButton('左对齐', <AlignLeftOutlined />, () => editor.chain().focus().setTextAlign('left').run(), {
+              active: editor.isActive({ textAlign: 'left' }),
+            })}
+            {renderToolbarButton('居中', <AlignCenterOutlined />, () => editor.chain().focus().setTextAlign('center').run(), {
+              active: editor.isActive({ textAlign: 'center' }),
+            })}
+            {renderToolbarButton('右对齐', <AlignRightOutlined />, () => editor.chain().focus().setTextAlign('right').run(), {
+              active: editor.isActive({ textAlign: 'right' }),
+            })}
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
           {/* 插入 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className={btnClass(editor.isActive('blockquote'))} title="引用"><BlockOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={() => editor.chain().focus().setHorizontalRule().run()} className={btnClass(false)} title="分隔线"><MinusOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={addLink} className={btnClass(editor.isActive('link'))} title="链接"><LinkOutlined style={{ fontSize: 16 }} /></button>
-            <button onClick={addImage} className={btnClass(false)} title="图片 URL"><PictureOutlined style={{ fontSize: 16 }} /></button>
+            {renderToolbarButton('引用', <BlockOutlined />, () => editor.chain().focus().toggleBlockquote().run(), {
+              active: editor.isActive('blockquote'),
+            })}
+            {renderToolbarButton('分隔线', <MinusOutlined />, () => editor.chain().focus().setHorizontalRule().run())}
+            {renderToolbarButton('链接', <LinkOutlined />, addLink, {
+              active: editor.isActive('link'),
+            })}
+            {renderToolbarButton('图片 URL', <PictureOutlined />, addImage)}
             {onUploadImage && (
-              <button onClick={onUploadImage} className={btnClass(false)} title={uploading ? '上传中' : '上传图片'} disabled={uploading}>
-                <UploadOutlined style={{ fontSize: 16 }} />
-              </button>
+              renderToolbarButton(uploading ? '上传中' : '上传图片', <UploadOutlined />, onUploadImage, {
+                disabled: uploading,
+              })
             )}
             {onUploadAttachment && (
-              <button onClick={onUploadAttachment} className={btnClass(false)} title={uploading ? '上传中' : '上传附件'} disabled={uploading}>
-                <PaperClipOutlined style={{ fontSize: 16 }} />
-              </button>
+              renderToolbarButton(uploading ? '上传中' : '上传附件', <PaperClipOutlined />, onUploadAttachment, {
+                disabled: uploading,
+              })
             )}
-            <button onClick={addTable} className={btnClass(editor.isActive('table'))} title="表格"><TableOutlined style={{ fontSize: 16 }} /></button>
+            {renderToolbarButton('表格', <TableOutlined />, addTable, {
+              active: editor.isActive('table'),
+            })}
             {onCreateDiagram && (
-              <button onClick={onCreateDiagram} className={btnClass(false)} title="图示"><PartitionOutlined style={{ fontSize: 16 }} /></button>
+              renderToolbarButton('图示', <PartitionOutlined />, onCreateDiagram)
             )}
-            <button onClick={addYoutube} className={btnClass(false)} title="YouTube"><VideoCameraOutlined style={{ fontSize: 16 }} /></button>
+            {renderToolbarButton('YouTube', <VideoCameraOutlined />, addYoutube)}
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
