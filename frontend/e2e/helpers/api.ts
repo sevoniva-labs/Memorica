@@ -3,6 +3,8 @@ import { expect, type APIRequestContext, type Page } from '@playwright/test';
 const API_BASE = process.env.E2E_API_BASE_URL || 'http://127.0.0.1:8080/api/v1';
 const HEALTH_URL = process.env.E2E_BACKEND_HEALTH_URL || 'http://127.0.0.1:8080/actuator/health';
 const TEST_PASSWORD = 'Password1';
+const USERNAME_MAX_LENGTH = 32;
+const USERNAME_FALLBACK_PREFIX = 'e2e';
 
 export interface TestAuth {
   accessToken: string;
@@ -16,7 +18,16 @@ export interface TestAuth {
 }
 
 export function uniqueName(prefix: string) {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const suffix = `${Date.now().toString(36).slice(-6)}_${Math.random().toString(36).slice(2, 8).padEnd(6, '0')}`;
+  const maxPrefixLength = USERNAME_MAX_LENGTH - suffix.length - 1;
+  const normalizedPrefix = prefix
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  const safePrefix = (normalizedPrefix || USERNAME_FALLBACK_PREFIX).slice(0, maxPrefixLength).replace(/[_-]+$/g, '');
+
+  return `${safePrefix || USERNAME_FALLBACK_PREFIX}_${suffix}`;
 }
 
 async function expectOk(response: Awaited<ReturnType<APIRequestContext['get']>>, message: string) {
