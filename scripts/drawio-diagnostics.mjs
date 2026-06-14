@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url'
 import { inflateRawSync } from 'node:zlib'
 
 const DEFAULT_DRAWIO_URL = 'https://embed.diagrams.net/'
+const DEFAULT_PROBE_TIMEOUT_MS = 5_000
 
 function diagramBodies(source) {
   return Array.from(
@@ -75,6 +76,141 @@ export function resolveDrawioUrl({ envSource = '', env = process.env } = {}) {
   }
 }
 
+function isLocalHost(hostname) {
+  return (
+    hostname === 'localhost'
+    || hostname === '127.0.0.1'
+    || hostname === '::1'
+    || hostname.startsWith('127.')
+    || hostname.startsWith('10.')
+    || /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
+    || hostname.startsWith('192.168.')
+  )
+}
+
+async function fetchWithTimeout(fetchImpl, value, method, timeoutMs) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetchImpl(value, {
+      method,
+      redirect: 'follow',
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+export async function probeDrawioUrl({
+  value,
+  fetchImpl = globalThis.fetch,
+  timeoutMs = DEFAULT_PROBE_TIMEOUT_MS,
+} = {}) {
+  const issues = []
+  const warnings = []
+
+  if (!value) {
+    return {
+      ok: false,
+      status: 0,
+      finalUrl: '',
+      contentType: '',
+      issues: ['Draw.io URL is empty'],
+      warnings,
+    }
+  }
+  if (typeof fetchImpl !== 'function') {
+    return {
+      ok: false,
+      status: 0,
+      finalUrl: value,
+      contentType: '',
+      issues: ['fetch is not available in this runtime'],
+      warnings,
+    }
+  }
+
+  let originalUrl
+  try {
+    originalUrl = new URL(value)
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      finalUrl: value,
+      contentType: '',
+      issues: ['Draw.io URL must be an absolute URL'],
+      warnings,
+    }
+  }
+
+  if (originalUrl.protocol === 'http:' && !isLocalHost(originalUrl.hostname)) {
+    issues.push('Draw.io URL uses http on a non-local host; HTTPS Pages may block the iframe as mixed content')
+  }
+
+  let response
+  try {
+    response = await fetchWithTimeout(fetchImpl, value, 'HEAD', timeoutMs)
+    if (response.status === 405 || response.status === 403) {
+      response = await fetchWithTimeout(fetchImpl, value, 'GET', timeoutMs)
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      finalUrl: value,
+      contentType: '',
+      issues: [`Draw.io URL request failed: ${error instanceof Error ? error.message : String(error)}`],
+      warnings,
+    }
+  }
+
+  const finalUrl = response.url || value
+  const contentType = response.headers?.get?.('content-type') || ''
+  let finalParsed
+  try {
+    finalParsed = new URL(finalUrl)
+  } catch {
+    finalParsed = originalUrl
+  }
+
+  if (!response.ok) {
+    issues.push(`Draw.io URL returned HTTP ${response.status}`)
+  }
+  if (finalParsed.hostname !== originalUrl.hostname) {
+    issues.push(`Draw.io URL redirected from ${originalUrl.hostname} to ${finalParsed.hostname}`)
+  }
+  if (contentType && !/html|javascript|text\/plain/i.test(contentType)) {
+    warnings.push(`Draw.io URL returned content-type ${contentType}`)
+  }
+
+  return {
+    ok: issues.length === 0,
+    status: response.status,
+    finalUrl,
+    contentType,
+    issues,
+    warnings,
+  }
+}
+
+export function formatDrawioProbe(result) {
+  const lines = []
+  lines.push('Draw.io URL 真实网络探测:')
+  lines.push(`- 状态: ${result.ok ? '可访问' : '异常'}`)
+  if (result.status) lines.push(`- HTTP: ${result.status}`)
+  if (result.finalUrl) lines.push(`- 最终 URL: ${result.finalUrl}`)
+  if (result.contentType) lines.push(`- Content-Type: ${result.contentType}`)
+  for (const issue of result.issues || []) {
+    lines.push(`- 问题: ${issue.includes('redirected') ? `跳转异常：${issue}` : issue}`)
+  }
+  for (const warning of result.warnings || []) {
+    lines.push(`- 提醒: ${warning}`)
+  }
+  return lines.join('\n')
+}
+
 export function buildDrawioDiagnostics({ templateSource, envSource = '', env = process.env }) {
   const templateResult = analyzeDiagramTemplates(templateSource)
   const drawioUrl = resolveDrawioUrl({ envSource, env })
@@ -99,6 +235,7 @@ export function buildDrawioDiagnostics({ templateSource, envSource = '', env = p
   lines.push('- 如果模板压缩体正常，问题通常来自已保存图示 XML 被截断、被当普通 XML 写入 <diagram>，或保存/export 事件缺少 xml/data。优先从版本历史恢复，再重新保存图示。')
   lines.push('保存卡住排查:')
   lines.push('- 当前保存链路依赖 Draw.io iframe 的 init/save/export 消息链；如果卡住，优先确认浏览器能加载 VITE_DRAWIO_URL，且 export 返回 svg data 或 xml。')
+  lines.push('- 需要真实探测内网地址时运行 DRAWIO_PROBE=true make drawio-diagnostics；该模式会请求 VITE_DRAWIO_URL 并检查 HTTP 状态和是否跳转到网关/SSO。')
   lines.push('内网处理:')
   lines.push('- 浏览器必须能直接访问 VITE_DRAWIO_URL；生产和内网建议自托管 diagrams.net/drawio 并配置可信域名。')
   lines.push('- 在用户所在网络先执行 curl -I "$VITE_DRAWIO_URL"；如果无响应或跳转到登录/拦截页，前端 iframe 也会加载失败。')
@@ -112,7 +249,7 @@ function readTextIfExists(path) {
   return existsSync(path) ? readFileSync(path, 'utf8') : ''
 }
 
-function main() {
+async function main() {
   const cwd = process.cwd()
   const templateSource = readFileSync(join(cwd, 'frontend/src/diagram/templates.ts'), 'utf8')
   const envSource = readTextIfExists(join(cwd, 'frontend/.env.development'))
@@ -122,6 +259,13 @@ function main() {
 
   const templateResult = analyzeDiagramTemplates(templateSource)
   const drawioUrl = resolveDrawioUrl({ envSource, env: process.env })
+  if (process.env.DRAWIO_PROBE === 'true' && drawioUrl.valid) {
+    const probeResult = await probeDrawioUrl({ value: drawioUrl.value })
+    console.log(formatDrawioProbe(probeResult))
+    if (!probeResult.ok) {
+      process.exitCode = 1
+    }
+  }
   if (templateResult.invalid.length > 0 || !drawioUrl.valid) {
     process.exitCode = 1
   }

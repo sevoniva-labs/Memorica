@@ -242,9 +242,10 @@ docker compose -f docker/docker-compose.yml up -d --build
 
 ```bash
 make drawio-diagnostics
+DRAWIO_PROBE=true make drawio-diagnostics
 ```
 
-该命令会验证仓库内 Draw.io 模板是否仍是 diagrams.net 需要的 raw-deflate base64 格式，并输出当前 `VITE_DRAWIO_URL` 来源。
+默认命令会验证仓库内 Draw.io 模板是否仍是 diagrams.net 需要的 raw-deflate base64 格式，并输出当前 `VITE_DRAWIO_URL` 来源，不会访问外网或内网地址。加上 `DRAWIO_PROBE=true` 后会真实请求 `VITE_DRAWIO_URL`，检查 HTTP 状态、最终 URL 和是否跳转到公司网关/SSO。
 
 根因和内网排查顺序：
 
