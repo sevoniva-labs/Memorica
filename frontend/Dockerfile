@@ -8,7 +8,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_WS_URL=$VITE_WS_URL
 ENV VITE_DRAWIO_URL=$VITE_DRAWIO_URL
 COPY package.json package-lock.json ./
-RUN npm ci --frozen-lockfile
+RUN HTTP_PROXY= HTTPS_PROXY= http_proxy= https_proxy= ALL_PROXY= all_proxy= npm ci --registry=https://registry.npmmirror.com --audit=false --fund=false
 COPY . .
 RUN npm run build
 

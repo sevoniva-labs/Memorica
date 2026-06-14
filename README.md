@@ -97,9 +97,11 @@ make demo-seed
 
 ### 国内源
 
-仓库根目录的 `.npmrc` 已配置 npm 使用 `https://registry.npmmirror.com`。后端 Gradle Wrapper 使用腾讯云 Gradle 分发镜像，Maven 依赖优先走阿里云 public 仓库，失败时再回落到 Maven Central。
+仓库根目录的 `.npmrc` 已配置 npm 使用 `https://registry.npmmirror.com`。后端 Gradle Wrapper 使用华为云 Gradle 分发镜像并配置 SHA-256 校验，Maven 依赖优先走阿里云 public 仓库，失败时再回落到 Maven Central。
 
 本地 CORS 默认允许 `localhost` 和 `127.0.0.1` 的 5173/5174 端口，覆盖首选开发地址和可选工具端口。前端开发环境默认走 Vite 同源代理，减少浏览器跨域差异。
+
+Docker 基础镜像的 `FROM` 拉取由 Docker daemon / Docker Desktop 代理处理；如果 Docker Hub 等外网镜像下载失败，请在 Docker Desktop 或 daemon 层配置当前可用的网卡代理。容器运行时代理不要继续指向已经失效的 `127.0.0.1:<port>`，因为容器内的 `127.0.0.1` 是容器自身；需要代理时请使用 `host.docker.internal:<port>` 或当前网卡 IP。可运行 `make docker-proxy-check` 检查 daemon 镜像拉取代理和 `~/.docker/config.json` 中会注入到容器的代理配置。
 
 ## 项目结构
 
@@ -143,6 +145,8 @@ make dev-down      # 停止所有服务
 make demo-seed-dry-run # 查看演示数据准备配置
 make demo-seed     # 创建 demo/viewer 用户、演示文档、版本、图示、附件和只读分享
 make demo-seed-test # 测试演示数据脚本的文档内容生成
+make dockerfile-policy-test # 检查 Docker 构建策略和代理诊断脚本
+make docker-proxy-check # 检查 Docker 外网镜像拉取代理和容器运行时过期代理
 make build         # 构建后端、前端并检查协作服务语法
 make test          # 运行后端快速测试
 make lint          # 运行代码检查

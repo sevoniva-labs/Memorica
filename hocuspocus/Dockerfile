@@ -2,7 +2,7 @@ FROM node:22-alpine
 RUN addgroup -S memorica && adduser -S memorica -G memorica
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --frozen-lockfile
+RUN HTTP_PROXY= HTTPS_PROXY= http_proxy= https_proxy= ALL_PROXY= all_proxy= npm ci --registry=https://registry.npmmirror.com --audit=false --fund=false
 COPY src/ src/
 USER memorica
 
