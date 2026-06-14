@@ -32,6 +32,13 @@ const version = {
   createdAt: '2026-06-14T08:30:00.000Z',
 };
 
+type VersionDetailRoute = {
+  status?: number;
+  body?: unknown;
+  delayMs?: number;
+  text?: string;
+};
+
 async function openVersionHistory(
   page: Page,
   canWrite: boolean,
@@ -40,6 +47,7 @@ async function openVersionHistory(
     versionDetailStatus?: number;
     versionDetailBody?: unknown;
     versionDetailDelayMs?: number;
+    versionDetails?: Record<number, VersionDetailRoute>;
   } = {}
 ) {
   await page.addInitScript(() => {
@@ -70,28 +78,36 @@ async function openVersionHistory(
       body: JSON.stringify({ data: { content: versions } }),
     });
   });
-  await page.route(`**/api/v1/documents/versions/${version.id}`, async (route) => {
-    if (options.versionDetailDelayMs) {
-      await new Promise((resolve) => setTimeout(resolve, options.versionDetailDelayMs));
+  await page.route('**/api/v1/documents/versions/*', async (route) => {
+    const versionId = Number(new URL(route.request().url()).pathname.split('/').pop());
+    const routeVersion = versions.find((item) => item.id === versionId) || version;
+    const routeOptions = options.versionDetails?.[versionId] || {
+      status: options.versionDetailStatus,
+      body: options.versionDetailBody,
+      delayMs: options.versionDetailDelayMs,
+    };
+    if (routeOptions.delayMs) {
+      await new Promise((resolve) => setTimeout(resolve, routeOptions.delayMs));
     }
-    if (options.versionDetailStatus) {
+    if (routeOptions.status) {
       await route.fulfill({
-        status: options.versionDetailStatus,
+        status: routeOptions.status,
         contentType: 'application/json',
-        body: JSON.stringify(options.versionDetailBody || { message: '版本详情加载失败' }),
+        body: JSON.stringify(routeOptions.body || { message: '版本详情加载失败' }),
       });
       return;
     }
+    const bodyText = routeOptions.text || '历史版本正文';
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
         data: {
-          ...version,
+          ...routeVersion,
           contentJson: JSON.stringify({
             type: 'doc',
-            content: [{ type: 'paragraph', content: [{ type: 'text', text: '历史版本正文' }] }],
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: bodyText }] }],
           }),
-          snapshotHtml: '<p>历史版本正文</p>',
+          snapshotHtml: `<p>${bodyText}</p>`,
         },
       }),
     });
@@ -126,6 +142,29 @@ test('version detail request shows a loading state before preview renders', asyn
 
   await expect(page.getByTestId('memorica-version-detail-loading')).toContainText('版本详情加载中');
   await expect(page.getByText('历史版本正文')).toBeVisible();
+});
+
+test('latest selected version wins when detail requests finish out of order', async ({ page }) => {
+  const slowVersion = { ...version, id: 3101, versionNumber: 1, wordCount: 3 };
+  const fastVersion = { ...version, id: 3102, versionNumber: 2, wordCount: 7 };
+
+  await openVersionHistory(page, true, [fastVersion, slowVersion], {
+    versionDetails: {
+      [slowVersion.id]: { delayMs: 700, text: '慢请求旧版本正文' },
+      [fastVersion.id]: { text: '快速新版本正文' },
+    },
+  });
+
+  const slowResponse = page.waitForResponse((response) => response.url().endsWith(`/documents/versions/${slowVersion.id}`));
+  const fastResponse = page.waitForResponse((response) => response.url().endsWith(`/documents/versions/${fastVersion.id}`));
+  await page.getByRole('button', { name: /版本 1/ }).click();
+  await expect(page.getByTestId('memorica-version-detail-loading')).toContainText('版本详情加载中');
+  await page.getByRole('button', { name: /版本 2/ }).click();
+
+  await fastResponse;
+  await expect(page.getByText('快速新版本正文')).toBeVisible();
+  await slowResponse;
+  await expect(page.getByText('慢请求旧版本正文')).not.toBeVisible();
 });
 
 test('version detail load failure shows an inline error', async ({ page }) => {

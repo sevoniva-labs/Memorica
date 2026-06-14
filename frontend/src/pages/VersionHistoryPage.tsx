@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   apiErrorMessage,
@@ -48,6 +48,7 @@ export default function VersionHistoryPage() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [restoring, setRestoring] = useState(false)
+  const detailRequestRef = useRef(0)
   const canRestore = doc?.canWrite === true
 
   const loadHistory = useCallback(async () => {
@@ -101,16 +102,22 @@ export default function VersionHistoryPage() {
   }, [docId])
 
   const handleSelect = async (versionId: number) => {
+    const requestId = detailRequestRef.current + 1
+    detailRequestRef.current = requestId
     setSelectedVersion(null)
     setDetailError('')
     setDetailLoading(true)
     try {
       const v = await getVersion(versionId)
+      if (detailRequestRef.current !== requestId) return
       setSelectedVersion(v)
     } catch (error) {
+      if (detailRequestRef.current !== requestId) return
       setDetailError(apiErrorMessage(error, '版本详情加载失败，请稍后重试'))
     } finally {
-      setDetailLoading(false)
+      if (detailRequestRef.current === requestId) {
+        setDetailLoading(false)
+      }
     }
   }
 
