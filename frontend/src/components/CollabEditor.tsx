@@ -45,7 +45,7 @@ import { ATTACHMENT_ACCEPT, IMAGE_ACCEPT, validateUploadFile } from '../files/up
 import { apiErrorMessage, getVersion, listVersions, updateDocumentMeta, saveVersion, saveVersionKeepalive, uploadFile } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { useSidebar } from '../contexts/SidebarContext'
-import { App as AntdApp, Dropdown, Input, Modal } from 'antd'
+import { Alert, App as AntdApp, Button, Dropdown, Input, Modal, Tooltip } from 'antd'
 import type { MenuProps } from 'antd'
 import {
   ArrowLeftOutlined,
@@ -872,16 +872,18 @@ export default function CollabEditor({
         <div className="memorica-editor-bar-inner">
           {/* 左侧：返回 + 标题 */}
           <div className="memorica-editor-left">
-            <button
-              type="button"
-              className="memorica-editor-icon-btn"
-              onClick={() => navigate('/')}
-              title="返回"
-            >
-              <ArrowLeftOutlined style={{ fontSize: 16 }} />
-            </button>
-            <input
-              type="text"
+            <Tooltip title="返回">
+              <Button
+                aria-label="返回"
+                className="memorica-editor-icon-btn"
+                icon={<ArrowLeftOutlined style={{ fontSize: 16 }} />}
+                onClick={() => navigate('/')}
+                title="返回"
+                type="text"
+              />
+            </Tooltip>
+            <Input
+              aria-label="文档标题"
               className="memorica-editor-title-input"
               value={title}
               onChange={(e) => handleTitleChange(e.target.value)}
@@ -909,56 +911,65 @@ export default function CollabEditor({
               </span>
             </span>
             {canEdit && versionSaveState === 'error' && !restoreError && (
-              <button
-                type="button"
+              <Button
                 className="memorica-editor-sync-btn"
                 onClick={() => saveCurrentVersion('manual')}
+                size="small"
+                type="text"
               >
                 重试
-              </button>
+              </Button>
             )}
             {!connected && connectionStatus === 'disconnected' && (
-              <button
-                type="button"
-                className="memorica-editor-icon-btn"
-                onClick={reconnectCollaboration}
-                title="重新连接"
-              >
-                <ReloadOutlined style={{ fontSize: 16 }} />
-              </button>
+              <Tooltip title="重新连接">
+                <Button
+                  aria-label="重新连接"
+                  className="memorica-editor-icon-btn"
+                  icon={<ReloadOutlined style={{ fontSize: 16 }} />}
+                  onClick={reconnectCollaboration}
+                  title="重新连接"
+                  type="text"
+                />
+              </Tooltip>
             )}
           </div>
 
           {/* 右侧：分享 + AI + 更多 */}
           <div className="memorica-editor-right">
             {canManage && (
-              <button
-                type="button"
+              <Button
                 className="memorica-editor-btn-primary"
+                icon={<ShareAltOutlined style={{ fontSize: 16 }} />}
                 onClick={() => void openSharePanel()}
+                type="primary"
               >
-                <ShareAltOutlined style={{ fontSize: 16 }} />
                 <span>分享</span>
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
-              className={aiOpen ? 'memorica-editor-btn active' : 'memorica-editor-btn'}
-              onClick={() => setAiOpen(!aiOpen)}
-              title="AI 助手"
-              disabled={!canEdit}
-            >
-              <ThunderboltOutlined style={{ fontSize: 16 }} />
-              <span className="hidden sm:inline">AI</span>
-            </button>
+            <Tooltip title="AI 助手">
+              <Button
+                className={aiOpen ? 'memorica-editor-btn active' : 'memorica-editor-btn'}
+                disabled={!canEdit}
+                icon={<ThunderboltOutlined style={{ fontSize: 16 }} />}
+                onClick={() => setAiOpen(!aiOpen)}
+                title="AI 助手"
+                type="text"
+              >
+                <span className="hidden sm:inline">AI</span>
+              </Button>
+            </Tooltip>
             <Dropdown
               trigger={['click']}
               placement="bottomRight"
               menu={{ items: moreMenuItems, onClick: handleMoreMenuClick }}
             >
-              <button type="button" className="memorica-editor-btn" title="更多">
-                <EllipsisOutlined style={{ fontSize: 16 }} />
-              </button>
+              <Button
+                aria-label="更多"
+                className="memorica-editor-btn"
+                icon={<EllipsisOutlined style={{ fontSize: 16 }} />}
+                title="更多"
+                type="text"
+              />
             </Dropdown>
           </div>
         </div>
@@ -982,21 +993,33 @@ export default function CollabEditor({
         onChange={(event) => void uploadSelectedFile(event, 'attachment')}
       />
       {recoverableDraft && canEdit && (
-        <div className="memorica-editor-draft-banner">
-          <span>发现上次未保存的内容，更新时间 {new Date(recoverableDraft.updatedAt).toLocaleString()}</span>
-          <button type="button" onClick={restoreLocalDraft}>恢复</button>
-          <button type="button" onClick={discardLocalDraft}>忽略</button>
-        </div>
+        <Alert
+          banner
+          className="memorica-editor-draft-banner"
+          message={`发现上次未保存的内容，更新时间 ${new Date(recoverableDraft.updatedAt).toLocaleString()}`}
+          action={(
+            <div className="memorica-editor-alert-actions">
+              <Button size="small" onClick={restoreLocalDraft}>恢复</Button>
+              <Button size="small" type="text" onClick={discardLocalDraft}>忽略</Button>
+            </div>
+          )}
+          type="warning"
+        />
       )}
       {uploadStatus && (
-        <div
+        <Alert
+          banner
           className="memorica-editor-upload-status"
           data-state={uploadStatus.state}
           data-testid="memorica-upload-status"
-        >
-          <span>{uploadStatus.text}</span>
-          <button type="button" onClick={() => setUploadStatus(null)}>关闭</button>
-        </div>
+          message={uploadStatus.text}
+          action={(
+            <Button size="small" type="text" onClick={() => setUploadStatus(null)}>
+              关闭
+            </Button>
+          )}
+          type={uploadStatus.state === 'error' ? 'error' : uploadStatus.state === 'success' ? 'success' : 'info'}
+        />
       )}
       {mode === 'rich' && canEdit && (
         <Toolbar

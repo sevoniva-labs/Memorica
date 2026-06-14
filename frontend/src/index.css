@@ -365,12 +365,14 @@ body {
   min-width: 0;
 }
 
-.memorica-editor-icon-btn {
+.memorica-editor-icon-btn.ant-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 32px;
+  min-width: 32px;
   height: 32px;
+  padding: 0;
   flex: 0 0 auto;
   border: 0;
   border-radius: 6px;
@@ -380,7 +382,14 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.memorica-editor-icon-btn:hover {
+.memorica-editor-icon-btn.ant-btn > .ant-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-inline-end: 0;
+}
+
+.memorica-editor-icon-btn.ant-btn:not(:disabled):not(.ant-btn-disabled):hover {
   color: #1f2329;
   background: #f2f3f5;
 }
@@ -389,6 +398,7 @@ body {
   flex: 1;
   min-width: 0;
   height: 32px;
+  box-shadow: none;
   border: 0;
   border-radius: 6px;
   padding: 0 8px;
@@ -403,12 +413,13 @@ body {
   transition: background-color 0.15s ease;
 }
 
-.memorica-editor-title-input:hover {
+.memorica-editor-title-input.ant-input:hover {
   background: #f2f3f5;
 }
 
-.memorica-editor-title-input:focus {
+.memorica-editor-title-input.ant-input:focus {
   background: #f2f3f5;
+  box-shadow: none;
 }
 
 .memorica-editor-title-input::placeholder {
@@ -498,7 +509,7 @@ body {
   background: #f7f8fa;
 }
 
-.memorica-editor-sync-btn {
+.memorica-editor-sync-btn.ant-btn {
   height: 26px;
   padding: 0 9px;
   border: 1px solid #fed7aa;
@@ -512,7 +523,7 @@ body {
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.memorica-editor-sync-btn:hover {
+.memorica-editor-sync-btn.ant-btn:not(:disabled):not(.ant-btn-disabled):hover {
   background: #fffbeb;
   border-color: #fdba74;
 }
@@ -525,7 +536,7 @@ body {
   flex: 0 0 auto;
 }
 
-.memorica-editor-btn {
+.memorica-editor-btn.ant-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -543,23 +554,32 @@ body {
   white-space: nowrap;
 }
 
-.memorica-editor-btn:hover {
+.memorica-editor-btn.ant-btn > .ant-btn-icon,
+.memorica-editor-btn-primary.ant-btn > .ant-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-inline-end: 0;
+}
+
+.memorica-editor-btn.ant-btn:not(:disabled):not(.ant-btn-disabled):hover {
   color: #1f2329;
   background: #f2f3f5;
 }
 
-.memorica-editor-btn:disabled,
-.memorica-editor-title-input:disabled {
+.memorica-editor-btn.ant-btn:disabled,
+.memorica-editor-btn.ant-btn.ant-btn-disabled,
+.memorica-editor-title-input.ant-input:disabled {
   color: #98a2b3;
   cursor: not-allowed;
 }
 
-.memorica-editor-btn.active {
+.memorica-editor-btn.active.ant-btn {
   color: #245bdb;
   background: #eef3ff;
 }
 
-.memorica-editor-btn-primary {
+.memorica-editor-btn-primary.ant-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -577,11 +597,11 @@ body {
   white-space: nowrap;
 }
 
-.memorica-editor-btn-primary:hover {
+.memorica-editor-btn-primary.ant-btn:not(:disabled):not(.ant-btn-disabled):hover {
   background: #2860e0;
 }
 
-.memorica-editor-draft-banner {
+.memorica-editor-draft-banner.ant-alert {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -593,7 +613,25 @@ body {
   font-size: 13px;
 }
 
-.memorica-editor-draft-banner button {
+.memorica-editor-draft-banner .ant-alert-content {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.memorica-editor-draft-banner .ant-alert-message,
+.memorica-editor-upload-status .ant-alert-message {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memorica-editor-alert-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.memorica-editor-draft-banner .ant-btn {
   height: 26px;
   border: 1px solid #fdba74;
   border-radius: 6px;
@@ -605,7 +643,7 @@ body {
   cursor: pointer;
 }
 
-.memorica-editor-upload-status {
+.memorica-editor-upload-status.ant-alert {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -617,26 +655,26 @@ body {
   font-size: 13px;
 }
 
-.memorica-editor-upload-status[data-state="success"] {
+.memorica-editor-upload-status.ant-alert[data-state="success"] {
   border-color: #bbf7d0;
   color: #12805c;
   background: #ecfdf5;
 }
 
-.memorica-editor-upload-status[data-state="error"] {
+.memorica-editor-upload-status.ant-alert[data-state="error"] {
   border-color: #fed7aa;
   color: #9a3412;
   background: #fff7ed;
 }
 
-.memorica-editor-upload-status > span {
+.memorica-editor-upload-status .ant-alert-content {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.memorica-editor-upload-status button {
+.memorica-editor-upload-status .ant-btn {
   flex: 0 0 auto;
   height: 24px;
   border: 1px solid currentColor;

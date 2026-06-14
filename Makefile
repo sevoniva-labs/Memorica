@@ -3,7 +3,7 @@
 	dev dev-down dev-logs setup clean demo-seed demo-seed-dry-run demo-seed-test dockerfile-policy-test docker-proxy-check makefile-policy-test \
 	build ci lint test verify-local audit \
 	backend-build backend-test backend-unit-test backend-integration-test backend-check backend-lint testcontainers-check \
-	frontend-install frontend-dev frontend-build frontend-lint frontend-check frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test frontend-audit e2e-local demo-e2e-local \
+	frontend-install frontend-dev frontend-build frontend-lint frontend-check frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test frontend-collab-editor-policy-test frontend-audit e2e-local demo-e2e-local \
 	hocuspocus-install hocuspocus-check hocuspocus-audit \
 	db-migrate db-new-migration db-backup db-restore \
 	docker-build docker-push
@@ -100,7 +100,10 @@ frontend-toolbar-policy-test: ## Verify editor toolbar uses Ant Design controls
 frontend-find-replace-policy-test: ## Verify find and replace bar uses Ant Design controls
 	node --test scripts/frontend-find-replace-antd.test.mjs
 
-frontend-check: frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test ## Run frontend lint, Ant Design checks, and production build
+frontend-collab-editor-policy-test: ## Verify collaboration editor chrome uses Ant Design controls
+	node --test scripts/frontend-collab-editor-antd.test.mjs
+
+frontend-check: frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test frontend-collab-editor-policy-test ## Run frontend lint, Ant Design checks, and production build
 	cd frontend && npm run lint && npm run antd:doctor && npm run antd:lint && npm run build
 
 frontend-audit: ## Audit frontend production dependencies
