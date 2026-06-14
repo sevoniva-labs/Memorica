@@ -7,15 +7,18 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "antd:doctor": "antd doctor --format json",
+    "antd:env": "antd env --format json",
+    "antd:lint": "antd lint ./src --format json",
+    "antd:usage": "antd usage ./src --format json",
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
-    "@douyinfe/semi-icons": "^2.99.2",
-    "@douyinfe/semi-ui-19": "^2.99.2",
+    "@ant-design/icons": "^5.6.1",
+    "@ant-design/pro-components": "^2.8.10",
     "@hocuspocus/provider": "^4.1.0",
-    "@semi-bot/semi-theme-feishu": "^1.0.0",
     "@tiptap/extension-bubble-menu": "^3.23.6",
     "@tiptap/extension-character-count": "^3.23.6",
     "@tiptap/extension-collaboration": "^3.23.6",
@@ -49,9 +52,9 @@
     "@tiptap/starter-kit": "^3.23.6",
     "@tiptap/suggestion": "^3.23.6",
     "@tiptap/y-tiptap": "^3.0.3",
+    "antd": "^5.29.3",
     "axios": "^1.16.1",
     "katex": "^0.16.22",
-    "lucide-react": "^1.16.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.1",
@@ -61,6 +64,7 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@ant-design/cli": "^6.4.4",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
     "@types/node": "^24.12.3",
@@ -78,5 +82,8 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12"
+  },
+  "overrides": {
+    "path-to-regexp": "8.4.2"
   }
 }

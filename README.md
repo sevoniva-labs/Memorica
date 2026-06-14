@@ -8,7 +8,7 @@
 
 - **实时协作** — 多人同时编辑同一文档，光标和选区实时同步，基于 Yjs + Hocuspocus + WebSocket
 - **版本历史** — 手动保存版本快照，随时回退到之前的状态
-- **图示编辑** — 集成 diagrams.net/drawio，支持在文档中插入和保存流程图
+- **图示编辑** — 集成 diagrams.net/drawio，支持模板插入、编辑、重命名、复制、下载、删除和版本恢复
 - **权限管理** — 文档可设为私有/公开，支持按用户授予查看/编辑权限
 - **文件夹** — 支持创建文件夹组织文档，支持嵌套
 - **AI 助手** — 集成 DeepSeek，支持续写、润色、总结等操作
@@ -20,11 +20,11 @@
 **前端**
 - React 19 + TypeScript + Vite
 - TipTap 3（ProseMirror）— 富文本编辑器核心
-- Semi UI — 组件库
+- Ant Design 5 + Ant Design ProComponents — 组件库
 - Yjs — CRDT 协作算法
-- lucide-react — 图标
+- @ant-design/icons — 图标
 
-> 注：项目中安装了 Tailwind CSS 但未使用，样式采用 BEM + 全局 CSS 方案。
+> 注：项目中安装了 Tailwind CSS，但当前产品界面以 Ant Design 组件 + BEM 全局 CSS 为主。
 
 **后端**
 - Spring Boot 3.5 + Java 21
@@ -82,6 +82,16 @@ cd frontend && npm run dev
 - Swagger UI：http://localhost:8080/swagger-ui.html
 - MinIO Console：http://localhost:9001
 
+当前开发预览常用账号：
+- 用户名：`demo`
+- 密码：`Memorica2026`
+
+### 国内源
+
+仓库根目录的 `.npmrc` 已配置 npm 使用 `https://registry.npmmirror.com`。后端 Gradle Wrapper 使用腾讯云 Gradle 分发镜像，Maven 依赖优先走阿里云 public 仓库，失败时再回落到 Maven Central。
+
+本地 CORS 默认允许 `localhost` 和 `127.0.0.1` 的 5173/5174 端口，覆盖手动开发和 Playwright 默认端口。前端开发环境默认走 Vite 同源代理，减少浏览器跨域差异。
+
 ## 项目结构
 
 ```
@@ -121,8 +131,13 @@ make help
 # 开发
 make dev           # 启动所有服务
 make dev-down      # 停止所有服务
-make test          # 运行前后端测试
+make test          # 运行后端快速测试
 make lint          # 运行代码检查
+make frontend-check        # 前端 lint + Ant Design 检查 + build
+make backend-unit-test     # 后端非 Testcontainers 测试
+make backend-integration-test # 后端 Testcontainers 集成测试
+make e2e-local             # 对已运行的本地服务执行主 E2E
+make verify-local          # 本地快速验证，不启动浏览器服务
 make db-backup     # 备份 PostgreSQL
 
 # 后端
@@ -141,10 +156,16 @@ E2E 默认要求 API、协作服务和前端可访问。常用本地命令：
 
 ```bash
 cd frontend
-E2E_BASE_URL=http://127.0.0.1:5174 \
+E2E_SKIP_WEB_SERVER=true \
+E2E_BASE_URL=http://localhost:5173 \
 E2E_API_BASE_URL=http://127.0.0.1:8080/api/v1 \
-npm run test:e2e
+E2E_BACKEND_HEALTH_URL=http://127.0.0.1:8080/actuator/health \
+npm run test:e2e -- editor-regression.spec.ts --workers=2
 ```
+
+后端默认 `./gradlew test` 只运行不依赖 Testcontainers 的测试；`./gradlew integrationTest` 单独运行 PostgreSQL Testcontainers 集成测试。若本机 Docker CLI 可用但 Testcontainers 报 “Could not find a valid Docker environment”，先检查 Docker Desktop context、socket 和 Testcontainers 配置；CI 的 `check` 仍会运行单元测试与集成测试。
+
+`npm audit` 在 npmmirror 上没有稳定 audit endpoint，因此 `make frontend-audit` 和 `make hocuspocus-audit` 显式使用 `https://registry.npmjs.org`，安装依赖仍走仓库 `.npmrc` 的国内 registry。
 
 ### 图示服务
 
@@ -156,7 +177,7 @@ VITE_DRAWIO_URL=http://localhost:8081/ \
 docker compose -f docker/docker-compose.yml up -d --build
 ```
 
-生产环境建议把 diagrams.net 部署在可信域名下，并通过 `VITE_DRAWIO_URL` 指向该地址。
+生产环境建议把 diagrams.net 部署在可信域名下，并通过 `VITE_DRAWIO_URL` 指向该地址。国内网络下也建议使用自托管或内网可访问的 drawio 地址。
 
 ## 部署
 

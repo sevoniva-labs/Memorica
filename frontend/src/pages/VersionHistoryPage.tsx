@@ -8,7 +8,13 @@ import {
   type DocumentVersionDetail,
   type DocumentItem,
 } from '../api/client'
-import { ArrowLeft, FileText, Clock, User, RotateCcw } from 'lucide-react'
+import {
+  ArrowLeftOutlined,
+  ClockCircleOutlined,
+  FileTextOutlined,
+  RollbackOutlined,
+  UserOutlined,
+} from '@ant-design/icons'
 
 export default function VersionHistoryPage() {
   const { docId } = useParams<{ docId: string }>()
@@ -61,9 +67,9 @@ export default function VersionHistoryPage() {
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button onClick={() => navigate(`/doc/${docId}`)} className="p-1 hover:bg-gray-100 rounded-md transition">
-              <ArrowLeft className="w-4 h-4 text-gray-500" />
+              <ArrowLeftOutlined className="text-gray-500" style={{ fontSize: 16 }} />
             </button>
-            <FileText className="w-5 h-5 text-blue-600" />
+            <FileTextOutlined className="text-blue-600" style={{ fontSize: 20 }} />
             <span className="font-semibold text-gray-900 text-sm">{doc?.title || '文档'} — 历史版本</span>
           </div>
         </div>
@@ -93,11 +99,11 @@ export default function VersionHistoryPage() {
                   </div>
                   <div className="flex items-center gap-3 text-xs text-gray-400">
                     <span className="flex items-center gap-1">
-                      <User className="w-3 h-3" />
+                      <UserOutlined style={{ fontSize: 12 }} />
                       {v.editorName}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
+                      <ClockCircleOutlined style={{ fontSize: 12 }} />
                       {formatDate(v.createdAt)}
                     </span>
                   </div>
@@ -121,7 +127,7 @@ export default function VersionHistoryPage() {
                     disabled={restoring}
                     className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
+                    <RollbackOutlined style={{ fontSize: 14 }} />
                     {restoring ? '恢复中' : '恢复此版本'}
                   </button>
                 </div>
@@ -138,7 +144,7 @@ export default function VersionHistoryPage() {
               </div>
             ) : (
               <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
-                <Clock className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                <ClockCircleOutlined className="text-gray-200 mx-auto mb-3" style={{ fontSize: 40 }} />
                 <p className="text-sm text-gray-400">在左侧选择一个版本查看详情</p>
               </div>
             )}

@@ -6,7 +6,15 @@ import {
   type AIAction,
 } from '../ai/aiActions'
 import { generateAI } from '../api/client'
-import { Sparkles, X, Check, Copy, Replace, Type, Loader2 } from 'lucide-react'
+import {
+  CheckOutlined,
+  CloseOutlined,
+  CopyOutlined,
+  FontSizeOutlined,
+  LoadingOutlined,
+  SwapOutlined,
+  ThunderboltOutlined,
+} from '@ant-design/icons'
 
 interface Props {
   editor: Editor | null
@@ -131,14 +139,14 @@ export default function AIAssistant({ editor, open, onClose, initialAction }: Pr
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
         <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-blue-600" />
+          <ThunderboltOutlined className="text-blue-600" style={{ fontSize: 16 }} />
           <span className="text-sm font-semibold text-gray-800">AI 助手</span>
         </div>
         <button
           onClick={handleClose}
           className="p-1 rounded-md hover:bg-white/60 text-gray-400 hover:text-gray-600 transition"
         >
-          <X size={14} />
+          <CloseOutlined style={{ fontSize: 14 }} />
         </button>
       </div>
 
@@ -147,7 +155,7 @@ export default function AIAssistant({ editor, open, onClose, initialAction }: Pr
         {selectedText && (
           <div className="space-y-1.5">
             <div className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
-              <Type size={12} />
+              <FontSizeOutlined style={{ fontSize: 12 }} />
               选中的内容
             </div>
             <div className="text-xs text-gray-600 bg-gray-50 rounded-lg p-2.5 border border-gray-100 line-clamp-4 leading-relaxed">
@@ -226,12 +234,12 @@ export default function AIAssistant({ editor, open, onClose, initialAction }: Pr
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
-                <Sparkles size={12} className="text-blue-500" />
+                <ThunderboltOutlined className="text-blue-500" style={{ fontSize: 12 }} />
                 AI 生成
               </div>
               {streaming && (
                 <div className="flex items-center gap-1.5">
-                  <Loader2 size={12} className="text-blue-500 animate-spin" />
+                  <LoadingOutlined spin className="text-blue-500" style={{ fontSize: 12 }} />
                   <span className="text-[11px] text-blue-500">生成中...</span>
                 </div>
               )}
@@ -252,14 +260,14 @@ export default function AIAssistant({ editor, open, onClose, initialAction }: Pr
                     onClick={handleReplace}
                     className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                   >
-                    <Replace size={12} />
+                    <SwapOutlined style={{ fontSize: 12 }} />
                     {selectedText ? '替换' : '插入'}
                   </button>
                   <button
                     onClick={handleInsert}
                     className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition"
                   >
-                    <Check size={12} />
+                    <CheckOutlined style={{ fontSize: 12 }} />
                     在下方插入
                   </button>
                   <button
@@ -267,7 +275,7 @@ export default function AIAssistant({ editor, open, onClose, initialAction }: Pr
                     className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition"
                     title="复制"
                   >
-                    <Copy size={14} />
+                    <CopyOutlined style={{ fontSize: 14 }} />
                   </button>
                 </>
               )}
@@ -276,7 +284,7 @@ export default function AIAssistant({ editor, open, onClose, initialAction }: Pr
                   onClick={handleCancel}
                   className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 border border-red-200 text-red-500 rounded-lg hover:bg-red-50 transition"
                 >
-                  <X size={12} />
+                  <CloseOutlined style={{ fontSize: 12 }} />
                   停止生成
                 </button>
               )}

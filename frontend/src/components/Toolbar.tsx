@@ -1,18 +1,33 @@
 import { useState } from 'react'
 import { Editor } from '@tiptap/react'
 import {
-  Bold, Italic, Underline, Strikethrough,
-  Heading1, Heading2, Heading3,
-  List, ListOrdered, ListChecks,
-  Quote, Code, Link, Image,
-  Table, Undo, Redo,
-  AlignLeft, AlignCenter, AlignRight,
-  Highlighter, Minus,
-  Subscript, Superscript,
-  Palette, Type,
-  Paperclip, Upload, Video,
-  Workflow,
-} from 'lucide-react'
+  AlignCenterOutlined,
+  AlignLeftOutlined,
+  AlignRightOutlined,
+  BgColorsOutlined,
+  BlockOutlined,
+  BoldOutlined,
+  CheckSquareOutlined,
+  CodeOutlined,
+  FontSizeOutlined,
+  HighlightOutlined,
+  ItalicOutlined,
+  LinkOutlined,
+  MinusOutlined,
+  OrderedListOutlined,
+  PaperClipOutlined,
+  PartitionOutlined,
+  PictureOutlined,
+  RedoOutlined,
+  StrikethroughOutlined,
+  SubnodeOutlined,
+  TableOutlined,
+  UnderlineOutlined,
+  UndoOutlined,
+  UnorderedListOutlined,
+  UploadOutlined,
+  VideoCameraOutlined,
+} from '@ant-design/icons'
 
 const colors = [
   '#000000', '#ef4444', '#f97316', '#eab308',
@@ -103,26 +118,26 @@ export default function Toolbar({ editor, onCreateDiagram, onUploadImage, onUplo
         <div className="flex items-center gap-1 flex-wrap">
           {/* 撤销重做 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className={btnClass(false)} title="撤销"><Undo size={16} /></button>
-            <button onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className={btnClass(false)} title="重做"><Redo size={16} /></button>
+            <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className={btnClass(false)} title="撤销"><UndoOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className={btnClass(false)} title="重做"><RedoOutlined style={{ fontSize: 16 }} /></button>
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
           {/* 基础格式 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => editor.chain().focus().toggleBold().run()} className={btnClass(editor.isActive('bold'))} title="加粗"><Bold size={16} /></button>
-            <button onClick={() => editor.chain().focus().toggleItalic().run()} className={btnClass(editor.isActive('italic'))} title="斜体"><Italic size={16} /></button>
-            <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={btnClass(editor.isActive('underline'))} title="下划线"><Underline size={16} /></button>
-            <button onClick={() => editor.chain().focus().toggleStrike().run()} className={btnClass(editor.isActive('strike'))} title="删除线"><Strikethrough size={16} /></button>
-            <button onClick={() => editor.chain().focus().toggleHighlight().run()} className={btnClass(editor.isActive('highlight'))} title="高亮"><Highlighter size={16} /></button>
-            <button onClick={() => editor.chain().focus().toggleCode().run()} className={btnClass(editor.isActive('code'))} title="代码"><Code size={16} /></button>
+            <button onClick={() => editor.chain().focus().toggleBold().run()} className={btnClass(editor.isActive('bold'))} title="加粗"><BoldOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={() => editor.chain().focus().toggleItalic().run()} className={btnClass(editor.isActive('italic'))} title="斜体"><ItalicOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={btnClass(editor.isActive('underline'))} title="下划线"><UnderlineOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={() => editor.chain().focus().toggleStrike().run()} className={btnClass(editor.isActive('strike'))} title="删除线"><StrikethroughOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={() => editor.chain().focus().toggleHighlight().run()} className={btnClass(editor.isActive('highlight'))} title="高亮"><HighlightOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={() => editor.chain().focus().toggleCode().run()} className={btnClass(editor.isActive('code'))} title="代码"><CodeOutlined style={{ fontSize: 16 }} /></button>
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
           {/* 上标下标 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => richChain().toggleSubscript().run()} className={btnClass(editor.isActive('subscript'))} title="下标"><Subscript size={16} /></button>
-            <button onClick={() => richChain().toggleSuperscript().run()} className={btnClass(editor.isActive('superscript'))} title="上标"><Superscript size={16} /></button>
+            <button onClick={() => richChain().toggleSubscript().run()} className={btnClass(editor.isActive('subscript'))} title="下标"><SubnodeOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={() => richChain().toggleSuperscript().run()} className={btnClass(editor.isActive('superscript'))} title="上标"><FontSizeOutlined style={{ fontSize: 16 }} /></button>
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
@@ -133,7 +148,7 @@ export default function Toolbar({ editor, onCreateDiagram, onUploadImage, onUplo
               className={btnClass(!!editor.getAttributes('textStyle').color)}
               title="文字颜色"
             >
-              <Palette size={16} />
+              <BgColorsOutlined style={{ fontSize: 16 }} />
               <span
                 className="absolute bottom-1 left-1/2 -translate-x-1/2 w-3 h-0.5 rounded-full"
                 style={{ backgroundColor: editor.getAttributes('textStyle').color || 'transparent' }}
@@ -168,7 +183,7 @@ export default function Toolbar({ editor, onCreateDiagram, onUploadImage, onUplo
               className={btnClass(false)}
               title="字体"
             >
-              <Type size={16} />
+              <FontSizeOutlined style={{ fontSize: 16 }} />
             </button>
             {showFontPicker && (
               <div className="absolute top-full left-0 mt-1 py-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-[140px]">
@@ -190,49 +205,49 @@ export default function Toolbar({ editor, onCreateDiagram, onUploadImage, onUplo
 
           {/* 标题 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={btnClass(editor.isActive('heading', { level: 1 }))} title="H1"><Heading1 size={16} /></button>
-            <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={btnClass(editor.isActive('heading', { level: 2 }))} title="H2"><Heading2 size={16} /></button>
-            <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={btnClass(editor.isActive('heading', { level: 3 }))} title="H3"><Heading3 size={16} /></button>
+            <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={btnClass(editor.isActive('heading', { level: 1 }))} title="H1"><span className="text-[11px] font-semibold leading-none">H1</span></button>
+            <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={btnClass(editor.isActive('heading', { level: 2 }))} title="H2"><span className="text-[11px] font-semibold leading-none">H2</span></button>
+            <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={btnClass(editor.isActive('heading', { level: 3 }))} title="H3"><span className="text-[11px] font-semibold leading-none">H3</span></button>
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
           {/* 列表 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={btnClass(editor.isActive('bulletList'))} title="无序列表"><List size={16} /></button>
-            <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={btnClass(editor.isActive('orderedList'))} title="有序列表"><ListOrdered size={16} /></button>
-            <button onClick={() => editor.chain().focus().toggleTaskList().run()} className={btnClass(editor.isActive('taskList'))} title="任务列表"><ListChecks size={16} /></button>
+            <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={btnClass(editor.isActive('bulletList'))} title="无序列表"><UnorderedListOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={btnClass(editor.isActive('orderedList'))} title="有序列表"><OrderedListOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={() => editor.chain().focus().toggleTaskList().run()} className={btnClass(editor.isActive('taskList'))} title="任务列表"><CheckSquareOutlined style={{ fontSize: 16 }} /></button>
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
           {/* 对齐 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={btnClass(editor.isActive({ textAlign: 'left' }))} title="左对齐"><AlignLeft size={16} /></button>
-            <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={btnClass(editor.isActive({ textAlign: 'center' }))} title="居中"><AlignCenter size={16} /></button>
-            <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={btnClass(editor.isActive({ textAlign: 'right' }))} title="右对齐"><AlignRight size={16} /></button>
+            <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={btnClass(editor.isActive({ textAlign: 'left' }))} title="左对齐"><AlignLeftOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={btnClass(editor.isActive({ textAlign: 'center' }))} title="居中"><AlignCenterOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={btnClass(editor.isActive({ textAlign: 'right' }))} title="右对齐"><AlignRightOutlined style={{ fontSize: 16 }} /></button>
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 
           {/* 插入 */}
           <div className="flex items-center gap-0.5 mr-2">
-            <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className={btnClass(editor.isActive('blockquote'))} title="引用"><Quote size={16} /></button>
-            <button onClick={() => editor.chain().focus().setHorizontalRule().run()} className={btnClass(false)} title="分隔线"><Minus size={16} /></button>
-            <button onClick={addLink} className={btnClass(editor.isActive('link'))} title="链接"><Link size={16} /></button>
-            <button onClick={addImage} className={btnClass(false)} title="图片 URL"><Image size={16} /></button>
+            <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className={btnClass(editor.isActive('blockquote'))} title="引用"><BlockOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={() => editor.chain().focus().setHorizontalRule().run()} className={btnClass(false)} title="分隔线"><MinusOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={addLink} className={btnClass(editor.isActive('link'))} title="链接"><LinkOutlined style={{ fontSize: 16 }} /></button>
+            <button onClick={addImage} className={btnClass(false)} title="图片 URL"><PictureOutlined style={{ fontSize: 16 }} /></button>
             {onUploadImage && (
               <button onClick={onUploadImage} className={btnClass(false)} title={uploading ? '上传中' : '上传图片'} disabled={uploading}>
-                <Upload size={16} />
+                <UploadOutlined style={{ fontSize: 16 }} />
               </button>
             )}
             {onUploadAttachment && (
               <button onClick={onUploadAttachment} className={btnClass(false)} title={uploading ? '上传中' : '上传附件'} disabled={uploading}>
-                <Paperclip size={16} />
+                <PaperClipOutlined style={{ fontSize: 16 }} />
               </button>
             )}
-            <button onClick={addTable} className={btnClass(editor.isActive('table'))} title="表格"><Table size={16} /></button>
+            <button onClick={addTable} className={btnClass(editor.isActive('table'))} title="表格"><TableOutlined style={{ fontSize: 16 }} /></button>
             {onCreateDiagram && (
-              <button onClick={onCreateDiagram} className={btnClass(false)} title="图示"><Workflow size={16} /></button>
+              <button onClick={onCreateDiagram} className={btnClass(false)} title="图示"><PartitionOutlined style={{ fontSize: 16 }} /></button>
             )}
-            <button onClick={addYoutube} className={btnClass(false)} title="YouTube"><Video size={16} /></button>
+            <button onClick={addYoutube} className={btnClass(false)} title="YouTube"><VideoCameraOutlined style={{ fontSize: 16 }} /></button>
           </div>
           <div className="w-px h-6 bg-gray-200 mx-1" />
 

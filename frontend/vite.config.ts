@@ -46,11 +46,8 @@ export default defineConfig({
           if (id.includes('yjs') || id.includes('y-prosemirror') || id.includes('y-protocols') || id.includes('@hocuspocus')) {
             return 'vendor-collaboration'
           }
-          if (id.includes('@douyinfe/semi')) {
-            return 'vendor-semi'
-          }
-          if (id.includes('lucide-react')) {
-            return 'vendor-icons'
+          if (id.includes('antd') || id.includes('@ant-design')) {
+            return 'vendor-antd'
           }
           if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('zustand')) {
             return 'vendor-react'

@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import CollabEditor from '../components/CollabEditor'
 import { getDocument, type DocumentItem } from '../api/client'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeftOutlined } from '@ant-design/icons'
 import { useAuthStore } from '../stores/authStore'
 
 export default function EditorPage() {
@@ -37,7 +37,7 @@ export default function EditorPage() {
           onClick={() => navigate('/')}
           className="text-xs text-blue-600 hover:underline flex items-center gap-1"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
+          <ArrowLeftOutlined style={{ fontSize: 14 }} />
           返回文档列表
         </button>
       </div>

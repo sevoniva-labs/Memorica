@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react'
 import { Image } from '@tiptap/extension-image'
-import { ImageIcon, Loader2 } from 'lucide-react'
+import { LoadingOutlined, PictureOutlined } from '@ant-design/icons'
 import { useRef, useState } from 'react'
 import { getFileUrl } from '../api/client'
 
@@ -34,7 +34,7 @@ function DocumentImageView({ node }: NodeViewProps) {
         <img src={src} alt={attrs.alt || attrs.title || '图片'} title={attrs.title} onError={refresh} />
       ) : (
         <div className="memorica-document-image-empty">
-          {loading ? <Loader2 size={18} className="memorica-spin-icon" /> : <ImageIcon size={18} />}
+          {loading ? <LoadingOutlined spin style={{ fontSize: 18 }} /> : <PictureOutlined style={{ fontSize: 18 }} />}
           <span>图片加载失败</span>
         </div>
       )}

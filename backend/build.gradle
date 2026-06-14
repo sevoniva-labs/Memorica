@@ -26,6 +26,9 @@ configurations {
 }
 
 repositories {
+    maven {
+        url = uri('https://maven.aliyun.com/repository/public')
+    }
     mavenCentral()
 }
 
@@ -75,9 +78,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'com.h2database:h2'
-    testImplementation 'org.testcontainers:testcontainers:1.21.0'
-    testImplementation 'org.testcontainers:postgresql:1.21.0'
-    testImplementation 'org.testcontainers:junit-jupiter:1.21.0'
+    testImplementation 'org.testcontainers:testcontainers:1.21.4'
+    testImplementation 'org.testcontainers:postgresql:1.21.4'
+    testImplementation 'org.testcontainers:junit-jupiter:1.21.4'
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.0'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
@@ -90,7 +93,18 @@ springBoot {
 // ── Test ──────────────────────────────────────────────────────────────────────
 tasks.named('test') {
     useJUnitPlatform()
+    exclude '**/integration/**'
     finalizedBy jacocoTestReport
+}
+
+tasks.register('integrationTest', Test) {
+    description = 'Runs Testcontainers-backed integration tests.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    include '**/integration/**'
+    shouldRunAfter test
+    useJUnitPlatform()
 }
 
 // ── JaCoCo (enable with jacoco plugin) ─────────────────────────────────────────
@@ -117,6 +131,7 @@ jacocoTestCoverageVerification {
     }
 }
 
+check.dependsOn integrationTest
 check.dependsOn jacocoTestCoverageVerification
 
 // ── Spotless (enable after running: ./gradlew spotlessApply) ───────────────────

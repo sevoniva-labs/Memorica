@@ -27,6 +27,8 @@ async function waitForCollaboration(page: Page) {
 async function openDrawioDialog(page: Page) {
   await page.locator('button[title="更多"]').click();
   await page.getByText('插入图示').click();
+  await expect(page.getByTestId('memorica-diagram-template-picker')).toBeVisible();
+  await page.getByTestId('memorica-diagram-template-blank').click();
   await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
 }
 
@@ -42,6 +44,12 @@ async function simulateDrawioExport(page: Page, marker: string) {
     }));
   }, marker);
   await expect(page.locator('.memorica-diagram-node')).toBeVisible();
+}
+
+async function currentDocumentId(page: Page) {
+  const match = page.url().match(/\/doc\/([^/?#]+)/);
+  expect(match?.[1], `Expected editor URL to contain a document id, got ${page.url()}`).toBeTruthy();
+  return match![1];
 }
 
 test.beforeAll(async ({ request }) => {
@@ -136,6 +144,50 @@ test('shared documents tab shows documents explicitly shared with the current us
   await expect(page.getByText(privateTitle)).not.toBeVisible();
 });
 
+test('new user can complete the collaborative document demo path', async ({ page, request }) => {
+  const owner = await registerTestUser(request, 'demopath');
+  const viewer = await registerTestUser(request, 'demoviewer');
+  const title = uniqueName('演示闭环');
+  const bodyText = `主路径正文 ${uniqueName('body')}`;
+  const diagramMarker = uniqueName('main-diagram');
+  const fileName = `${uniqueName('demo-file')}.pdf`;
+
+  await loginByStorage(page, owner);
+  await page.goto('/');
+  await page.getByTestId('memorica-create-document').click();
+  await expect(page.locator('.memorica-editor-shell')).toBeVisible({ timeout: 12_000 });
+  await page.locator('.memorica-editor-title-input').fill(title);
+  await waitForCollaboration(page);
+
+  await page.locator('.notion-editor').click();
+  await page.keyboard.type(bodyText);
+
+  await openDrawioDialog(page);
+  await simulateDrawioExport(page, diagramMarker);
+
+  await page.setInputFiles('[data-testid="memorica-attachment-upload"]', {
+    name: fileName,
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n'),
+  });
+
+  const documentId = await currentDocumentId(page);
+  await expect(page.locator('.memorica-editor-save-status')).toContainText('已保存', { timeout: 15_000 });
+  await expectLatestVersionContains(request, owner, documentId, bodyText);
+  await expectLatestVersionContains(request, owner, documentId, diagramMarker);
+  await expectLatestVersionContains(request, owner, documentId, fileName);
+
+  await page.getByRole('button', { name: '分享' }).click();
+  await page.getByTestId('memorica-share-username').fill(viewer.user.username);
+  await page.getByTestId('memorica-share-add-member').click();
+  await expect(page.getByTestId('memorica-share-document-members')).toContainText(viewer.user.username, { timeout: 12_000 });
+
+  await loginByStorage(page, viewer);
+  await page.goto('/');
+  await page.getByRole('button', { name: '与我共享' }).click();
+  await expect(page.getByText(title)).toBeVisible({ timeout: 12_000 });
+});
+
 test('drawio diagram inserts into the editor and persists in version content', async ({ page, request }) => {
   const auth = await registerTestUser(request, 'diagram');
   const document = await createDocument(request, auth, uniqueName('图示验证'));
@@ -150,6 +202,104 @@ test('drawio diagram inserts into the editor and persists in version content', a
   await expect(page.locator('.memorica-editor-save-status')).toContainText('已保存', { timeout: 12_000 });
   await expectLatestVersionContains(request, auth, document.id, marker);
   await expectLatestVersionContains(request, auth, document.id, 'diagram');
+});
+
+test('drawio template picker inserts a titled flowchart diagram', async ({ page, request }) => {
+  const auth = await registerTestUser(request, 'flowchart');
+  const document = await createDocument(request, auth, uniqueName('图示模板验证'));
+  const title = `流程图 ${uniqueName('diagram-title')}`;
+  const marker = uniqueName('flowchart-marker');
+
+  await loginByStorage(page, auth);
+  await openEditorForDocument(page, document.id);
+  await waitForCollaboration(page);
+
+  await page.locator('button[title="更多"]').click();
+  await page.getByText('插入图示').click();
+  await expect(page.getByTestId('memorica-diagram-template-picker')).toBeVisible();
+  await page.getByTestId('memorica-diagram-title').fill(title);
+  await page.getByTestId('memorica-diagram-template-flowchart').click();
+  await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
+
+  await simulateDrawioExport(page, marker);
+  await expect(page.getByTestId('memorica-diagram-node')).toContainText(title);
+  await expectLatestVersionContains(request, auth, document.id, title);
+  await expectLatestVersionContains(request, auth, document.id, marker);
+});
+
+test('drawio save timeout keeps the dialog open and allows retry', async ({ page, request }) => {
+  const auth = await registerTestUser(request, 'diatime');
+  const document = await createDocument(request, auth, uniqueName('图示超时验证'));
+  const marker = uniqueName('retry-marker');
+
+  await loginByStorage(page, auth);
+  await openEditorForDocument(page, document.id);
+  await waitForCollaboration(page);
+
+  await page.locator('button[title="更多"]').click();
+  await page.getByText('插入图示').click();
+  await page.getByTestId('memorica-diagram-template-blank').click();
+  await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
+
+  await page.getByRole('button', { name: '保存图示' }).click();
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('保存没有响应', { timeout: 13_000 });
+  await expect(page.locator('.memorica-drawio-frame')).toBeVisible();
+
+  await simulateDrawioExport(page, marker);
+  await expect(page.getByTestId('memorica-diagram-node')).toBeVisible();
+  await expectLatestVersionContains(request, auth, document.id, marker);
+});
+
+test('diagram block can be renamed duplicated and deleted', async ({ page, request }) => {
+  const auth = await registerTestUser(request, 'diaact');
+  const document = await createDocument(request, auth, uniqueName('图示操作验证'));
+  const marker = uniqueName('action-marker');
+  const renamed = `重命名图示 ${uniqueName('renamed')}`;
+
+  await loginByStorage(page, auth);
+  await openEditorForDocument(page, document.id);
+  await waitForCollaboration(page);
+
+  await openDrawioDialog(page);
+  await simulateDrawioExport(page, marker);
+
+  const firstDiagram = page.getByTestId('memorica-diagram-node').first();
+  await firstDiagram.getByTestId('memorica-diagram-action-rename').click();
+  await page.getByTestId('memorica-diagram-rename-input').fill(renamed);
+  await page.getByRole('button', { name: '保存名称' }).click();
+  await expect(firstDiagram).toContainText(renamed);
+
+  await firstDiagram.getByTestId('memorica-diagram-action-duplicate').click();
+  await expect(page.getByTestId('memorica-diagram-node')).toHaveCount(2);
+
+  await page.getByTestId('memorica-diagram-node').first().getByTestId('memorica-diagram-action-delete').click();
+  await page.getByRole('button', { name: '确认删除' }).click();
+  await expect(page.getByTestId('memorica-diagram-node')).toHaveCount(1);
+  await expectLatestVersionContains(request, auth, document.id, renamed);
+});
+
+test('viewer cannot mutate diagram blocks', async ({ page, request }) => {
+  const owner = await registerTestUser(request, 'diaown');
+  const viewer = await registerTestUser(request, 'diaview');
+  const document = await createDocument(request, owner, uniqueName('图示只读验证'));
+  const marker = uniqueName('readonly-diagram');
+
+  await loginByStorage(page, owner);
+  await openEditorForDocument(page, document.id);
+  await waitForCollaboration(page);
+  await openDrawioDialog(page);
+  await simulateDrawioExport(page, marker);
+  await expectLatestVersionContains(request, owner, document.id, marker);
+  await grantDocumentAccess(request, owner, document.id, viewer.user.username, 'viewer');
+
+  await loginByStorage(page, viewer);
+  await openEditorForDocument(page, document.id);
+  await expect(page.getByTestId('memorica-diagram-node')).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByTestId('memorica-diagram-action-download')).toBeVisible();
+  await expect(page.getByTestId('memorica-diagram-action-edit')).not.toBeVisible();
+  await expect(page.getByTestId('memorica-diagram-action-rename')).not.toBeVisible();
+  await expect(page.getByTestId('memorica-diagram-action-duplicate')).not.toBeVisible();
+  await expect(page.getByTestId('memorica-diagram-action-delete')).not.toBeVisible();
 });
 
 test('version history can restore an older version into the editor', async ({ page, request }) => {
@@ -180,6 +330,35 @@ test('version history can restore an older version into the editor', async ({ pa
   await expect(page.locator('.notion-editor')).not.toContainText(secondText);
   await expectLatestVersionContains(request, auth, document.id, firstText);
   await expectLatestVersionNotContains(request, auth, document.id, secondText);
+});
+
+test('restored diagram version remains editable', async ({ page, request }) => {
+  const auth = await registerTestUser(request, 'diarest');
+  const document = await createDocument(request, auth, uniqueName('图示恢复验证'));
+  const firstMarker = uniqueName('diagram-first');
+  const restoredMarker = uniqueName('diagram-restored-edit');
+
+  await loginByStorage(page, auth);
+  await openEditorForDocument(page, document.id);
+  await waitForCollaboration(page);
+
+  await openDrawioDialog(page);
+  await simulateDrawioExport(page, firstMarker);
+  await expectLatestVersionContains(request, auth, document.id, firstMarker);
+
+  await page.locator('.notion-editor').click();
+  await page.keyboard.type(` ${uniqueName('later-text')}`);
+  await expect(page.locator('.memorica-editor-save-status')).toContainText('已保存', { timeout: 12_000 });
+
+  await page.goto(`/doc/${document.id}/versions`);
+  await page.getByRole('button', { name: /版本 1/ }).click();
+  await page.getByRole('button', { name: '恢复此版本' }).click();
+  await expect(page.getByTestId('memorica-diagram-node')).toBeVisible({ timeout: 15_000 });
+
+  await page.getByTestId('memorica-diagram-action-edit').click();
+  await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
+  await simulateDrawioExport(page, restoredMarker);
+  await expectLatestVersionContains(request, auth, document.id, restoredMarker);
 });
 
 test('uploaded attachment persists and follows document sharing permissions', async ({ page, request }) => {

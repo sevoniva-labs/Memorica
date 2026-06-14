@@ -42,6 +42,7 @@ Thumbs.db
 logs/
 
 # --- Temp ---
+.superpowers/
 *.tmp
 *.bak
 *.swp

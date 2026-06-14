@@ -1,4 +1,4 @@
-.PHONY: help dev dev-down build test lint clean db-backup db-restore setup
+.PHONY: help dev dev-down build test lint clean db-backup db-restore setup frontend-check e2e-local backend-unit-test backend-integration-test verify-local
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -19,11 +19,16 @@ dev-logs: ## Tail all service logs
 backend-build: ## Build backend JAR
 	cd backend && ./gradlew bootJar --no-daemon
 
-backend-test: ## Run backend tests
-	cd backend && ./gradlew test --no-daemon
+backend-test: backend-unit-test ## Run backend unit tests
+
+backend-unit-test: ## Run backend tests that do not require Testcontainers
+	cd backend && JWT_SECRET=$${JWT_SECRET:-memorica-development-jwt-secret-2026-local-preview} ./gradlew test --no-daemon
+
+backend-integration-test: ## Run backend Testcontainers-backed integration tests
+	cd backend && JWT_SECRET=$${JWT_SECRET:-memorica-development-jwt-secret-2026-local-preview} ./gradlew integrationTest --no-daemon
 
 backend-check: ## Run backend compile, tests, architecture, migration, and coverage checks
-	cd backend && ./gradlew check --no-daemon
+	cd backend && JWT_SECRET=$${JWT_SECRET:-memorica-development-jwt-secret-2026-local-preview} ./gradlew check --no-daemon
 
 backend-lint: backend-check ## Alias for backend quality checks
 
@@ -41,8 +46,18 @@ frontend-build: ## Build frontend for production
 frontend-lint: ## Lint frontend
 	cd frontend && npm run lint
 
+frontend-check: ## Run frontend lint, Ant Design checks, and production build
+	cd frontend && npm run lint && npm run antd:doctor && npm run antd:lint && npm run build
+
 frontend-audit: ## Audit frontend production dependencies
-	cd frontend && npm audit --omit=dev --audit-level=high
+	cd frontend && npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
+
+e2e-local: ## Run local E2E against already-running frontend, API, and collaboration services
+	cd frontend && E2E_SKIP_WEB_SERVER=true \
+		E2E_BASE_URL=http://localhost:5173 \
+		E2E_API_BASE_URL=http://127.0.0.1:8080/api/v1 \
+		E2E_BACKEND_HEALTH_URL=http://127.0.0.1:8080/actuator/health \
+		npm run test:e2e -- editor-regression.spec.ts --workers=2
 
 # --- Collaboration ---
 
@@ -53,7 +68,7 @@ hocuspocus-check: ## Check collaboration service syntax
 	cd hocuspocus && node -c src/server.js && node -c src/db.js
 
 hocuspocus-audit: ## Audit collaboration production dependencies
-	cd hocuspocus && npm audit --omit=dev --audit-level=high
+	cd hocuspocus && npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
 
 # --- Database ---
 
@@ -76,11 +91,13 @@ docker-push: ## Push Docker images to registry
 
 # --- CI ---
 
-ci: backend-check frontend-lint frontend-build frontend-audit hocuspocus-check hocuspocus-audit ## Run full CI pipeline locally
+ci: backend-check frontend-check frontend-audit hocuspocus-check hocuspocus-audit ## Run full CI pipeline locally
 
 lint: backend-lint frontend-lint hocuspocus-check ## Run all linters and syntax checks
 
-test: backend-test ## Run all tests
+test: backend-unit-test ## Run fast backend tests
+
+verify-local: backend-unit-test frontend-check hocuspocus-check frontend-audit hocuspocus-audit ## Run local checks that do not require browser services
 
 # --- Database ---
 

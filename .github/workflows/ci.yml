@@ -36,8 +36,10 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: cd frontend && npm ci
       - run: cd frontend && npm run lint
+      - run: cd frontend && npm run antd:doctor
+      - run: cd frontend && npm run antd:lint
       - run: cd frontend && npm run build
-      - run: cd frontend && npm audit --omit=dev --audit-level=high
+      - run: cd frontend && npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
 
   hocuspocus-check:
     runs-on: ubuntu-latest
@@ -50,7 +52,7 @@ jobs:
           cache-dependency-path: hocuspocus/package-lock.json
       - run: cd hocuspocus && npm ci
       - run: cd hocuspocus && node -c src/server.js && node -c src/db.js
-      - run: cd hocuspocus && npm audit --omit=dev --audit-level=high
+      - run: cd hocuspocus && npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
 
   compose-check:
     runs-on: ubuntu-latest

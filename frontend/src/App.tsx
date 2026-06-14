@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
+import { App as AntdApp, ConfigProvider, theme } from 'antd'
+import zhCN from 'antd/locale/zh_CN'
 import { useAuthStore } from './stores/authStore'
 import AppErrorBoundary from './components/AppErrorBoundary'
 import AppLayout from './components/AppLayout'
@@ -36,43 +38,58 @@ function App() {
 
   return (
     <AppErrorBoundary>
-      <BrowserRouter>
-        <Suspense fallback={<PageFallback />}>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route
-              path="/"
-              element={
-                <PrivateRoute>
-                  <AppLayout>
-                    <DocumentListPage />
-                  </AppLayout>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/doc/:docId"
-              element={
-                <PrivateRoute>
-                  <AppLayout>
-                    <EditorPage />
-                  </AppLayout>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/doc/:docId/versions"
-              element={
-                <PrivateRoute>
-                  <AppLayout>
-                    <VersionHistoryPage />
-                  </AppLayout>
-                </PrivateRoute>
-              }
-            />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+      <ConfigProvider
+        locale={zhCN}
+        theme={{
+          algorithm: theme.defaultAlgorithm,
+          token: {
+            colorPrimary: '#245bdb',
+            borderRadius: 8,
+            fontFamily:
+              '-apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", "Segoe UI", Arial, sans-serif',
+          },
+        }}
+      >
+        <AntdApp message={{ maxCount: 3 }}>
+          <BrowserRouter>
+            <Suspense fallback={<PageFallback />}>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route
+                  path="/"
+                  element={
+                    <PrivateRoute>
+                      <AppLayout>
+                        <DocumentListPage />
+                      </AppLayout>
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/doc/:docId"
+                  element={
+                    <PrivateRoute>
+                      <AppLayout>
+                        <EditorPage />
+                      </AppLayout>
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/doc/:docId/versions"
+                  element={
+                    <PrivateRoute>
+                      <AppLayout>
+                        <VersionHistoryPage />
+                      </AppLayout>
+                    </PrivateRoute>
+                  }
+                />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </AntdApp>
+      </ConfigProvider>
     </AppErrorBoundary>
   )
 }

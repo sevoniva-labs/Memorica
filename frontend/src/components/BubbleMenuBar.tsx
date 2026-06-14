@@ -2,12 +2,21 @@ import { useState } from 'react'
 import { Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import {
-  Bold, Italic, Underline, Strikethrough,
-  Code, Link, Highlighter, AlignLeft, AlignCenter, AlignRight,
-  Subscript, Superscript,
-  Palette, Type,
-  Sparkles,
-} from 'lucide-react'
+  AlignCenterOutlined,
+  AlignLeftOutlined,
+  AlignRightOutlined,
+  BgColorsOutlined,
+  BoldOutlined,
+  CodeOutlined,
+  FontSizeOutlined,
+  HighlightOutlined,
+  ItalicOutlined,
+  LinkOutlined,
+  StrikethroughOutlined,
+  SubnodeOutlined,
+  ThunderboltOutlined,
+  UnderlineOutlined,
+} from '@ant-design/icons'
 
 const colors = [
   '#000000', '#ef4444', '#f97316', '#eab308',
@@ -74,28 +83,28 @@ export default function BubbleMenuBar({ editor, onAskAI }: Props) {
         className={btn(editor.isActive('bold'))}
         title="加粗"
       >
-        <Bold size={14} />
+        <BoldOutlined style={{ fontSize: 14 }} />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleItalic().run()}
         className={btn(editor.isActive('italic'))}
         title="斜体"
       >
-        <Italic size={14} />
+        <ItalicOutlined style={{ fontSize: 14 }} />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleUnderline().run()}
         className={btn(editor.isActive('underline'))}
         title="下划线"
       >
-        <Underline size={14} />
+        <UnderlineOutlined style={{ fontSize: 14 }} />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleStrike().run()}
         className={btn(editor.isActive('strike'))}
         title="删除线"
       >
-        <Strikethrough size={14} />
+        <StrikethroughOutlined style={{ fontSize: 14 }} />
       </button>
       <div className="w-px h-4 bg-gray-200 mx-1" />
       <button
@@ -103,7 +112,7 @@ export default function BubbleMenuBar({ editor, onAskAI }: Props) {
         className={btn(editor.isActive('code'))}
         title="代码"
       >
-        <Code size={14} />
+        <CodeOutlined style={{ fontSize: 14 }} />
       </button>
       <button
         onClick={() => {
@@ -113,14 +122,14 @@ export default function BubbleMenuBar({ editor, onAskAI }: Props) {
         className={btn(editor.isActive('link'))}
         title="链接"
       >
-        <Link size={14} />
+        <LinkOutlined style={{ fontSize: 14 }} />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleHighlight().run()}
         className={btn(editor.isActive('highlight'))}
         title="高亮"
       >
-        <Highlighter size={14} />
+        <HighlightOutlined style={{ fontSize: 14 }} />
       </button>
       <div className="w-px h-4 bg-gray-200 mx-1" />
       <button
@@ -128,14 +137,14 @@ export default function BubbleMenuBar({ editor, onAskAI }: Props) {
         className={btn(editor.isActive('subscript'))}
         title="下标"
       >
-        <Subscript size={14} />
+        <SubnodeOutlined style={{ fontSize: 14 }} />
       </button>
       <button
         onClick={() => richChain().toggleSuperscript().run()}
         className={btn(editor.isActive('superscript'))}
         title="上标"
       >
-        <Superscript size={14} />
+        <FontSizeOutlined style={{ fontSize: 14 }} />
       </button>
       <div className="w-px h-4 bg-gray-200 mx-1" />
       {/* 颜色 */}
@@ -145,7 +154,7 @@ export default function BubbleMenuBar({ editor, onAskAI }: Props) {
           className={btn(!!editor.getAttributes('textStyle').color)}
           title="文字颜色"
         >
-          <Palette size={14} />
+          <BgColorsOutlined style={{ fontSize: 14 }} />
           <span
             className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-2.5 h-[2px] rounded-full"
             style={{ backgroundColor: editor.getAttributes('textStyle').color || 'transparent' }}
@@ -177,7 +186,7 @@ export default function BubbleMenuBar({ editor, onAskAI }: Props) {
           className={btn(false)}
           title="字体"
         >
-          <Type size={14} />
+          <FontSizeOutlined style={{ fontSize: 14 }} />
         </button>
         {showFontPicker && (
           <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 py-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-[120px]">
@@ -199,21 +208,21 @@ export default function BubbleMenuBar({ editor, onAskAI }: Props) {
         className={btn(editor.isActive({ textAlign: 'left' }))}
         title="左对齐"
       >
-        <AlignLeft size={14} />
+        <AlignLeftOutlined style={{ fontSize: 14 }} />
       </button>
       <button
         onClick={() => editor.chain().focus().setTextAlign('center').run()}
         className={btn(editor.isActive({ textAlign: 'center' }))}
         title="居中"
       >
-        <AlignCenter size={14} />
+        <AlignCenterOutlined style={{ fontSize: 14 }} />
       </button>
       <button
         onClick={() => editor.chain().focus().setTextAlign('right').run()}
         className={btn(editor.isActive({ textAlign: 'right' }))}
         title="右对齐"
       >
-        <AlignRight size={14} />
+        <AlignRightOutlined style={{ fontSize: 14 }} />
       </button>
       {/* AI 按钮 */}
       {onAskAI && (
@@ -224,7 +233,7 @@ export default function BubbleMenuBar({ editor, onAskAI }: Props) {
             className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors"
             title="Ask AI"
           >
-            <Sparkles size={14} />
+            <ThunderboltOutlined style={{ fontSize: 14 }} />
             AI
           </button>
         </>

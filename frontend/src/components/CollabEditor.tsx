@@ -36,15 +36,32 @@ import AIAssistant from './AIAssistant'
 import FindReplace from './FindReplace'
 import ShareSettingsPanel from './ShareSettingsPanel'
 import DrawioDialog from './DrawioDialog'
-import { Diagram, type DiagramAttrs, type DiagramEditPayload } from '../extensions/Diagram'
+import DiagramTemplatePicker from './DiagramTemplatePicker'
+import { Diagram, type DiagramActionPayload, type DiagramAttrs, type DiagramEditPayload } from '../extensions/Diagram'
+import type { DiagramTemplate } from '../diagram/templates'
 import { Attachment, type AttachmentAttrs } from '../extensions/Attachment'
 import { DocumentImage } from '../extensions/DocumentImage'
 import { apiErrorMessage, getVersion, listVersions, updateDocumentMeta, saveVersion, saveVersionKeepalive, uploadFile } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
 import { useSidebar } from '../contexts/SidebarContext'
-import Dropdown from '@douyinfe/semi-ui-19/lib/es/dropdown'
-import Toast from '@douyinfe/semi-ui-19/lib/es/toast'
-import { ArrowLeft, Download, FileText, History, ImageIcon, Loader2, MoreHorizontal, Paperclip, RefreshCw, Search, Share2, Sparkles, Type, Workflow } from 'lucide-react'
+import { App as AntdApp, Dropdown, Input, Modal } from 'antd'
+import type { MenuProps } from 'antd'
+import {
+  ArrowLeftOutlined,
+  DownloadOutlined,
+  EllipsisOutlined,
+  FileTextOutlined,
+  FontSizeOutlined,
+  HistoryOutlined,
+  LoadingOutlined,
+  PaperClipOutlined,
+  PartitionOutlined,
+  PictureOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  ShareAltOutlined,
+  ThunderboltOutlined,
+} from '@ant-design/icons'
 
 interface Props {
   docId?: string
@@ -57,6 +74,11 @@ interface Props {
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'local'
 type SaveSource = 'manual' | 'auto' | 'restore'
+
+interface PendingDiagram {
+  xml: string
+  title: string
+}
 
 interface LocalDraft {
   contentJson: string
@@ -159,6 +181,7 @@ export default function CollabEditor({
   initialCanWrite = true,
 }: Props) {
   const navigate = useNavigate()
+  const { message } = AntdApp.useApp()
   const [searchParams] = useSearchParams()
   const [title, setTitle] = useState(initialTitle || '未命名文档')
   const [wordCount, setWordCount] = useState(0)
@@ -168,8 +191,13 @@ export default function CollabEditor({
   const [aiInitialAction, setAiInitialAction] = useState<AIAction | null>(null)
   const [findOpen, setFindOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
   const [drawioOpen, setDrawioOpen] = useState(false)
   const [activeDiagram, setActiveDiagram] = useState<DiagramEditPayload | null>(null)
+  const [pendingDiagram, setPendingDiagram] = useState<PendingDiagram | null>(null)
+  const [renameDiagram, setRenameDiagram] = useState<DiagramActionPayload | null>(null)
+  const [renameDiagramTitle, setRenameDiagramTitle] = useState('')
+  const [deleteDiagram, setDeleteDiagram] = useState<DiagramActionPayload | null>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting')
   const [connectionIssue, setConnectionIssue] = useState('')
@@ -200,7 +228,8 @@ export default function CollabEditor({
   const openCreateDiagram = useCallback(() => {
     if (!canEdit) return
     setActiveDiagram(null)
-    setDrawioOpen(true)
+    setPendingDiagram(null)
+    setTemplatePickerOpen(true)
   }, [canEdit])
 
   // 创建 Yjs Doc 和 Hocuspocus Provider
@@ -293,10 +322,40 @@ export default function CollabEditor({
       const detail = (event as CustomEvent<DiagramEditPayload>).detail
       if (!detail) return
       setActiveDiagram(detail)
+      setPendingDiagram(null)
       setDrawioOpen(true)
     }
     window.addEventListener('memorica:diagram-edit', handleDiagramEdit)
     return () => window.removeEventListener('memorica:diagram-edit', handleDiagramEdit)
+  }, [canEdit])
+
+  useEffect(() => {
+    const handleDiagramAction = (event: Event) => {
+      if (!canEdit) return
+      const detail = (event as CustomEvent<DiagramActionPayload>).detail
+      if (!detail) return
+
+      if (detail.action === 'edit') {
+        setActiveDiagram({ attrs: detail.attrs, updateAttributes: detail.updateAttributes })
+        setPendingDiagram(null)
+        setDrawioOpen(true)
+      }
+      if (detail.action === 'rename') {
+        setRenameDiagram(detail)
+        setRenameDiagramTitle(detail.attrs.title || '图示')
+      }
+      if (detail.action === 'duplicate') {
+        detail.duplicate()
+        setVersionSaveState('saving')
+        window.setTimeout(() => void saveCurrentVersionRef.current('auto'), 300)
+      }
+      if (detail.action === 'delete') {
+        setDeleteDiagram(detail)
+      }
+    }
+
+    window.addEventListener('memorica:diagram-action', handleDiagramAction)
+    return () => window.removeEventListener('memorica:diagram-action', handleDiagramAction)
   }, [canEdit])
 
   useEffect(() => {
@@ -603,18 +662,35 @@ export default function CollabEditor({
   const closeDrawio = () => {
     setDrawioOpen(false)
     setActiveDiagram(null)
+    setPendingDiagram(null)
+  }
+
+  const closeTemplatePicker = () => {
+    setTemplatePickerOpen(false)
+  }
+
+  const selectDiagramTemplate = (template: DiagramTemplate, nextTitle: string) => {
+    setPendingDiagram({
+      xml: template.xml,
+      title: nextTitle.trim() || template.name,
+    })
+    setTemplatePickerOpen(false)
+    setDrawioOpen(true)
   }
 
   const saveDiagram = (value: DiagramAttrs) => {
     const payload = {
       ...value,
-      title: value.title || activeDiagram?.attrs.title || '图示',
+      title: value.title || activeDiagram?.attrs.title || pendingDiagram?.title || '图示',
       updatedAt: value.updatedAt || new Date().toISOString(),
     }
     if (activeDiagram) {
       activeDiagram.updateAttributes(payload)
     } else {
-      editor?.chain().focus().insertContent({ type: 'diagram', attrs: payload }).run()
+      editor?.chain().focus().insertContent([
+        { type: 'diagram', attrs: payload },
+        { type: 'paragraph' },
+      ]).focus('end').run()
     }
     closeDrawio()
     setVersionSaveState('saving')
@@ -655,20 +731,57 @@ export default function CollabEditor({
           },
         }).run()
       } else {
-      editor.chain().focus().insertContent({ type: 'attachment', attrs: attachmentAttrs }).run()
+        editor.chain().focus().insertContent({ type: 'attachment', attrs: attachmentAttrs }).run()
       }
 
       setVersionSaveState('saving')
       window.setTimeout(() => void saveCurrentVersionRef.current('auto'), 300)
-      Toast.success('文件已插入')
+      message.success('文件已插入')
     } catch (error) {
       setVersionSaveState('error')
       setSaveIssue('上传失败，文档内容没有丢失')
-      Toast.error(apiErrorMessage(error, '上传失败，请稍后重试'))
+      message.error(apiErrorMessage(error, '上传失败，请稍后重试'))
     } finally {
       setUploadingFile(false)
     }
-  }, [canEdit, docId, editor, uploadingFile])
+  }, [canEdit, docId, editor, message, uploadingFile])
+
+  const moreMenuItems = useMemo<MenuProps['items']>(() => [
+    { key: 'find', label: '查找替换', icon: <SearchOutlined style={{ fontSize: 16 }} /> },
+    ...(canEdit ? [{ key: 'diagram', label: '插入图示', icon: <PartitionOutlined style={{ fontSize: 16 }} /> }] : []),
+    ...(canEdit ? [{
+      key: 'image',
+      label: uploadingFile ? '上传中...' : '上传图片',
+      icon: uploadingFile ? <LoadingOutlined spin style={{ fontSize: 16 }} /> : <PictureOutlined style={{ fontSize: 16 }} />,
+      disabled: uploadingFile,
+    }] : []),
+    ...(canEdit ? [{
+      key: 'attachment',
+      label: uploadingFile ? '上传中...' : '上传附件',
+      icon: uploadingFile ? <LoadingOutlined spin style={{ fontSize: 16 }} /> : <PaperClipOutlined style={{ fontSize: 16 }} />,
+      disabled: uploadingFile,
+    }] : []),
+    { key: 'versions', label: '历史版本', icon: <HistoryOutlined style={{ fontSize: 16 }} /> },
+    { type: 'divider' },
+    { key: 'mode', label: `切换为${mode === 'notion' ? '富文本' : '轻文档'}`, icon: <FileTextOutlined style={{ fontSize: 16 }} /> },
+    { key: 'count', label: `字数 ${wordCount} 词 / ${charCount} 字`, icon: <FontSizeOutlined style={{ fontSize: 16 }} />, disabled: true },
+    { type: 'divider' },
+    { key: 'export', label: '导出 HTML', icon: <DownloadOutlined style={{ fontSize: 16 }} /> },
+    ...(connectionStatus === 'disconnected'
+      ? [{ key: 'reconnect', label: '重新连接协作', icon: <ReloadOutlined style={{ fontSize: 16 }} /> }]
+      : []),
+  ], [canEdit, charCount, connectionStatus, mode, uploadingFile, wordCount])
+
+  const handleMoreMenuClick: MenuProps['onClick'] = ({ key }) => {
+    if (key === 'find') setFindOpen(true)
+    if (key === 'diagram') openCreateDiagram()
+    if (key === 'image') imageInputRef.current?.click()
+    if (key === 'attachment') attachmentInputRef.current?.click()
+    if (key === 'versions') navigate(`/doc/${docId}/versions`)
+    if (key === 'mode') setMode(mode === 'notion' ? 'rich' : 'notion')
+    if (key === 'export') exportHtml()
+    if (key === 'reconnect') reconnectCollaboration()
+  }
 
   return (
     <div className="memorica-editor-shell">
@@ -682,7 +795,7 @@ export default function CollabEditor({
               onClick={() => navigate('/')}
               title="返回"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeftOutlined style={{ fontSize: 16 }} />
             </button>
             <input
               type="text"
@@ -728,7 +841,7 @@ export default function CollabEditor({
                 onClick={reconnectCollaboration}
                 title="重新连接"
               >
-                <RefreshCw className="w-4 h-4" />
+                <ReloadOutlined style={{ fontSize: 16 }} />
               </button>
             )}
           </div>
@@ -740,7 +853,7 @@ export default function CollabEditor({
               className="memorica-editor-btn-primary"
               onClick={() => setShareOpen(true)}
             >
-              <Share2 className="w-4 h-4" />
+              <ShareAltOutlined style={{ fontSize: 16 }} />
               <span>分享</span>
             </button>
             <button
@@ -750,28 +863,16 @@ export default function CollabEditor({
               title="AI 助手"
               disabled={!canEdit}
             >
-              <Sparkles className="w-4 h-4" />
+              <ThunderboltOutlined style={{ fontSize: 16 }} />
               <span className="hidden sm:inline">AI</span>
             </button>
             <Dropdown
-              trigger="click"
-              position="bottomRight"
-              menu={[
-                { node: 'item', name: '查找替换', icon: <Search className="w-4 h-4" />, onClick: () => setFindOpen(true) },
-                ...(canEdit ? [{ node: 'item' as const, name: '插入图示', icon: <Workflow className="w-4 h-4" />, onClick: openCreateDiagram }] : []),
-                ...(canEdit ? [{ node: 'item' as const, name: uploadingFile ? '上传中...' : '上传图片', icon: uploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />, onClick: () => imageInputRef.current?.click() }] : []),
-                ...(canEdit ? [{ node: 'item' as const, name: uploadingFile ? '上传中...' : '上传附件', icon: uploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />, onClick: () => attachmentInputRef.current?.click() }] : []),
-                { node: 'item', name: '历史版本', icon: <History className="w-4 h-4" />, onClick: () => navigate(`/doc/${docId}/versions`) },
-                { node: 'divider' },
-                { node: 'item', name: `切换为${mode === 'notion' ? '富文本' : '轻文档'}`, icon: <FileText className="w-4 h-4" />, onClick: () => setMode(mode === 'notion' ? 'rich' : 'notion') },
-                { node: 'item', name: `字数 ${wordCount} 词 / ${charCount} 字`, icon: <Type className="w-4 h-4" /> },
-                { node: 'divider' },
-                { node: 'item', name: '导出 HTML', icon: <Download className="w-4 h-4" />, onClick: exportHtml },
-                ...(connectionStatus === 'disconnected' ? [{ node: 'item' as const, name: '重新连接协作', icon: <RefreshCw className="w-4 h-4" />, onClick: reconnectCollaboration }] : []),
-              ]}
+              trigger={['click']}
+              placement="bottomRight"
+              menu={{ items: moreMenuItems, onClick: handleMoreMenuClick }}
             >
               <button type="button" className="memorica-editor-btn" title="更多">
-                <MoreHorizontal className="w-4 h-4" />
+                <EllipsisOutlined style={{ fontSize: 16 }} />
               </button>
             </Dropdown>
           </div>
@@ -811,10 +912,52 @@ export default function CollabEditor({
       )}
       <ShareSettingsPanel docId={docId} open={shareOpen} onClose={() => setShareOpen(false)} />
       <FindReplace editor={editor} open={findOpen} onClose={() => setFindOpen(false)} />
+      <Modal
+        title="重命名图示"
+        open={Boolean(renameDiagram)}
+        okText="保存名称"
+        cancelText="取消"
+        onCancel={() => setRenameDiagram(null)}
+        onOk={() => {
+          const nextTitle = renameDiagramTitle.trim() || '图示'
+          renameDiagram?.updateAttributes({ title: nextTitle, updatedAt: new Date().toISOString() })
+          setRenameDiagram(null)
+          setVersionSaveState('saving')
+          window.setTimeout(() => void saveCurrentVersionRef.current('auto'), 300)
+        }}
+      >
+        <Input
+          data-testid="memorica-diagram-rename-input"
+          value={renameDiagramTitle}
+          onChange={(event) => setRenameDiagramTitle(event.target.value)}
+          maxLength={80}
+        />
+      </Modal>
+      <Modal
+        title="删除图示"
+        open={Boolean(deleteDiagram)}
+        okText="确认删除"
+        cancelText="取消"
+        okButtonProps={{ danger: true }}
+        onCancel={() => setDeleteDiagram(null)}
+        onOk={() => {
+          deleteDiagram?.remove()
+          setDeleteDiagram(null)
+          setVersionSaveState('saving')
+          window.setTimeout(() => void saveCurrentVersionRef.current('auto'), 300)
+        }}
+      >
+        删除后会在下一次保存中写入版本历史。
+      </Modal>
+      <DiagramTemplatePicker
+        open={templatePickerOpen}
+        onCancel={closeTemplatePicker}
+        onSelect={selectDiagramTemplate}
+      />
       <DrawioDialog
         open={drawioOpen}
-        initialXml={activeDiagram?.attrs.xml}
-        initialTitle={activeDiagram?.attrs.title || '图示'}
+        initialXml={activeDiagram?.attrs.xml || pendingDiagram?.xml}
+        initialTitle={activeDiagram?.attrs.title || pendingDiagram?.title || '图示'}
         onCancel={closeDrawio}
         onSave={saveDiagram}
       />

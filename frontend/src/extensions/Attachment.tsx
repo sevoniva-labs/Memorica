@@ -6,7 +6,7 @@ import {
   mergeAttributes,
   type NodeViewProps,
 } from '@tiptap/react'
-import { Download, FileText, Loader2 } from 'lucide-react'
+import { DownloadOutlined, FileTextOutlined, LoadingOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import { getFileUrl } from '../api/client'
 
@@ -51,14 +51,14 @@ function AttachmentView({ node }: NodeViewProps) {
   return (
     <NodeViewWrapper className="memorica-attachment-node" data-type="attachment" contentEditable={false}>
       <div className="memorica-attachment-icon">
-        <FileText size={18} />
+        <FileTextOutlined style={{ fontSize: 18 }} />
       </div>
       <div className="memorica-attachment-copy">
         <div className="memorica-attachment-title">{title}</div>
         {meta && <div className="memorica-attachment-meta">{meta}</div>}
       </div>
       <button type="button" className="memorica-attachment-action" onClick={openFile} disabled={loading}>
-        {loading ? <Loader2 size={15} className="memorica-spin-icon" /> : <Download size={15} />}
+        {loading ? <LoadingOutlined spin style={{ fontSize: 15 }} /> : <DownloadOutlined style={{ fontSize: 15 }} />}
         <span>打开</span>
       </button>
     </NodeViewWrapper>

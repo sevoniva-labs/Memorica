@@ -1,10 +1,20 @@
 import { Editor } from '@tiptap/react'
 import {
-  Heading1, Heading2, Heading3,
-  List, ListOrdered, ListChecks,
-  Quote, Code, Image, Paperclip, Table,
-  Minus, Type, Video, Sigma, Smile, Workflow,
-} from 'lucide-react'
+  BlockOutlined,
+  CheckSquareOutlined,
+  CodeOutlined,
+  FontSizeOutlined,
+  FunctionOutlined,
+  MinusOutlined,
+  OrderedListOutlined,
+  PaperClipOutlined,
+  PartitionOutlined,
+  PictureOutlined,
+  SmileOutlined,
+  TableOutlined,
+  UnorderedListOutlined,
+  YoutubeOutlined,
+} from '@ant-design/icons'
 import { useState, useEffect, useCallback, useRef, useMemo, type ElementType } from 'react'
 import { aiActionLabels, aiActionIcons, type AIAction } from '../ai/aiActions'
 
@@ -37,44 +47,44 @@ function createBlockItems(
   onUploadAttachment?: () => void
 ): SlashItem[] {
   return [
-  { title: '文本', icon: Type, category: '基础', command: (editor) => editor.chain().focus().setParagraph().run() },
-  { title: '标题 1', icon: Heading1, category: '基础', command: (editor) => editor.chain().focus().toggleHeading({ level: 1 }).run() },
-  { title: '标题 2', icon: Heading2, category: '基础', command: (editor) => editor.chain().focus().toggleHeading({ level: 2 }).run() },
-  { title: '标题 3', icon: Heading3, category: '基础', command: (editor) => editor.chain().focus().toggleHeading({ level: 3 }).run() },
-  { title: '无序列表', icon: List, category: '列表', command: (editor) => editor.chain().focus().toggleBulletList().run() },
-  { title: '有序列表', icon: ListOrdered, category: '列表', command: (editor) => editor.chain().focus().toggleOrderedList().run() },
-  { title: '任务列表', icon: ListChecks, category: '列表', command: (editor) => editor.chain().focus().toggleTaskList().run() },
-  { title: '引用', icon: Quote, category: '媒体', command: (editor) => editor.chain().focus().toggleBlockquote().run() },
-  { title: '代码块', icon: Code, category: '媒体', command: (editor) => editor.chain().focus().toggleCodeBlock().run() },
-  { title: '分隔线', icon: Minus, category: '媒体', command: (editor) => editor.chain().focus().setHorizontalRule().run() },
-  { title: '表格', icon: Table, category: '媒体', command: (editor) => editor.chain().focus().insertTable({ rows: 3, cols: 3 }).run() },
-  { title: '图片', icon: Image, category: '媒体', command: (editor) => {
+  { title: '文本', icon: FontSizeOutlined, category: '基础', command: (editor) => editor.chain().focus().setParagraph().run() },
+  { title: '标题 1', icon: FontSizeOutlined, category: '基础', command: (editor) => editor.chain().focus().toggleHeading({ level: 1 }).run() },
+  { title: '标题 2', icon: FontSizeOutlined, category: '基础', command: (editor) => editor.chain().focus().toggleHeading({ level: 2 }).run() },
+  { title: '标题 3', icon: FontSizeOutlined, category: '基础', command: (editor) => editor.chain().focus().toggleHeading({ level: 3 }).run() },
+  { title: '无序列表', icon: UnorderedListOutlined, category: '列表', command: (editor) => editor.chain().focus().toggleBulletList().run() },
+  { title: '有序列表', icon: OrderedListOutlined, category: '列表', command: (editor) => editor.chain().focus().toggleOrderedList().run() },
+  { title: '任务列表', icon: CheckSquareOutlined, category: '列表', command: (editor) => editor.chain().focus().toggleTaskList().run() },
+  { title: '引用', icon: BlockOutlined, category: '媒体', command: (editor) => editor.chain().focus().toggleBlockquote().run() },
+  { title: '代码块', icon: CodeOutlined, category: '媒体', command: (editor) => editor.chain().focus().toggleCodeBlock().run() },
+  { title: '分隔线', icon: MinusOutlined, category: '媒体', command: (editor) => editor.chain().focus().setHorizontalRule().run() },
+  { title: '表格', icon: TableOutlined, category: '媒体', command: (editor) => editor.chain().focus().insertTable({ rows: 3, cols: 3 }).run() },
+  { title: '图片', icon: PictureOutlined, category: '媒体', command: (editor) => {
     const url = window.prompt('图片 URL:')
     if (url) editor.chain().focus().setImage({ src: url }).run()
   }},
   ...(onUploadImage ? [{
     title: '上传图片',
-    icon: Image,
+    icon: PictureOutlined,
     category: '媒体',
     command: () => onUploadImage(),
   }] : []),
   ...(onUploadAttachment ? [{
     title: '附件',
-    icon: Paperclip,
+    icon: PaperClipOutlined,
     category: '媒体',
     command: () => onUploadAttachment(),
   }] : []),
-  { title: 'YouTube', icon: Video, category: '嵌入', command: (editor) => {
+  { title: 'YouTube', icon: YoutubeOutlined, category: '嵌入', command: (editor) => {
     const url = window.prompt('YouTube URL:')
     if (url) embedChain(editor).setYoutubeVideo({ src: url }).run()
   }},
   ...(onCreateDiagram ? [{
     title: '图示',
-    icon: Workflow,
+    icon: PartitionOutlined,
     category: '嵌入',
     command: () => onCreateDiagram(),
   }] : []),
-  { title: '数学公式', icon: Sigma, category: '嵌入', command: (editor) => {
+  { title: '数学公式', icon: FunctionOutlined, category: '嵌入', command: (editor) => {
     const formula = window.prompt('输入 LaTeX 公式（行内用 $...$，块级用 $$...$$）:')
     if (formula) {
       if (formula.startsWith('$$') && formula.endsWith('$$')) {
@@ -85,7 +95,7 @@ function createBlockItems(
       }
     }
   }},
-  { title: '表情符号', icon: Smile, category: '嵌入', command: (editor) => {
+  { title: '表情符号', icon: SmileOutlined, category: '嵌入', command: (editor) => {
     editor.chain().focus().insertContent(':smile:').run()
   }},
   ]
@@ -291,7 +301,7 @@ export default function SlashMenu({ editor, onAskAI, onCreateDiagram, onUploadIm
                     globalIdx === selected ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  <Icon size={18} className="text-gray-400" />
+                  <Icon className="text-gray-400" style={{ fontSize: 18 }} />
                   <span className="text-sm">{item.title}</span>
                 </button>
               )

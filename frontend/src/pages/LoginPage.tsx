@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { isAxiosError } from 'axios'
 import { login, register } from '../api/client'
 import { useAuthStore } from '../stores/authStore'
-import { FileText } from 'lucide-react'
+import { FileTextOutlined } from '@ant-design/icons'
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -40,7 +40,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
         <div className="flex items-center justify-center gap-2 mb-6">
-          <FileText className="w-7 h-7 text-blue-600" />
+          <FileTextOutlined className="text-blue-600" style={{ fontSize: 28 }} />
           <h1 className="text-xl font-bold text-gray-900">Memorica</h1>
         </div>
         <h2 className="text-center text-sm text-gray-500 mb-6">

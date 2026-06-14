@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import Button from '@douyinfe/semi-ui-19/lib/es/button'
-import Modal from '@douyinfe/semi-ui-19/lib/es/modal'
-import { Check, Loader2, X } from 'lucide-react'
+import { Button, Modal } from 'antd'
+import { CheckOutlined, CloseOutlined, LoadingOutlined } from '@ant-design/icons'
 import type { DiagramAttrs } from '../extensions/Diagram'
+import { BLANK_DIAGRAM_XML } from '../diagram/templates'
 
 interface Props {
   open: boolean
@@ -12,8 +12,15 @@ interface Props {
   onSave: (value: DiagramAttrs) => void
 }
 
-const EMPTY_DRAWIO_XML =
-  '<mxfile host="embed.diagrams.net"><diagram name="第 1 页"><mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel></diagram></mxfile>'
+type DrawioState = 'loading' | 'ready' | 'saving' | 'timeout' | 'error'
+
+const DRAWIO_STATE_MESSAGES: Record<DrawioState, string> = {
+  loading: '图示编辑器加载中',
+  ready: '可以开始编辑图示',
+  saving: '正在保存图示',
+  timeout: '保存没有响应，请重试',
+  error: '图示编辑器出现异常，请重试',
+}
 
 function drawioUrl() {
   const base = import.meta.env.VITE_DRAWIO_URL || 'https://embed.diagrams.net/'
@@ -43,11 +50,17 @@ function parseDrawioMessage(data: unknown) {
 
 export default function DrawioDialog({ open, initialXml, initialTitle, onCancel, onSave }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const pendingXmlRef = useRef(initialXml || EMPTY_DRAWIO_XML)
+  const pendingXmlRef = useRef(initialXml || BLANK_DIAGRAM_XML)
   const saveTimerRef = useRef<number | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('图示编辑器加载中')
+  const [state, setState] = useState<DrawioState>('loading')
+  const stateRef = useRef<DrawioState>('loading')
   const src = useMemo(() => drawioUrl(), [])
+  const message = DRAWIO_STATE_MESSAGES[state]
+  const saving = state === 'saving'
+
+  useEffect(() => {
+    stateRef.current = state
+  }, [state])
 
   const postToDrawio = useCallback((payload: Record<string, unknown>) => {
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify(payload), '*')
@@ -76,7 +89,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     if (!payload?.event) return
 
     if (payload.event === 'init') {
-      pendingXmlRef.current = initialXml || EMPTY_DRAWIO_XML
+      pendingXmlRef.current = initialXml || BLANK_DIAGRAM_XML
       postToDrawio({
         action: 'load',
         autosave: 1,
@@ -84,7 +97,9 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
         title: `${initialTitle || '图示'}.drawio`,
         xml: pendingXmlRef.current,
       })
-      setMessage('可以开始编辑图示')
+      if (stateRef.current !== 'saving' && stateRef.current !== 'timeout') {
+        setState('ready')
+      }
       return
     }
 
@@ -95,7 +110,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
 
     if (payload.event === 'export') {
       clearSaveTimer()
-      setSaving(false)
+      setState('ready')
       onSave({
         xml: payload.xml || pendingXmlRef.current,
         svg: payload.data || '',
@@ -107,56 +122,52 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
 
     if (payload.event === 'exit') {
       clearSaveTimer()
-      setSaving(false)
+      setState('ready')
       onCancel()
     }
   }, [clearSaveTimer, initialTitle, initialXml, onCancel, onSave, postToDrawio, requestExport])
 
   useEffect(() => {
     if (!open) return
-    const resetTimer = window.setTimeout(() => {
-      setSaving(false)
-      setMessage('图示编辑器加载中')
-    }, 0)
-    pendingXmlRef.current = initialXml || EMPTY_DRAWIO_XML
-    window.addEventListener('message', handleMessage)
+    pendingXmlRef.current = initialXml || BLANK_DIAGRAM_XML
     return () => {
-      window.clearTimeout(resetTimer)
       clearSaveTimer()
-      window.removeEventListener('message', handleMessage)
     }
-  }, [clearSaveTimer, handleMessage, initialXml, open])
+  }, [clearSaveTimer, initialXml, open])
+
+  useEffect(() => {
+    if (!open) return
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [handleMessage, open])
 
   const handleSave = () => {
-    setSaving(true)
-    setMessage('正在保存图示')
+    setState('saving')
     postToDrawio({ action: 'save' })
     clearSaveTimer()
     saveTimerRef.current = window.setTimeout(() => {
-      setSaving(false)
-      setMessage('保存没有响应，请重试')
+      setState('timeout')
     }, 12000)
   }
 
   return (
     <Modal
       title={initialTitle || '图示'}
-      visible={open}
+      open={open}
       width="88vw"
       maskClosable={false}
-      closeOnEsc={false}
-      bodyStyle={{ padding: 0 }}
+      keyboard={false}
+      styles={{ body: { padding: 0 } }}
       footer={(
         <div className="memorica-drawio-footer">
-          <span>{message}</span>
+          <span data-testid="memorica-drawio-status">{message}</span>
           <div>
-            <Button icon={<X size={15} />} onClick={onCancel}>
+            <Button icon={<CloseOutlined />} onClick={onCancel}>
               取消
             </Button>
             <Button
-              theme="solid"
               type="primary"
-              icon={saving ? <Loader2 size={15} className="memorica-spin-icon" /> : <Check size={15} />}
+              icon={saving ? <LoadingOutlined spin /> : <CheckOutlined />}
               loading={saving}
               onClick={handleSave}
             >

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Editor } from '@tiptap/react'
-import { Search, Replace, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { CloseOutlined, DownOutlined, SearchOutlined, SwapOutlined, UpOutlined } from '@ant-design/icons'
 
 interface Props {
   editor: Editor | null
@@ -98,7 +98,7 @@ export default function FindReplace({ editor, open, onClose }: Props) {
         <div className="flex items-start gap-3">
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-2">
-              <Search size={14} className="text-gray-400" />
+              <SearchOutlined className="text-gray-400" style={{ fontSize: 14 }} />
               <input
                 ref={findInputRef}
                 type="text"
@@ -117,14 +117,14 @@ export default function FindReplace({ editor, open, onClose }: Props) {
                 disabled={totalMatches === 0}
                 className="p-1 rounded hover:bg-gray-100 text-gray-500 disabled:opacity-30 transition"
               >
-                <ChevronUp size={16} />
+                <UpOutlined style={{ fontSize: 16 }} />
               </button>
               <button
                 onClick={() => goToMatch('next')}
                 disabled={totalMatches === 0}
                 className="p-1 rounded hover:bg-gray-100 text-gray-500 disabled:opacity-30 transition"
               >
-                <ChevronDown size={16} />
+                <DownOutlined style={{ fontSize: 16 }} />
               </button>
               <button
                 onClick={() => setShowReplace(!showReplace)}
@@ -136,7 +136,7 @@ export default function FindReplace({ editor, open, onClose }: Props) {
 
             {showReplace && (
               <div className="flex items-center gap-2 pl-5">
-                <Replace size={14} className="text-gray-400" />
+                <SwapOutlined className="text-gray-400" style={{ fontSize: 14 }} />
                 <input
                   type="text"
                   value={replace}
@@ -166,7 +166,7 @@ export default function FindReplace({ editor, open, onClose }: Props) {
             onClick={onClose}
             className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition"
           >
-            <X size={16} />
+            <CloseOutlined style={{ fontSize: 16 }} />
           </button>
         </div>
       </div>

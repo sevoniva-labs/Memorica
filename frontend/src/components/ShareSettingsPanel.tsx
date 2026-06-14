@@ -9,7 +9,17 @@ import {
   type DocumentSharing,
   type WorkspaceMember,
 } from '../api/client'
-import { Building2, Check, Globe2, Loader2, Lock, Shield, Trash2, Users, X } from 'lucide-react'
+import {
+  BankOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  DeleteOutlined,
+  GlobalOutlined,
+  LoadingOutlined,
+  LockOutlined,
+  SafetyOutlined,
+  TeamOutlined,
+} from '@ant-design/icons'
 
 interface Props {
   docId: string
@@ -131,13 +141,13 @@ export default function ShareSettingsPanel({ docId, open, onClose }: Props) {
             <h2>分享与权限</h2>
           </div>
           <button onClick={onClose} aria-label="关闭分享设置">
-            <X size={18} />
+            <CloseOutlined style={{ fontSize: 18 }} />
           </button>
         </header>
 
         {loading ? (
           <div className="memorica-share-loading">
-            <Loader2 className="animate-spin" size={18} />
+            <LoadingOutlined spin style={{ fontSize: 18 }} />
             加载权限配置
           </div>
         ) : (
@@ -146,7 +156,7 @@ export default function ShareSettingsPanel({ docId, open, onClose }: Props) {
 
             <section className="memorica-share-section">
               <div className="memorica-share-section-title">
-                {sharing?.isPublic ? <Globe2 size={18} /> : <Lock size={18} />}
+                {sharing?.isPublic ? <GlobalOutlined style={{ fontSize: 18 }} /> : <LockOutlined style={{ fontSize: 18 }} />}
                 <div>
                   <strong>{sharing?.isPublic ? '公开文档' : '私密文档'}</strong>
                   <span>
@@ -161,26 +171,35 @@ export default function ShareSettingsPanel({ docId, open, onClose }: Props) {
                 disabled={saving}
                 onClick={() => updatePublic(!sharing?.isPublic)}
               >
-                {sharing?.isPublic ? <Check size={15} /> : null}
+                {sharing?.isPublic ? <CheckOutlined style={{ fontSize: 15 }} /> : null}
                 {sharing?.isPublic ? '已公开' : '设为公开'}
               </button>
             </section>
 
             <section className="memorica-share-section vertical">
               <div className="memorica-share-section-title">
-                <Users size={18} />
+                <TeamOutlined style={{ fontSize: 18 }} />
                 <div>
                   <strong>添加协作者</strong>
                   <span>输入用户名或邮箱，授予查看或编辑权限。</span>
                 </div>
               </div>
               <div className="memorica-share-form">
-                <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="username 或 email" />
+                <input
+                  data-testid="memorica-share-username"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="username 或 email"
+                />
                 <select value={role} onChange={(event) => setRole(event.target.value as 'viewer' | 'editor')}>
                   <option value="viewer">可查看</option>
                   <option value="editor">可编辑</option>
                 </select>
-                <button disabled={saving || !username.trim()} onClick={grantAccess}>
+                <button
+                  data-testid="memorica-share-add-member"
+                  disabled={saving || !username.trim()}
+                  onClick={grantAccess}
+                >
                   添加
                 </button>
               </div>
@@ -188,7 +207,7 @@ export default function ShareSettingsPanel({ docId, open, onClose }: Props) {
 
             <section className="memorica-share-section vertical">
               <div className="memorica-share-section-title">
-                <Building2 size={18} />
+                <BankOutlined style={{ fontSize: 18 }} />
                 <div>
                   <strong>空间访问</strong>
                   <span>
@@ -196,7 +215,7 @@ export default function ShareSettingsPanel({ docId, open, onClose }: Props) {
                   </span>
                 </div>
               </div>
-              <div className="memorica-share-members">
+              <div className="memorica-share-members" data-testid="memorica-share-workspace-members">
                 {sharing?.workspaceMembers?.map((member) => (
                   <div className="memorica-share-member workspace" key={member.userId}>
                     <div>
@@ -214,13 +233,13 @@ export default function ShareSettingsPanel({ docId, open, onClose }: Props) {
 
             <section className="memorica-share-section vertical">
               <div className="memorica-share-section-title">
-                <Shield size={18} />
+                <SafetyOutlined style={{ fontSize: 18 }} />
                 <div>
                   <strong>单文档授权</strong>
                   <span>{sharing?.members.length || 0} 个成员拥有文档级权限，可单独授予编辑能力。</span>
                 </div>
               </div>
-              <div className="memorica-share-members">
+              <div className="memorica-share-members" data-testid="memorica-share-document-members">
                 {sharing?.members.map((member) => (
                   <div className="memorica-share-member" key={member.userId}>
                     <div>
@@ -230,7 +249,7 @@ export default function ShareSettingsPanel({ docId, open, onClose }: Props) {
                     <em>{roleLabel(member.role)}</em>
                     {member.role !== 'owner' && (
                       <button disabled={saving} onClick={() => revokeAccess(member.userId)} aria-label="移除协作者">
-                        <Trash2 size={15} />
+                        <DeleteOutlined style={{ fontSize: 15 }} />
                       </button>
                     )}
                   </div>
@@ -240,7 +259,7 @@ export default function ShareSettingsPanel({ docId, open, onClose }: Props) {
 
             <section className="memorica-share-section vertical">
               <div className="memorica-share-section-title">
-                <Shield size={18} />
+                <SafetyOutlined style={{ fontSize: 18 }} />
                 <div>
                   <strong>最近审计</strong>
                   <span>分享、保存和删除等关键操作会留痕。</span>
