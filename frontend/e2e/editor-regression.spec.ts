@@ -184,7 +184,7 @@ test('shared documents tab shows documents explicitly shared with the current us
 
   await loginByStorage(page, viewer);
   await page.goto('/');
-  await page.getByRole('button', { name: '与我共享' }).click();
+  await page.getByRole('tab', { name: '与我共享' }).click();
 
   await expect(page.getByText(sharedTitle)).toBeVisible({ timeout: 12_000 });
   await expect(page.getByText(privateTitle)).not.toBeVisible();
@@ -230,7 +230,7 @@ test('new user can complete the collaborative document demo path', async ({ page
 
   await loginByStorage(page, viewer);
   await page.goto('/');
-  await page.getByRole('button', { name: '与我共享' }).click();
+  await page.getByRole('tab', { name: '与我共享' }).click();
   await expect(page.getByText(title)).toBeVisible({ timeout: 12_000 });
 });
 

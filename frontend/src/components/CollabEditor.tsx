@@ -231,6 +231,7 @@ export default function CollabEditor({
   const queuedSaveSourceRef = useRef<SaveSource | null>(null)
   const retrySaveTimerRef = useRef<number | null>(null)
   const versionResetTimerRef = useRef<number | null>(null)
+  const titleSaveTimerRef = useRef<number | null>(null)
   const hasUnsavedChangesRef = useRef(false)
   const restoredVersionRef = useRef<number | null>(null)
   const bootstrappedVersionRef = useRef(false)
@@ -371,20 +372,46 @@ export default function CollabEditor({
     return () => window.removeEventListener('memorica:diagram-action', handleDiagramAction)
   }, [canEdit])
 
+  const saveTitle = useCallback(async (nextTitle: string) => {
+    const normalizedTitle = nextTitle.trim()
+    updateDocTitle(docId, normalizedTitle)
+    if (!canEdit || !normalizedTitle) return
+
+    setTitleSaveState('saving')
+    try {
+      await updateDocumentMeta(docId, normalizedTitle)
+      setTitleSaveState('saved')
+      setLastSavedAt(new Date())
+    } catch (error) {
+      setTitleSaveState('error')
+      throw error
+    }
+  }, [canEdit, docId, updateDocTitle])
+
+  const flushTitleSave = useCallback(async () => {
+    if (titleSaveTimerRef.current) {
+      window.clearTimeout(titleSaveTimerRef.current)
+      titleSaveTimerRef.current = null
+    }
+    await saveTitle(title)
+  }, [saveTitle, title])
+
   useEffect(() => {
     // 实时同步全局 sidebar 列表中的标题
     updateDocTitle(docId, title.trim())
     if (!canEdit || !title.trim()) return
-    const t = setTimeout(() => {
-      updateDocumentMeta(docId, title.trim())
-        .then(() => {
-          setTitleSaveState('saved')
-          setLastSavedAt(new Date())
-        })
-        .catch(() => setTitleSaveState('error'))
+    const timer = window.setTimeout(() => {
+      titleSaveTimerRef.current = null
+      void saveTitle(title).catch(() => undefined)
     }, 800)
-    return () => clearTimeout(t)
-  }, [canEdit, docId, title, updateDocTitle])
+    titleSaveTimerRef.current = timer
+    return () => {
+      window.clearTimeout(timer)
+      if (titleSaveTimerRef.current === timer) {
+        titleSaveTimerRef.current = null
+      }
+    }
+  }, [canEdit, docId, saveTitle, title, updateDocTitle])
 
   useEffect(() => {
     const handleStatus = ({ status }: { status: ConnectionStatus }) => {
@@ -433,6 +460,9 @@ export default function CollabEditor({
       }
       if (retrySaveTimerRef.current) {
         window.clearTimeout(retrySaveTimerRef.current)
+      }
+      if (titleSaveTimerRef.current) {
+        window.clearTimeout(titleSaveTimerRef.current)
       }
       provider.destroy()
     }
@@ -681,6 +711,16 @@ export default function CollabEditor({
     }
   }
 
+  const openSharePanel = async () => {
+    if (!canManage) return
+    try {
+      await flushTitleSave()
+      setShareOpen(true)
+    } catch {
+      message.error('标题保存失败，请稍后重试')
+    }
+  }
+
   const closeDrawio = () => {
     setDrawioOpen(false)
     setActiveDiagram(null)
@@ -895,7 +935,7 @@ export default function CollabEditor({
               <button
                 type="button"
                 className="memorica-editor-btn-primary"
-                onClick={() => setShareOpen(true)}
+                onClick={() => void openSharePanel()}
               >
                 <ShareAltOutlined style={{ fontSize: 16 }} />
                 <span>分享</span>

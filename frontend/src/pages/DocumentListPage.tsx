@@ -4,6 +4,7 @@ import {
   Alert,
   App as AntdApp,
   Avatar,
+  Breadcrumb,
   Button,
   Dropdown,
   Input,
@@ -12,6 +13,7 @@ import {
   Select,
   Skeleton,
   Space,
+  Tabs,
   Typography,
 } from 'antd'
 import type { MenuProps } from 'antd'
@@ -563,6 +565,28 @@ export default function DocumentListPage() {
     { key: 'trash', label: '回收站' },
   ]
 
+  const breadcrumbItems = [
+    {
+      title: (
+        <Button type="link" size="small" className="memorica-breadcrumb-link" onClick={jumpToRoot}>
+          根目录
+        </Button>
+      ),
+    },
+    ...folderStack.map((folder, index) => ({
+      title: (
+        <Button
+          type="link"
+          size="small"
+          className="memorica-breadcrumb-link"
+          onClick={() => jumpToFolder(index)}
+        >
+          {folder.title}
+        </Button>
+      ),
+    })),
+  ]
+
   const emptyConfig = query.trim()
     ? { title: '没有匹配的文档', desc: '换个关键词再试试。', showBtn: false }
     : tab === 'trash'
@@ -638,40 +662,32 @@ export default function DocumentListPage() {
       <main className="memorica-content">
         <div className="memorica-quick-grid">
           {quickActions.map((action) => (
-            <button
+            <Button
+              block
               className="memorica-quick-button"
               disabled={action.disabled}
               key={action.title}
-              type="button"
+              type="text"
               onClick={action.onClick}
             >
-              <div className="memorica-quick-card">
+              <span className="memorica-quick-card">
                 <span className="memorica-quick-icon" style={{ color: action.color, background: action.bg }}>
                   {action.icon}
                 </span>
-                <div className="memorica-quick-copy">
-                  <div className="memorica-quick-title">{action.title}</div>
-                  <div className="memorica-quick-desc">{action.description}</div>
-                </div>
+                <span className="memorica-quick-copy">
+                  <span className="memorica-quick-title">{action.title}</span>
+                  <span className="memorica-quick-desc">{action.description}</span>
+                </span>
                 <DownOutlined className="memorica-quick-chevron" />
-              </div>
-            </button>
+              </span>
+            </Button>
           ))}
         </div>
 
         <div className="memorica-toolbar">
           <div className="memorica-toolbar-left">
             {canUseFolders && folderStack.length > 0 && (
-              <Space size={6} className="memorica-breadcrumb">
-                <button type="button" onClick={jumpToRoot}>
-                  根目录
-                </button>
-                {folderStack.map((folder, index) => (
-                  <button key={folder.id} type="button" onClick={() => jumpToFolder(index)}>
-                    / {folder.title}
-                  </button>
-                ))}
-              </Space>
+              <Breadcrumb className="memorica-breadcrumb" items={breadcrumbItems} />
             )}
           </div>
           <div className="memorica-toolbar-right">
@@ -702,18 +718,13 @@ export default function DocumentListPage() {
         </div>
 
         <div className="memorica-tabs-bar">
-          <div className="memorica-fly-tabs">
-            {documentTabs.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={tab === item.key ? 'active' : ''}
-                onClick={() => switchTab(item.key as TabKey)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            activeKey={tab}
+            className="memorica-fly-tabs"
+            items={documentTabs}
+            onChange={(key) => switchTab(key as TabKey)}
+            size="small"
+          />
         </div>
 
         {listError && (

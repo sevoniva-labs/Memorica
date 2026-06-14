@@ -1872,13 +1872,23 @@ body {
   margin-bottom: 28px;
 }
 
-.memorica-quick-button {
+.memorica-quick-button.ant-btn {
   width: 100%;
+  height: auto;
   border: 0;
   padding: 0;
   background: transparent;
   text-align: left;
-  cursor: pointer;
+  box-shadow: none;
+}
+
+.memorica-quick-button.ant-btn > span {
+  width: 100%;
+}
+
+.memorica-quick-button.ant-btn:hover,
+.memorica-quick-button.ant-btn:focus-visible {
+  background: transparent !important;
 }
 
 .memorica-quick-card {
@@ -1895,16 +1905,16 @@ body {
   cursor: pointer;
 }
 
-.memorica-quick-button:hover .memorica-quick-card {
+.memorica-quick-button.ant-btn:hover .memorica-quick-card {
   border-color: #d1d5db;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
-.memorica-quick-button:disabled {
+.memorica-quick-button.ant-btn:disabled {
   cursor: not-allowed;
 }
 
-.memorica-quick-button:disabled .memorica-quick-card {
+.memorica-quick-button.ant-btn:disabled .memorica-quick-card {
   opacity: 0.58;
   box-shadow: none;
 }
@@ -1979,7 +1989,8 @@ body {
   margin-top: 2px;
 }
 
-.memorica-breadcrumb button {
+.memorica-breadcrumb .memorica-breadcrumb-link.ant-btn {
+  height: auto;
   border: 0;
   padding: 0;
   color: #6b7280;
@@ -1989,8 +2000,9 @@ body {
   transition: color 0.15s ease;
 }
 
-.memorica-breadcrumb button:hover {
+.memorica-breadcrumb .memorica-breadcrumb-link.ant-btn:hover {
   color: var(--memo-blue);
+  background: transparent;
 }
 
 .memorica-list-error {
@@ -2006,35 +2018,56 @@ body {
   margin-bottom: 4px;
 }
 
-.memorica-fly-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 4px 0 0;
+.memorica-fly-tabs.ant-tabs {
+  width: 100%;
+  margin-bottom: 0;
 }
 
-.memorica-fly-tabs button {
-  position: relative;
+.memorica-fly-tabs .ant-tabs-nav {
+  margin: 0;
+}
+
+.memorica-fly-tabs .ant-tabs-nav::before {
+  border-bottom: 0;
+}
+
+.memorica-fly-tabs .ant-tabs-tab {
+  margin: 0;
   padding: 8px 16px 10px;
-  border: 0;
   border-radius: 8px 8px 0 0;
-  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.memorica-fly-tabs .ant-tabs-tab + .ant-tabs-tab {
+  margin-left: 4px;
+}
+
+.memorica-fly-tabs .ant-tabs-tab-btn {
   color: #6b7280;
   font-size: 14px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
   letter-spacing: 0;
 }
 
-.memorica-fly-tabs button:hover {
-  color: #374151;
+.memorica-fly-tabs .ant-tabs-tab:hover {
   background: rgba(0, 0, 0, 0.02);
 }
 
-.memorica-fly-tabs button.active {
+.memorica-fly-tabs .ant-tabs-tab:hover .ant-tabs-tab-btn {
+  color: #374151;
+}
+
+.memorica-fly-tabs .ant-tabs-tab-active {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.memorica-fly-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
   color: #2563eb;
   font-weight: 600;
-  background: rgba(37, 99, 235, 0.04);
+}
+
+.memorica-fly-tabs .ant-tabs-ink-bar {
+  background: #2563eb;
 }
 
 /* Table */

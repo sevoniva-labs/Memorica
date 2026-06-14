@@ -120,7 +120,7 @@ test('document list load failure shows inline retry', async ({ page }) => {
   });
 
   await page.goto('/');
-  await page.getByRole('button', { name: '与我共享' }).click();
+  await page.getByRole('tab', { name: '与我共享' }).click();
 
   await expect(page.getByTestId('memorica-list-error')).toContainText('文档列表加载失败');
   await page.getByTestId('memorica-list-retry').click();
