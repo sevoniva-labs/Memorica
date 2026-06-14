@@ -107,6 +107,7 @@ For the current Cloudflare path, deploy the frontend to Cloudflare Pages and kee
 make cloudflare-pages-policy-test
 VITE_API_BASE_URL=https://api.example.com VITE_WS_URL=wss://api.example.com/ws VITE_DRAWIO_URL=https://embed.diagrams.net/ make cloudflare-pages-preflight
 VITE_API_BASE_URL=https://api.example.com VITE_WS_URL=wss://api.example.com/ws VITE_DRAWIO_URL=https://embed.diagrams.net/ make cloudflare-pages-build
+CLOUDFLARE_PAGES_URL=https://memorica-frontend-5ut.pages.dev VITE_API_BASE_URL=https://api.example.com VITE_WS_URL=wss://api.example.com/ws make cloudflare-demo-smoke
 ```
 
 ## Permission Matrix Checks

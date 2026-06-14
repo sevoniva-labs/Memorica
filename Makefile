@@ -1,6 +1,6 @@
 .PHONY: \
 	help \
-	dev dev-down dev-logs setup clean demo-seed demo-seed-dry-run demo-seed-test dockerfile-policy-test docker-proxy-check drawio-diagnostics drawio-diagnostics-test file-storage-policy-test makefile-policy-test ci-policy-test cloudflare-pages-policy-test cloudflare-pages-preflight cloudflare-pages-build \
+	dev dev-down dev-logs setup clean demo-seed demo-seed-dry-run demo-seed-test dockerfile-policy-test docker-proxy-check drawio-diagnostics drawio-diagnostics-test file-storage-policy-test makefile-policy-test ci-policy-test cloudflare-pages-policy-test cloudflare-pages-preflight cloudflare-pages-build cloudflare-demo-smoke-test cloudflare-demo-smoke \
 	build ci lint test verify-local audit \
 	backend-build backend-test backend-unit-test backend-integration-test backend-check backend-lint testcontainers-check \
 	frontend-install frontend-dev frontend-build frontend-lint frontend-check frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test frontend-collab-editor-policy-test frontend-bubble-menu-policy-test frontend-diagram-template-format-test frontend-diagram-template-picker-policy-test frontend-diagram-node-policy-test frontend-markdown-mermaid-policy-test frontend-audit e2e-local demo-e2e-local \
@@ -50,6 +50,12 @@ cloudflare-pages-build: ## Build frontend for Cloudflare Pages direct upload
 	node scripts/cloudflare-pages-preflight.mjs --skip-dist
 	cd frontend && npm run build
 	node scripts/cloudflare-pages-preflight.mjs
+
+cloudflare-demo-smoke-test: ## Verify Cloudflare demo smoke script behavior
+	node --test scripts/cloudflare-demo-smoke.test.mjs
+
+cloudflare-demo-smoke: ## Smoke test deployed Cloudflare Pages demo against a public API/WSS backend
+	node scripts/cloudflare-demo-smoke.mjs
 
 drawio-diagnostics: ## Diagnose Draw.io template format and intranet URL configuration
 	node scripts/drawio-diagnostics.mjs
@@ -206,7 +212,7 @@ lint: backend-lint frontend-lint hocuspocus-check ## Run all linters and syntax 
 
 test: backend-unit-test ## Run fast backend tests
 
-verify-local: backend-unit-test frontend-check hocuspocus-check demo-seed-test dockerfile-policy-test drawio-diagnostics-test drawio-diagnostics file-storage-policy-test makefile-policy-test ci-policy-test cloudflare-pages-policy-test audit ## Run local checks that do not require browser services
+verify-local: backend-unit-test frontend-check hocuspocus-check demo-seed-test dockerfile-policy-test drawio-diagnostics-test drawio-diagnostics file-storage-policy-test makefile-policy-test ci-policy-test cloudflare-pages-policy-test cloudflare-demo-smoke-test audit ## Run local checks that do not require browser services
 
 # --- Database ---
 

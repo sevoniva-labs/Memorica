@@ -150,6 +150,7 @@ make makefile-policy-test # 检查 Makefile 和预发布文档的本地门禁说
 make cloudflare-pages-policy-test # 检查 Cloudflare Pages 前端部署文档和配置
 make cloudflare-pages-preflight # 检查 Pages 直传部署前的公网 API/WSS 配置
 make cloudflare-pages-build # 使用同一组公网 Vite 变量构建 Pages 直传产物
+make cloudflare-demo-smoke # 检查已部署 Pages、API tunnel、demo 登录和演示文档
 make docker-proxy-check # 检查 Docker 外网镜像拉取代理和容器运行时过期代理
 make build         # 构建后端、前端并检查协作服务语法
 make test          # 运行后端快速测试
@@ -196,6 +197,17 @@ make demo-e2e-local
 后端默认 `./gradlew test` 只运行不依赖 Testcontainers 的测试；`make backend-integration-test` 会先执行 `make testcontainers-check`，确认 Docker CLI 可访问后再运行 PostgreSQL Testcontainers 集成测试。若本机 Docker CLI 可用但 Testcontainers 报 “Could not find a valid Docker environment”，先检查 Docker Desktop/Colima、active docker context、socket 和 `DOCKER_HOST`；CI 的 `check` 仍会运行单元测试与集成测试。
 
 `npm audit` 在 npmmirror 上没有稳定 audit endpoint，因此 `make frontend-audit` 和 `make hocuspocus-audit` 显式使用 `https://registry.npmjs.org`，安装依赖仍走仓库 `.npmrc` 的国内 registry。
+
+Cloudflare Pages 只托管前端静态资源。临时演示时，需要先保持本机后端、Hocuspocus 和 Cloudflare Tunnel 运行，再用当前公网 API/WSS 地址执行：
+
+```bash
+CLOUDFLARE_PAGES_URL=https://memorica-frontend-5ut.pages.dev \
+VITE_API_BASE_URL=https://<current-api-tunnel>.trycloudflare.com \
+VITE_WS_URL=wss://<current-ws-tunnel>.trycloudflare.com \
+make cloudflare-demo-smoke
+```
+
+该 smoke 会检查 Pages 根页面、demo 登录、浏览器必需的 CORS 响应、工作区列表、最近文档以及 `Memorica 预发布演示文档` 是否可见。`trycloudflare.com` 地址是临时地址，Docker 或 tunnel 停止后就需要重新获取并更新 GitHub Pages 变量。
 
 ### 文件存储配置
 

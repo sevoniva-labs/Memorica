@@ -60,7 +60,7 @@ Cloudflare Pages project `memorica-frontend` has been created on the connected a
 https://memorica-frontend-5ut.pages.dev
 ```
 
-At the time this runbook was added, the project had no successful deployment yet. Direct upload still requires a local Wrangler session (`npx wrangler login`) or a scoped API token, then:
+GitHub Actions deploys this project from the repository workflow. Direct upload still requires a local Wrangler session (`npx wrangler login`) or a scoped API token, then:
 
 ```bash
 cd frontend
@@ -80,6 +80,27 @@ make cloudflare-pages-build
 ```
 
 If `VITE_API_BASE_URL` or `VITE_WS_URL` is empty, the app can still build, but the deployed Pages site will call its own `/api/v1` and `/ws` paths. That is not usable until those paths are backed by a public HTTPS/WSS backend or a Cloudflare Tunnel origin. `VITE_API_BASE_URL` must be the backend origin only, such as `https://api.example.com`; do not include `/api/v1`, because the frontend API client appends that path.
+
+## Temporary Tunnel Demo Smoke
+
+For a free-tier demo, the current practical path is:
+
+1. Run the local Docker stack so Spring Boot, PostgreSQL, Redis, MinIO, and Hocuspocus stay alive.
+2. Expose the backend API and Hocuspocus service through temporary Cloudflare Tunnel URLs.
+3. Store those public origins in GitHub repository variables:
+   - `VITE_API_BASE_URL=https://<current-api-tunnel>.trycloudflare.com`
+   - `VITE_WS_URL=wss://<current-ws-tunnel>.trycloudflare.com`
+4. Deploy Pages through GitHub Actions.
+5. Run the smoke check:
+
+```bash
+CLOUDFLARE_PAGES_URL=https://memorica-frontend-5ut.pages.dev \
+VITE_API_BASE_URL=https://<current-api-tunnel>.trycloudflare.com \
+VITE_WS_URL=wss://<current-ws-tunnel>.trycloudflare.com \
+make cloudflare-demo-smoke
+```
+
+The smoke command checks the Pages root, demo login, browser-required CORS headers, workspaces, recent documents, and the seeded `Memorica 预发布演示文档`. It intentionally does not create tunnels or mutate GitHub variables. If it fails after the local machine sleeps, Docker restarts, or a tunnel container exits, start fresh tunnels and update the GitHub variables before redeploying.
 
 ## Runtime Environment
 
