@@ -377,6 +377,19 @@ test('version history can restore an older version into the editor', async ({ pa
   await expectLatestVersionNotContains(request, auth, document.id, secondText);
 });
 
+test('version restore failure shows a specific editor status', async ({ page, request }) => {
+  const auth = await registerTestUser(request, 'restfail');
+  const document = await createDocument(request, auth, uniqueName('恢复失败验证'));
+
+  await loginByStorage(page, auth);
+  await page.goto(`/doc/${document.id}?restoreVersion=999999999`);
+  await expect(page.locator('.memorica-editor-shell')).toBeVisible();
+  await waitForCollaboration(page);
+
+  await expect(page.locator('.memorica-editor-save-status')).toContainText('版本恢复失败', { timeout: 12_000 });
+  await expect(page).toHaveURL(new RegExp(`/doc/${document.id}$`));
+});
+
 test('restored diagram version remains editable', async ({ page, request }) => {
   const auth = await registerTestUser(request, 'diarest');
   const document = await createDocument(request, auth, uniqueName('图示恢复验证'));

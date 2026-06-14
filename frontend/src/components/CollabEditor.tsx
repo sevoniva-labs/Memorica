@@ -163,7 +163,7 @@ function saveStateText(state: SaveState, issue = '') {
   if (state === 'saving') return '正在保存'
   if (state === 'saved') return '已保存'
   if (state === 'local') return issue.startsWith('网络不可用') ? '离线中' : '正在保存'
-  if (state === 'error') return '保存失败'
+  if (state === 'error') return issue ? `保存失败：${issue}` : '保存失败'
   return '已保存'
 }
 
@@ -217,6 +217,7 @@ export default function CollabEditor({
   const [, setTitleSaveState] = useState<SaveState>('idle')
   const [versionSaveState, setVersionSaveState] = useState<SaveState>('idle')
   const [saveIssue, setSaveIssue] = useState('')
+  const [restoreError, setRestoreError] = useState('')
   const [contentRevision, setContentRevision] = useState(0)
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const canManage = initialCanManage
@@ -622,12 +623,17 @@ export default function CollabEditor({
     }
     getVersion(versionId)
       .then((version) => {
+        setRestoreError('')
         editor.commands.setContent(JSON.parse(version.contentJson || '{}'))
         window.setTimeout(() => saveCurrentVersion('restore'), 300)
         window.history.replaceState(null, '', `/doc/${docId}`)
       })
-      .catch(() => {
+      .catch((error) => {
+        const issue = apiErrorMessage(error, '请返回历史版本后重试')
+        setRestoreError(`版本恢复失败：${issue}`)
         setVersionSaveState('error')
+        setSaveIssue(`版本恢复失败：${issue}`)
+        window.history.replaceState(null, '', `/doc/${docId}`)
       })
   }, [canEdit, connected, docId, editor, saveCurrentVersion, searchParams])
 
@@ -816,6 +822,10 @@ export default function CollabEditor({
     if (key === 'reconnect') reconnectCollaboration()
   }
 
+  const saveStatusState = restoreError ? 'error' : !canEdit ? 'readonly' : versionSaveState
+  const saveStatusLabel = restoreError || (!canEdit ? '只读' : saveStateText(versionSaveState, saveIssue))
+  const showSavedAt = !restoreError && shouldShowSavedAt(versionSaveState) && lastSavedAt
+
   return (
     <div className="memorica-editor-shell">
       <div className="memorica-editor-topbar">
@@ -852,13 +862,13 @@ export default function CollabEditor({
                 {connected ? '协作中' : connectionStatus === 'connecting' ? '连接中' : '已断开'}
               </span>
             </span>
-            <span className="memorica-editor-save-status" data-state={!canEdit ? 'readonly' : versionSaveState}>
+            <span className="memorica-editor-save-status" data-state={saveStatusState}>
               <span title={saveIssue || (lastSavedAt ? `上次保存 ${formatSavedAt(lastSavedAt)}` : undefined)}>
-                {!canEdit ? '只读' : saveStateText(versionSaveState, saveIssue)}
-                {shouldShowSavedAt(versionSaveState) && lastSavedAt ? ` ${formatSavedAt(lastSavedAt)}` : ''}
+                {saveStatusLabel}
+                {showSavedAt ? ` ${formatSavedAt(lastSavedAt)}` : ''}
               </span>
             </span>
-            {canEdit && versionSaveState === 'error' && (
+            {canEdit && versionSaveState === 'error' && !restoreError && (
               <button
                 type="button"
                 className="memorica-editor-sync-btn"
