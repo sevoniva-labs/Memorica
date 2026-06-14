@@ -18,10 +18,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class FileService {
@@ -80,7 +82,7 @@ public class FileService {
         }
 
         String contentType = file.getContentType();
-        Set<String> allowed = Set.of(allowedTypes.split(","));
+        Set<String> allowed = parseAllowedTypes();
         if (contentType == null || !allowed.contains(contentType)) {
             throw new IllegalArgumentException("不支持的文件类型: " + contentType);
         }
@@ -200,6 +202,13 @@ public class FileService {
         return Math.min(
                 Math.max(urlExpiryMinutes, MIN_PRESIGNED_URL_EXPIRY_MINUTES),
                 MAX_PRESIGNED_URL_EXPIRY_MINUTES);
+    }
+
+    private Set<String> parseAllowedTypes() {
+        return Arrays.stream(allowedTypes.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .collect(Collectors.toSet());
     }
 
     private void requireDocumentWriteAccess(String documentId, Long userId) {

@@ -1,7 +1,9 @@
 package sevoniva.memorica.service;
 
+import io.minio.BucketExistsArgs;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import sevoniva.memorica.entity.Document;
 import sevoniva.memorica.entity.UploadedFile;
@@ -109,6 +112,24 @@ class FileServiceTest {
         when(documentRepository.findById("doc-1")).thenReturn(Optional.of(doc));
 
         assertThrows(AccessDeniedException.class, () -> fileService.getFile("file-1.pdf", 2L));
+    }
+
+    @Test
+    void uploadFile_shouldAcceptAllowedTypesWithWhitespaceInConfig() throws Exception {
+        ReflectionTestUtils.setField(fileService, "maxFileSize", 10L * 1024L * 1024L);
+        ReflectionTestUtils.setField(fileService, "allowedTypes", "image/jpeg, application/pdf");
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "spec.pdf",
+                "application/pdf",
+                "%PDF-1.4\nspec\n%%EOF\n".getBytes());
+        when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
+
+        String objectName = fileService.uploadFile(file, 1L);
+
+        assertEquals(".pdf", objectName.substring(objectName.length() - 4));
+        verify(minioClient).putObject(any(PutObjectArgs.class));
+        verify(uploadedFileRepository).save(any(UploadedFile.class));
     }
 
     @Test
