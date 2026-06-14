@@ -784,7 +784,11 @@ export default function CollabEditor({
     }] : []),
     { key: 'versions', label: '历史版本', icon: <HistoryOutlined style={{ fontSize: 16 }} /> },
     { type: 'divider' },
-    { key: 'mode', label: `切换为${mode === 'notion' ? '富文本' : '轻文档'}`, icon: <FileTextOutlined style={{ fontSize: 16 }} /> },
+    ...(canEdit ? [{
+      key: 'mode',
+      label: `切换为${mode === 'notion' ? '富文本' : '轻文档'}`,
+      icon: <FileTextOutlined style={{ fontSize: 16 }} />,
+    }] : []),
     { key: 'count', label: `字数 ${wordCount} 词 / ${charCount} 字`, icon: <FontSizeOutlined style={{ fontSize: 16 }} />, disabled: true },
     { type: 'divider' },
     { key: 'export', label: '导出 HTML', icon: <DownloadOutlined style={{ fontSize: 16 }} /> },
@@ -794,6 +798,7 @@ export default function CollabEditor({
   ], [canEdit, charCount, connectionStatus, mode, uploadingFile, wordCount])
 
   const handleMoreMenuClick: MenuProps['onClick'] = ({ key }) => {
+    if (!canEdit && ['diagram', 'image', 'attachment', 'mode'].includes(String(key))) return
     if (key === 'find') setFindOpen(true)
     if (key === 'diagram') openCreateDiagram()
     if (key === 'image') imageInputRef.current?.click()
@@ -905,6 +910,7 @@ export default function CollabEditor({
         type="file"
         accept={IMAGE_ACCEPT}
         hidden
+        disabled={!canEdit || uploadingFile}
         onChange={(event) => void uploadSelectedFile(event, 'image')}
       />
       <input
@@ -913,6 +919,7 @@ export default function CollabEditor({
         type="file"
         accept={ATTACHMENT_ACCEPT}
         hidden
+        disabled={!canEdit || uploadingFile}
         onChange={(event) => void uploadSelectedFile(event, 'attachment')}
       />
       {recoverableDraft && canEdit && (
@@ -932,7 +939,7 @@ export default function CollabEditor({
           <button type="button" onClick={() => setUploadStatus(null)}>关闭</button>
         </div>
       )}
-      {mode === 'rich' && (
+      {mode === 'rich' && canEdit && (
         <Toolbar
           editor={editor}
           onCreateDiagram={canEdit ? openCreateDiagram : undefined}

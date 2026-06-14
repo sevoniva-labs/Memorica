@@ -124,6 +124,12 @@ test('viewer can open a shared document but cannot edit or invoke AI', async ({ 
   await expect(page.locator('.memorica-editor-save-status')).toContainText('只读');
   await expect(page.locator('.notion-editor')).toHaveAttribute('contenteditable', 'false');
   await expect(page.locator('button[title="AI 助手"]')).toBeDisabled();
+
+  await page.locator('button[title="更多"]').click();
+  await expect(page.getByText('插入图示')).not.toBeVisible();
+  await expect(page.getByText('上传图片')).not.toBeVisible();
+  await expect(page.getByText('上传附件')).not.toBeVisible();
+  await expect(page.getByText('切换为富文本')).not.toBeVisible();
 });
 
 test('shared documents tab shows documents explicitly shared with the current user', async ({ page, request }) => {
