@@ -88,6 +88,84 @@ class FileServiceTest {
     }
 
     @Test
+    void getFile_shouldDenyDeletedLinkedDocumentForOtherUsers() {
+        UploadedFile file = UploadedFile.builder()
+                .objectName("file-1.pdf")
+                .contentType("application/pdf")
+                .sizeBytes(12L)
+                .uploaderId(1L)
+                .documentId("doc-1")
+                .build();
+        Document doc = Document.builder()
+                .id("doc-1")
+                .title("Deleted")
+                .owner(User.builder().id(1L).username("owner").build())
+                .ownerName("owner")
+                .workspaceId("team-1")
+                .isPublic(true)
+                .deletedAt(LocalDateTime.now())
+                .build();
+        when(uploadedFileRepository.findByObjectName("file-1.pdf")).thenReturn(Optional.of(file));
+        when(documentRepository.findById("doc-1")).thenReturn(Optional.of(doc));
+
+        assertThrows(AccessDeniedException.class, () -> fileService.getFile("file-1.pdf", 2L));
+    }
+
+    @Test
+    void getFileUrl_shouldDenyLinkedPrivateDocumentForNonReaderWithoutPresigning() throws Exception {
+        UploadedFile file = UploadedFile.builder()
+                .objectName("file-1.pdf")
+                .contentType("application/pdf")
+                .sizeBytes(12L)
+                .uploaderId(1L)
+                .documentId("doc-1")
+                .build();
+        Document doc = Document.builder()
+                .id("doc-1")
+                .title("Private")
+                .owner(User.builder().id(1L).username("owner").build())
+                .ownerName("owner")
+                .workspaceId("team-1")
+                .isPublic(false)
+                .build();
+        when(uploadedFileRepository.findByObjectName("file-1.pdf")).thenReturn(Optional.of(file));
+        when(documentRepository.findById("doc-1")).thenReturn(Optional.of(doc));
+        when(workspaceService.canAccess("team-1", 2L)).thenReturn(false);
+        when(permissionService.canRead("doc-1", 2L)).thenReturn(false);
+
+        assertThrows(AccessDeniedException.class, () -> fileService.getFileUrl("file-1.pdf", 2L));
+        verify(minioClient, never()).getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class));
+    }
+
+    @Test
+    void getFileUrl_shouldAllowPublicLinkedDocumentForOtherUsers() throws Exception {
+        UploadedFile file = UploadedFile.builder()
+                .objectName("file-1.pdf")
+                .contentType("application/pdf")
+                .sizeBytes(12L)
+                .uploaderId(1L)
+                .documentId("doc-1")
+                .build();
+        Document doc = Document.builder()
+                .id("doc-1")
+                .title("Public")
+                .owner(User.builder().id(1L).username("owner").build())
+                .ownerName("owner")
+                .workspaceId("team-1")
+                .isPublic(true)
+                .build();
+        ReflectionTestUtils.setField(fileService, "urlExpiryMinutes", 10);
+        when(uploadedFileRepository.findByObjectName("file-1.pdf")).thenReturn(Optional.of(file));
+        when(documentRepository.findById("doc-1")).thenReturn(Optional.of(doc));
+        when(minioClient.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class)))
+                .thenReturn("https://files.local/file-1.pdf");
+
+        String url = fileService.getFileUrl("file-1.pdf", 2L);
+
+        assertEquals("https://files.local/file-1.pdf", url);
+    }
+
+    @Test
     void getFileUrl_shouldCapPresignedUrlExpiryAtOneHour() throws Exception {
         UploadedFile file = UploadedFile.builder()
                 .objectName("file-1.pdf")
