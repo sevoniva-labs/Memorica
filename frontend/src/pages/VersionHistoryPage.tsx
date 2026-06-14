@@ -24,6 +24,7 @@ export default function VersionHistoryPage() {
   const [selectedVersion, setSelectedVersion] = useState<DocumentVersionDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [restoring, setRestoring] = useState(false)
+  const canRestore = doc?.canWrite === true
 
   useEffect(() => {
     if (!docId) return
@@ -42,7 +43,7 @@ export default function VersionHistoryPage() {
   }
 
   const handleRestore = () => {
-    if (!docId || !selectedVersion || restoring) return
+    if (!docId || !selectedVersion || restoring || !canRestore) return
     setRestoring(true)
     navigate(`/doc/${docId}?restoreVersion=${selectedVersion.id}`)
   }
@@ -122,14 +123,23 @@ export default function VersionHistoryPage() {
                       {selectedVersion.editorName} · {formatDate(selectedVersion.createdAt)}
                     </p>
                   </div>
-                  <button
-                    onClick={handleRestore}
-                    disabled={restoring}
-                    className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
-                  >
-                    <RollbackOutlined style={{ fontSize: 14 }} />
-                    {restoring ? '恢复中' : '恢复此版本'}
-                  </button>
+                  {canRestore ? (
+                    <button
+                      onClick={handleRestore}
+                      disabled={restoring}
+                      className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
+                    >
+                      <RollbackOutlined style={{ fontSize: 14 }} />
+                      {restoring ? '恢复中' : '恢复此版本'}
+                    </button>
+                  ) : (
+                    <span
+                      className="text-xs px-3 py-1.5 rounded-md border border-gray-100 bg-gray-50 text-gray-400"
+                      data-testid="memorica-version-restore-readonly"
+                    >
+                      只读用户不能恢复版本
+                    </span>
+                  )}
                 </div>
                 {selectedVersion.snapshotHtml ? (
                   <div
