@@ -273,6 +273,33 @@ test('drawio template picker inserts a titled flowchart diagram', async ({ page,
   await expectLatestVersionContains(request, auth, document.id, marker);
 });
 
+test('editor shell scrolls long documents', async ({ page, request }) => {
+  const auth = await registerTestUser(request, 'scroll');
+  const document = await createDocument(request, auth, uniqueName('长文档滚动验证'));
+  const lines = Array.from({ length: 80 }, (_, index) => `滚动验证第 ${index + 1} 行`).join('\n');
+
+  await loginByStorage(page, auth);
+  await openEditorForDocument(page, document.id);
+  await waitForCollaboration(page);
+
+  await page.locator('.notion-editor').click();
+  await page.keyboard.insertText(lines);
+
+  await expect
+    .poll(
+      async () => page.locator('.memorica-editor-shell').evaluate((element) => element.scrollHeight > element.clientHeight),
+      { timeout: 5_000 }
+    )
+    .toBeTruthy();
+
+  await expect(
+    page.locator('.memorica-editor-shell').evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+      return element.scrollTop > 0;
+    })
+  ).resolves.toBeTruthy();
+});
+
 test('drawio save timeout keeps the dialog open and allows retry', async ({ page, request }) => {
   const auth = await registerTestUser(request, 'diatime');
   const document = await createDocument(request, auth, uniqueName('图示超时验证'));

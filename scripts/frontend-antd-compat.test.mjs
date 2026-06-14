@@ -21,5 +21,5 @@ test('frontend entry imports the React 19 compatibility patch before Ant Design 
 test('frontend-check runs the Ant Design React 19 compatibility policy', async () => {
   const source = await readFile('Makefile', 'utf8')
 
-  assert.match(source, /^frontend-check: frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test frontend-collab-editor-policy-test frontend-bubble-menu-policy-test frontend-diagram-template-picker-policy-test ## Run frontend lint, Ant Design checks, and production build$/m)
+  assert.match(source, /^frontend-check: frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test frontend-collab-editor-policy-test frontend-bubble-menu-policy-test frontend-diagram-template-format-test frontend-diagram-template-picker-policy-test frontend-diagram-node-policy-test ## Run frontend lint, Ant Design checks, and production build$/m)
 })

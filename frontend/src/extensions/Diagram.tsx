@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
+import type { ReactNode } from 'react'
 import {
   Node,
   NodeViewWrapper,
@@ -14,6 +15,7 @@ import {
   FormOutlined,
   PartitionOutlined,
 } from '@ant-design/icons'
+import { Button, Tooltip } from 'antd'
 import { safeDiagramDownloadName } from '../diagram/files'
 
 export interface DiagramAttrs {
@@ -97,6 +99,30 @@ function DiagramView({ node, selected, updateAttributes, editor, getPos }: NodeV
     if (objectUrl) URL.revokeObjectURL(objectUrl)
   }
 
+  const renderActionButton = (
+    label: string,
+    icon: ReactNode,
+    testId: string,
+    onClick: () => void,
+    disabled = false,
+    danger = false
+  ) => (
+    <Tooltip title={label}>
+      <Button
+        className="memorica-diagram-action"
+        danger={danger}
+        data-testid={testId}
+        disabled={disabled}
+        icon={icon}
+        onClick={onClick}
+        size="small"
+        title={label}
+      >
+        {label}
+      </Button>
+    </Tooltip>
+  )
+
   return (
     <NodeViewWrapper
       className={`memorica-diagram-node${selected ? ' selected' : ''}`}
@@ -112,49 +138,13 @@ function DiagramView({ node, selected, updateAttributes, editor, getPos }: NodeV
         <div className="memorica-diagram-actions">
           {canEdit && (
             <>
-              <button
-                data-testid="memorica-diagram-action-edit"
-                type="button"
-                onClick={() => dispatchAction('edit')}
-              >
-                <EditOutlined style={{ fontSize: 13 }} />
-                编辑
-              </button>
-              <button
-                data-testid="memorica-diagram-action-rename"
-                type="button"
-                onClick={() => dispatchAction('rename')}
-              >
-                <FormOutlined style={{ fontSize: 13 }} />
-                重命名
-              </button>
-              <button
-                data-testid="memorica-diagram-action-duplicate"
-                type="button"
-                onClick={() => dispatchAction('duplicate')}
-              >
-                <CopyOutlined style={{ fontSize: 13 }} />
-                复制
-              </button>
-              <button
-                data-testid="memorica-diagram-action-delete"
-                type="button"
-                onClick={() => dispatchAction('delete')}
-              >
-                <DeleteOutlined style={{ fontSize: 13 }} />
-                删除
-              </button>
+              {renderActionButton('编辑', <EditOutlined style={{ fontSize: 13 }} />, 'memorica-diagram-action-edit', () => dispatchAction('edit'))}
+              {renderActionButton('重命名', <FormOutlined style={{ fontSize: 13 }} />, 'memorica-diagram-action-rename', () => dispatchAction('rename'))}
+              {renderActionButton('复制', <CopyOutlined style={{ fontSize: 13 }} />, 'memorica-diagram-action-duplicate', () => dispatchAction('duplicate'))}
+              {renderActionButton('删除', <DeleteOutlined style={{ fontSize: 13 }} />, 'memorica-diagram-action-delete', () => dispatchAction('delete'), false, true)}
             </>
           )}
-          <button
-            data-testid="memorica-diagram-action-download"
-            type="button"
-            onClick={downloadSvg}
-            disabled={!attrs.svg}
-          >
-            <DownloadOutlined style={{ fontSize: 13 }} />
-            下载 SVG
-          </button>
+          {renderActionButton('下载 SVG', <DownloadOutlined style={{ fontSize: 13 }} />, 'memorica-diagram-action-download', downloadSvg, !attrs.svg)}
         </div>
       </div>
       <div className="memorica-diagram-canvas">

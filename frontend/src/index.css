@@ -124,7 +124,9 @@ body {
 
 /* ========== Memorica editor shell ========== */
 .memorica-editor-shell {
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: none;
   background: #fff;
 }
 
@@ -1381,7 +1383,7 @@ body {
   flex-wrap: wrap;
 }
 
-.memorica-diagram-actions button {
+.memorica-diagram-action.ant-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1392,17 +1394,28 @@ body {
   color: #4e5969;
   background: #fff;
   font-size: 12px;
-  cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.memorica-diagram-actions button:hover:not(:disabled) {
+.memorica-diagram-action.ant-btn > .ant-btn-icon {
+  display: inline-flex;
+}
+
+.memorica-diagram-action.ant-btn:hover:not(:disabled),
+.memorica-diagram-action.ant-btn:focus-visible:not(:disabled) {
   color: #245bdb;
   border-color: #bacefd;
   background: #f5f8ff;
 }
 
-.memorica-diagram-actions button:disabled {
+.memorica-diagram-action.ant-btn-dangerous:hover:not(:disabled),
+.memorica-diagram-action.ant-btn-dangerous:focus-visible:not(:disabled) {
+  color: #d92d20;
+  border-color: #f2b8b5;
+  background: #fff5f5;
+}
+
+.memorica-diagram-action.ant-btn:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }

@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { inflateRawSync } from 'node:zlib'
 
 import { buildVersionTwoContent, demoPdfBytes, extractPlainText } from './seed-demo.mjs'
+
+function decodeDiagramXml(xml) {
+  const body = xml.match(/<diagram[^>]*>([^<]+)<\/diagram>/)?.[1]
+  assert.ok(body)
+  return decodeURIComponent(inflateRawSync(Buffer.from(body, 'base64')).toString('utf8'))
+}
 
 test('demo final version contains editable diagram and attachment nodes', () => {
   const content = buildVersionTwoContent({
@@ -13,7 +20,9 @@ test('demo final version contains editable diagram and attachment nodes', () => 
   })
 
   assert.equal(content.type, 'doc')
-  assert.ok(content.content.some((node) => node.type === 'diagram' && node.attrs.xml.includes('Memorica demo')))
+  const diagram = content.content.find((node) => node.type === 'diagram')
+  assert.ok(diagram)
+  assert.match(decodeDiagramXml(diagram.attrs.xml), /Memorica demo architecture/)
   assert.ok(content.content.some((node) => node.type === 'attachment' && node.attrs.objectName === 'demo-file.pdf'))
   assert.match(extractPlainText(content), /三分钟演示/)
 })

@@ -13,6 +13,8 @@ const DEFAULTS = {
   documentTitle: process.env.MEMORICA_DEMO_DOCUMENT_TITLE || 'Memorica 预发布演示文档',
 }
 
+const DEMO_DIAGRAM_BODY = 'zZbBkqIwEIafJsepComCHAcdZy9z8rDnTNJAykCs0Cru029Fg4Lg1tasVbM38neHpr+/CRC+rNp3J3blh1VgCKOqJXxFGIsYpYQxr5wuyqITCqdVSLoJG/0Lgtil7bWCZpCI1hrUu6EobV2DxIEmnLPHYVpuzbDqThQwEjZSmLH6UyssgxrF6S3wA3RRhtILllwCleiSQydNKZQ99iT+RvjSWYuXq6pdgvHwOi6XfesH0euDOajxbzYoqOwLajRw2XkQZh+a/IDKOi2F9wkqe0YnS40gce9CeoOnjglCi4RnJVaG8FVEeNags1tYWmMd4ava1kB4lmtj7iRhdFETvpJQIzjCswM41FKY1xCotFK+THb05Tc7IX3NoxM7wjNn97UC3w71t7c1bsJDRd36Mj9RHNZdecI4zaOECcKz0D04hPYhyuhqUNW+g60A3Ykw2m2YBU/DUPOwPN4mhHUpZW84OAuDGYayuN755hth62DdtI25szVCrUYmrgeBnl03bNEDsD0n+6YRxoHmLIeRw54nW8xkMsE5maeL+XM432FOx5ijaAJzTP8d86eQ2ynKWV9/EmQlcwnJFOQoFnwmxpCjOJ7z2XMgMzr/NsoNWucP4HvKm77+JMo55FxOUlZpktCJIyNlM0rhOZR58n2zfD75QRXwEh7bX/+5D0Ybu3cSps4cFK4AnHhNekZBrV7915fw1aexcjt0ZniQj/yYJfN5nAbuY6IOjEB9GHbwHD7sa3wGFPp4mgdz/D/jIf5L0v2UnGO9Xzv+9hs='
+
 const args = new Set(process.argv.slice(2))
 const dryRun = args.has('--dry-run')
 const help = args.has('--help') || args.has('-h')
@@ -233,7 +235,7 @@ function paragraph(text) {
 }
 
 function diagram(updatedAt) {
-  const xml = '<mxfile><diagram name="Page-1">Memorica demo architecture</diagram></mxfile>'
+  const xml = `<mxfile host="embed.diagrams.net"><diagram name="Page-1">${DEMO_DIAGRAM_BODY}</diagram></mxfile>`
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="520" height="220"><rect width="520" height="220" rx="12" fill="#f8fafc"/><rect x="36" y="70" width="110" height="60" rx="8" fill="#e0f2fe" stroke="#0284c7"/><text x="91" y="105" text-anchor="middle" font-size="14" fill="#075985">Frontend</text><rect x="205" y="70" width="110" height="60" rx="8" fill="#dcfce7" stroke="#16a34a"/><text x="260" y="105" text-anchor="middle" font-size="14" fill="#166534">Backend</text><rect x="374" y="70" width="110" height="60" rx="8" fill="#fef3c7" stroke="#d97706"/><text x="429" y="105" text-anchor="middle" font-size="14" fill="#92400e">Storage</text><path d="M146 100 H205" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/><path d="M315 100 H374" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#475569"/></marker></defs></svg>'
   return {
     type: 'diagram',
