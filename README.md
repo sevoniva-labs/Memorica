@@ -195,6 +195,8 @@ make demo-e2e-local
 
 `npm audit` 在 npmmirror 上没有稳定 audit endpoint，因此 `make frontend-audit` 和 `make hocuspocus-audit` 显式使用 `https://registry.npmjs.org`，安装依赖仍走仓库 `.npmrc` 的国内 registry。
 
+文件临时访问链接由 `FILE_URL_EXPIRY_MINUTES` 控制，后端会限制在 1-60 分钟之间；生产环境建议保持接近默认的 15 分钟，避免附件链接长期有效。
+
 预发布前请按 [docs/release-checklist.md](docs/release-checklist.md) 逐项确认本地 demo 账号、主路径演示脚本、权限矩阵、E2E、后端测试和 audit 结果。
 
 ### AI 助手配置

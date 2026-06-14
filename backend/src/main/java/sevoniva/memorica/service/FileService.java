@@ -27,6 +27,8 @@ import java.util.concurrent.TimeUnit;
 public class FileService {
 
     private static final Logger log = LoggerFactory.getLogger(FileService.class);
+    private static final int MIN_PRESIGNED_URL_EXPIRY_MINUTES = 1;
+    private static final int MAX_PRESIGNED_URL_EXPIRY_MINUTES = 60;
 
     private final MinioClient minioClient;
     private final UploadedFileRepository uploadedFileRepository;
@@ -138,7 +140,7 @@ public class FileService {
                 .bucket(bucketName)
                 .object(objectName)
                 .method(Method.GET)
-                .expiry(Math.max(urlExpiryMinutes, 1), TimeUnit.MINUTES)
+                .expiry(safeUrlExpiryMinutes(), TimeUnit.MINUTES)
                 .build()
         );
     }
@@ -192,6 +194,12 @@ public class FileService {
 
     private String normalizeDocumentId(String documentId) {
         return documentId != null && !documentId.isBlank() ? documentId.trim() : null;
+    }
+
+    private int safeUrlExpiryMinutes() {
+        return Math.min(
+                Math.max(urlExpiryMinutes, MIN_PRESIGNED_URL_EXPIRY_MINUTES),
+                MAX_PRESIGNED_URL_EXPIRY_MINUTES);
     }
 
     private void requireDocumentWriteAccess(String documentId, Long userId) {

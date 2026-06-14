@@ -1,10 +1,12 @@
 package sevoniva.memorica.service;
 
+import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.RemoveObjectArgs;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -83,6 +85,27 @@ class FileServiceTest {
         when(uploadedFileRepository.findByObjectName("file-1.pdf")).thenReturn(Optional.of(file));
 
         assertThrows(AccessDeniedException.class, () -> fileService.getFile("file-1.pdf", 2L));
+    }
+
+    @Test
+    void getFileUrl_shouldCapPresignedUrlExpiryAtOneHour() throws Exception {
+        UploadedFile file = UploadedFile.builder()
+                .objectName("file-1.pdf")
+                .contentType("application/pdf")
+                .sizeBytes(12L)
+                .uploaderId(1L)
+                .build();
+        ReflectionTestUtils.setField(fileService, "urlExpiryMinutes", 180);
+        when(uploadedFileRepository.findByObjectName("file-1.pdf")).thenReturn(Optional.of(file));
+        when(minioClient.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class)))
+                .thenReturn("https://files.local/file-1.pdf");
+
+        String url = fileService.getFileUrl("file-1.pdf", 1L);
+
+        ArgumentCaptor<GetPresignedObjectUrlArgs> args = ArgumentCaptor.forClass(GetPresignedObjectUrlArgs.class);
+        verify(minioClient).getPresignedObjectUrl(args.capture());
+        assertEquals("https://files.local/file-1.pdf", url);
+        assertEquals(60 * 60, args.getValue().expiry());
     }
 
     @Test

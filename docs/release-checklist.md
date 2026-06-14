@@ -122,7 +122,7 @@ make cloudflare-pages-policy-test
 - Draw.io defaults to `https://embed.diagrams.net/`; for domestic networks or production, prefer a self-hosted diagrams.net service and set `VITE_DRAWIO_URL`.
 - DeepSeek AI is optional for core tests. Leaving `DEEPSEEK_API_KEY` empty is the local disabled state; provider-backed checks should stay opt-in with `E2E_RUN_AI=true`.
 - Never commit real AI keys. Production should inject `DEEPSEEK_API_KEY` through deployment secrets, and domestic-network deployments may point `DEEPSEEK_BASE_URL` at a trusted gateway.
-- MinIO presigned file URLs should stay short-lived. Default local expiry is controlled by `FILE_URL_EXPIRY_MINUTES`.
+- MinIO presigned file URLs should stay short-lived. `FILE_URL_EXPIRY_MINUTES` is clamped to 1-60 minutes by the backend; keep production values near the 15 minute default unless there is a documented operational need.
 
 ## Pre-Release Sign-Off
 
