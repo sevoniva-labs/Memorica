@@ -24,6 +24,33 @@ npx wrangler pages deploy dist --project-name memorica-frontend
 
 The source-controlled `frontend/wrangler.jsonc` records the Pages project name and build output directory for local direct deploys.
 
+## GitHub Actions Deployment
+
+The repository includes `.github/workflows/cloudflare-pages.yml` for deploying the frontend to Cloudflare Pages from GitHub Actions. It runs on pushes to `main` and `feat/pre-release-hardening`, and can also be started manually with `workflow_dispatch`.
+
+Required GitHub repository variable:
+
+```text
+CLOUDFLARE_ACCOUNT_ID=12795078d01f49d69370b3e7efa7ea60
+```
+
+Required GitHub repository secret:
+
+```text
+CLOUDFLARE_API_TOKEN=<Cloudflare token with Account / Pages Write on this account>
+```
+
+Optional GitHub repository variables:
+
+```text
+CLOUDFLARE_PAGES_PROJECT_NAME=memorica-frontend
+VITE_API_BASE_URL=https://api.example.com/api/v1
+VITE_WS_URL=wss://api.example.com/ws
+VITE_DRAWIO_URL=https://embed.diagrams.net/
+```
+
+The workflow installs frontend dependencies with `https://registry.npmmirror.com`, runs lint and build, then deploys `frontend/dist` with Wrangler. If `VITE_API_BASE_URL` and `VITE_WS_URL` are empty, the Pages deployment will still serve the static frontend, but login, API calls, file access, and collaboration will not be usable until a public HTTPS/WSS backend is configured.
+
 ## Current Project
 
 Cloudflare Pages project `memorica-frontend` has been created on the connected account with the temporary domain:

@@ -26,6 +26,20 @@ test('Cloudflare Pages docs explain frontend build settings and runtime environm
   assert.match(source, /VITE_DRAWIO_URL/)
 })
 
+test('GitHub Actions can deploy the frontend to Cloudflare Pages', async () => {
+  const source = await readFile('.github/workflows/cloudflare-pages.yml', 'utf8')
+
+  assert.match(source, /name:\s*Deploy Cloudflare Pages/)
+  assert.match(source, /workflow_dispatch:/)
+  assert.match(source, /feat\/pre-release-hardening/)
+  assert.match(source, /npm ci --registry=https:\/\/registry\.npmmirror\.com/)
+  assert.match(source, /npm run build/)
+  assert.match(source, /CLOUDFLARE_API_TOKEN/)
+  assert.match(source, /CLOUDFLARE_ACCOUNT_ID/)
+  assert.match(source, /wrangler@4\.100\.0 pages deploy dist/)
+  assert.match(source, /memorica-frontend/)
+})
+
 test('Cloudflare Pages preflight accepts public API and WebSocket origins', () => {
   const result = validateCloudflarePagesPreflight({
     wranglerSource: '{"name":"memorica-frontend","pages_build_output_dir":"./dist"}',
