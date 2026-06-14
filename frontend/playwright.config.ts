@@ -1,9 +1,9 @@
 import { defineConfig } from '@playwright/test';
 
-const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:5174';
+const baseURL = process.env.E2E_BASE_URL || 'http://localhost:5173';
 const webServerURL = process.env.E2E_WEB_SERVER_URL || baseURL;
 const webServerCommand =
-  process.env.E2E_WEB_SERVER_COMMAND || 'npm run dev -- --host 127.0.0.1 --port 5174';
+  process.env.E2E_WEB_SERVER_COMMAND || 'npm run dev -- --host 0.0.0.0 --port 5173';
 const webServer = process.env.E2E_SKIP_WEB_SERVER === 'true'
   ? undefined
   : {

@@ -35,7 +35,7 @@ npm run antd:lint
 npm run test:e2e
 ```
 
-开发服务器默认运行在 `http://localhost:5173`，通过 Vite 代理访问后端 `/api` 和协作 `/ws`。后端默认允许 `localhost` 与 `127.0.0.1` 的 5173/5174 端口，覆盖手动开发和 Playwright 默认端口。
+开发服务器默认运行在 `http://localhost:5173`，通过 Vite 代理访问后端 `/api` 和协作 `/ws`。Playwright 默认同样使用 `http://localhost:5173`，后端默认允许 `localhost` 与 `127.0.0.1` 的 5173/5174 端口，覆盖首选开发地址和可选工具端口。
 
 ```bash
 E2E_SKIP_WEB_SERVER=true \

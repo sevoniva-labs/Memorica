@@ -90,7 +90,7 @@ cd frontend && npm run dev
 
 仓库根目录的 `.npmrc` 已配置 npm 使用 `https://registry.npmmirror.com`。后端 Gradle Wrapper 使用腾讯云 Gradle 分发镜像，Maven 依赖优先走阿里云 public 仓库，失败时再回落到 Maven Central。
 
-本地 CORS 默认允许 `localhost` 和 `127.0.0.1` 的 5173/5174 端口，覆盖手动开发和 Playwright 默认端口。前端开发环境默认走 Vite 同源代理，减少浏览器跨域差异。
+本地 CORS 默认允许 `localhost` 和 `127.0.0.1` 的 5173/5174 端口，覆盖首选开发地址和可选工具端口。前端开发环境默认走 Vite 同源代理，减少浏览器跨域差异。
 
 ## 项目结构
 
