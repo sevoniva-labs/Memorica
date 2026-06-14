@@ -68,6 +68,8 @@ async function insertDiagram(page: Page, title: string) {
   await page.getByTestId('memorica-diagram-title').fill(title);
   await page.getByTestId('memorica-diagram-template-blank').click();
   await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
+  await markDrawioReady(page);
+  await page.getByRole('button', { name: '保存图示' }).click();
   await page.evaluate((xml) => {
     const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
     if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
@@ -90,6 +92,8 @@ async function insertDiagramWithoutPreview(page: Page, title: string) {
   await page.getByTestId('memorica-diagram-title').fill(title);
   await page.getByTestId('memorica-diagram-template-blank').click();
   await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
+  await markDrawioReady(page);
+  await page.getByRole('button', { name: '保存图示' }).click();
   await page.evaluate((xml) => {
     const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
     if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
@@ -138,6 +142,18 @@ async function openDrawioFromBlankTemplate(page: Page, title = '临时图示') {
   await page.getByTestId('memorica-diagram-title').fill(title);
   await page.getByTestId('memorica-diagram-template-blank').click();
   await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
+}
+
+async function markDrawioReady(page: Page) {
+  await page.evaluate(() => {
+    const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
+    if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
+    window.dispatchEvent(new MessageEvent('message', {
+      data: JSON.stringify({ event: 'init' }),
+      source: iframe.contentWindow,
+    }));
+  });
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('可以开始编辑图示');
 }
 
 async function mockDrawioFrame(page: Page) {
@@ -210,6 +226,30 @@ test('diagram with corrupted drawio xml does not open the embedded editor', asyn
   await expect(diagram.getByTestId('memorica-diagram-preview-fallback')).toContainText('图示数据可能损坏');
   await expect(diagram.getByTestId('memorica-diagram-action-edit')).toBeDisabled();
   await expect(page.locator('.memorica-drawio-frame')).toHaveCount(0);
+});
+
+test('drawio ignores export messages before the user requests a save', async ({ page }) => {
+  await mockDrawioFrame(page);
+  await openEditor(page);
+  await openDrawioFromBlankTemplate(page);
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('可以开始编辑图示');
+
+  await page.evaluate((xml) => {
+    const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
+    if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
+    window.dispatchEvent(new MessageEvent('message', {
+      data: JSON.stringify({
+        event: 'export',
+        xml,
+        data: '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="160"><text x="20" y="80">early export</text></svg>',
+      }),
+      source: iframe.contentWindow,
+    }));
+  }, BLANK_DIAGRAM_XML);
+
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('可以开始编辑图示');
+  await expect(page.locator('.memorica-drawio-frame')).toBeVisible();
+  await expect(page.getByTestId('memorica-diagram-node')).toHaveCount(0);
 });
 
 test('drawio save requests a direct svg export from the embedded editor', async ({ page }) => {

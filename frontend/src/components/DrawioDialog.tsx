@@ -74,6 +74,11 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     stateRef.current = state
   }, [state])
 
+  const setDrawioState = useCallback((nextState: DrawioState) => {
+    stateRef.current = nextState
+    setState(nextState)
+  }, [])
+
   const postToDrawio = useCallback((payload: Record<string, unknown>) => {
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify(payload), '*')
   }, [])
@@ -97,10 +102,10 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     initTimerRef.current = window.setTimeout(() => {
       initTimerRef.current = null
       if (stateRef.current === 'loading') {
-        setState('initTimeout')
+        setDrawioState('initTimeout')
       }
     }, DRAWIO_INIT_TIMEOUT_MS)
-  }, [clearInitTimer])
+  }, [clearInitTimer, setDrawioState])
 
   const clearCancelTimer = useCallback(() => {
     if (cancelTimerRef.current) {
@@ -113,20 +118,20 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     clearInitTimer()
     clearSaveTimer()
     clearCancelTimer()
-    setState('canceling')
+    setDrawioState('canceling')
     cancelTimerRef.current = window.setTimeout(() => {
       cancelTimerRef.current = null
       onCancel()
     }, 150)
-  }, [clearCancelTimer, clearInitTimer, clearSaveTimer, onCancel])
+  }, [clearCancelTimer, clearInitTimer, clearSaveTimer, onCancel, setDrawioState])
 
   const reloadDrawio = useCallback(() => {
     clearSaveTimer()
     clearCancelTimer()
-    setState('loading')
+    setDrawioState('loading')
     setFrameNonce((value) => value + 1)
     scheduleInitTimeout()
-  }, [clearCancelTimer, clearSaveTimer, scheduleInitTimeout])
+  }, [clearCancelTimer, clearSaveTimer, scheduleInitTimeout, setDrawioState])
 
   const requestExport = useCallback((xml?: string) => {
     if (xml) pendingXmlRef.current = xml
@@ -140,13 +145,13 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
   }, [postToDrawio])
 
   const beginSave = useCallback((xml?: string) => {
-    setState('saving')
+    setDrawioState('saving')
     requestExport(xml)
     clearSaveTimer()
     saveTimerRef.current = window.setTimeout(() => {
-      setState('timeout')
+      setDrawioState('timeout')
     }, DRAWIO_SAVE_TIMEOUT_MS)
-  }, [clearSaveTimer, requestExport])
+  }, [clearSaveTimer, requestExport, setDrawioState])
 
   const handleMessage = useCallback((event: MessageEvent) => {
     if (event.source !== iframeRef.current?.contentWindow) return
@@ -165,7 +170,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
         xml: pendingXmlRef.current,
       })
       if (stateRef.current !== 'saving' && stateRef.current !== 'timeout') {
-        setState('ready')
+        setDrawioState('ready')
       }
       return
     }
@@ -176,13 +181,14 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     }
 
     if (payload.event === 'export') {
+      if (stateRef.current !== 'saving' && stateRef.current !== 'timeout') return
       if (payload.error || (!payload.data && !payload.xml)) {
         clearSaveTimer()
-        setState('error')
+        setDrawioState('error')
         return
       }
       clearSaveTimer()
-      setState('ready')
+      setDrawioState('ready')
       onSave({
         xml: payload.xml || pendingXmlRef.current,
         svg: payload.data || '',
@@ -195,14 +201,14 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     if (payload.event === 'error') {
       clearInitTimer()
       clearSaveTimer()
-      setState('error')
+      setDrawioState('error')
       return
     }
 
     if (payload.event === 'exit') {
       cancelDrawio()
     }
-  }, [beginSave, cancelDrawio, clearInitTimer, clearSaveTimer, initialTitle, initialXml, onSave, postToDrawio])
+  }, [beginSave, cancelDrawio, clearInitTimer, clearSaveTimer, initialTitle, initialXml, onSave, postToDrawio, setDrawioState])
 
   useEffect(() => {
     if (!open) return

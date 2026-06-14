@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { BLANK_DIAGRAM_XML } from '../src/diagram/templates';
 import {
   createDocument,
   expectBackendReady,
@@ -51,16 +52,36 @@ async function mockDrawioFrameWithoutExport(page: Page) {
 }
 
 async function simulateDrawioExport(page: Page, marker: string) {
-  await page.evaluate((value) => {
+  const status = page.getByTestId('memorica-drawio-status');
+  const currentStatus = await status.textContent({ timeout: 2_000 }).catch(() => '');
+  if (currentStatus?.includes('图示编辑器加载中') || currentStatus?.includes('加载超时')) {
+    await page.evaluate(() => {
+      const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
+      if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
+      window.dispatchEvent(new MessageEvent('message', {
+        data: JSON.stringify({ event: 'init' }),
+        source: iframe.contentWindow,
+      }));
+    });
+    await expect(status).toContainText('可以开始编辑图示');
+  }
+
+  const nextStatus = await status.textContent({ timeout: 2_000 }).catch(() => '');
+  if (!nextStatus?.includes('正在保存图示') && !nextStatus?.includes('保存没有响应')) {
+    await page.getByRole('button', { name: /保存图示|重试保存/ }).click();
+  } else if (nextStatus.includes('保存没有响应')) {
+    await page.getByRole('button', { name: '重试保存' }).click();
+  }
+
+  await page.evaluate(({ value, xml }) => {
     const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
     if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
-    const xml = `<mxfile><diagram name="Page-1">${value}</diagram></mxfile>`;
     const data = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="160"><rect width="320" height="160" rx="10" fill="#eef2ff"/><text x="28" y="84" fill="#2563eb">${value}</text></svg>`;
     window.dispatchEvent(new MessageEvent('message', {
       data: JSON.stringify({ event: 'export', xml, data }),
       source: iframe.contentWindow,
     }));
-  }, marker);
+  }, { value: marker, xml: BLANK_DIAGRAM_XML });
   await expect(page.locator('.memorica-diagram-node')).toBeVisible();
 }
 
