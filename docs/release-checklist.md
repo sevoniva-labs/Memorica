@@ -66,8 +66,7 @@ cd frontend && npm run lint
 cd frontend && npm run build
 cd frontend && npm run antd:doctor
 cd frontend && npm run antd:lint
-make frontend-audit
-make hocuspocus-audit
+make audit
 cd backend && JWT_SECRET=memorica-development-jwt-secret-2026-local-preview ./gradlew test
 ```
 
@@ -85,6 +84,7 @@ npm run test:e2e -- editor-regression.spec.ts --workers=2
 If Docker/Testcontainers is available, also run:
 
 ```bash
+make testcontainers-check
 make backend-integration-test
 ```
 

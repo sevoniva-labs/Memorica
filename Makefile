@@ -1,4 +1,12 @@
-.PHONY: help dev dev-down build test lint clean db-backup db-restore setup frontend-check e2e-local backend-unit-test backend-integration-test verify-local
+.PHONY: \
+	help \
+	dev dev-down dev-logs setup clean \
+	build ci lint test verify-local audit \
+	backend-build backend-test backend-unit-test backend-integration-test backend-check backend-lint testcontainers-check \
+	frontend-install frontend-dev frontend-build frontend-lint frontend-check frontend-audit e2e-local \
+	hocuspocus-install hocuspocus-check hocuspocus-audit \
+	db-migrate db-new-migration db-backup db-restore \
+	docker-build docker-push
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -24,7 +32,14 @@ backend-test: backend-unit-test ## Run backend unit tests
 backend-unit-test: ## Run backend tests that do not require Testcontainers
 	cd backend && JWT_SECRET=$${JWT_SECRET:-memorica-development-jwt-secret-2026-local-preview} ./gradlew test --no-daemon
 
-backend-integration-test: ## Run backend Testcontainers-backed integration tests
+testcontainers-check: ## Verify Docker is reachable before Testcontainers tests
+	@docker info >/dev/null 2>&1 || { \
+		echo "Docker is not reachable. Start Docker Desktop or Colima before running Testcontainers."; \
+		echo "If Docker is running, check the active docker context and DOCKER_HOST."; \
+		exit 1; \
+	}
+
+backend-integration-test: testcontainers-check ## Run backend Testcontainers-backed integration tests
 	cd backend && JWT_SECRET=$${JWT_SECRET:-memorica-development-jwt-secret-2026-local-preview} ./gradlew integrationTest --no-daemon
 
 backend-check: ## Run backend compile, tests, architecture, migration, and coverage checks
@@ -91,13 +106,17 @@ docker-push: ## Push Docker images to registry
 
 # --- CI ---
 
+build: backend-build frontend-build hocuspocus-check ## Build backend/frontend and validate collaboration syntax
+
+audit: frontend-audit hocuspocus-audit ## Audit Node production dependencies
+
 ci: backend-check frontend-check frontend-audit hocuspocus-check hocuspocus-audit ## Run full CI pipeline locally
 
 lint: backend-lint frontend-lint hocuspocus-check ## Run all linters and syntax checks
 
 test: backend-unit-test ## Run fast backend tests
 
-verify-local: backend-unit-test frontend-check hocuspocus-check frontend-audit hocuspocus-audit ## Run local checks that do not require browser services
+verify-local: backend-unit-test frontend-check hocuspocus-check audit ## Run local checks that do not require browser services
 
 # --- Database ---
 

@@ -131,12 +131,15 @@ make help
 # 开发
 make dev           # 启动所有服务
 make dev-down      # 停止所有服务
+make build         # 构建后端、前端并检查协作服务语法
 make test          # 运行后端快速测试
 make lint          # 运行代码检查
 make frontend-check        # 前端 lint + Ant Design 检查 + build
 make backend-unit-test     # 后端非 Testcontainers 测试
+make testcontainers-check  # 检查 Docker 是否可供 Testcontainers 使用
 make backend-integration-test # 后端 Testcontainers 集成测试
 make e2e-local             # 对已运行的本地服务执行主 E2E
+make audit                 # 前端和协作服务生产依赖审计
 make verify-local          # 本地快速验证，不启动浏览器服务
 make db-backup     # 备份 PostgreSQL
 
@@ -163,7 +166,7 @@ E2E_BACKEND_HEALTH_URL=http://127.0.0.1:8080/actuator/health \
 npm run test:e2e -- editor-regression.spec.ts --workers=2
 ```
 
-后端默认 `./gradlew test` 只运行不依赖 Testcontainers 的测试；`./gradlew integrationTest` 单独运行 PostgreSQL Testcontainers 集成测试。若本机 Docker CLI 可用但 Testcontainers 报 “Could not find a valid Docker environment”，先检查 Docker Desktop context、socket 和 Testcontainers 配置；CI 的 `check` 仍会运行单元测试与集成测试。
+后端默认 `./gradlew test` 只运行不依赖 Testcontainers 的测试；`make backend-integration-test` 会先执行 `make testcontainers-check`，确认 Docker CLI 可访问后再运行 PostgreSQL Testcontainers 集成测试。若本机 Docker CLI 可用但 Testcontainers 报 “Could not find a valid Docker environment”，先检查 Docker Desktop/Colima、active docker context、socket 和 `DOCKER_HOST`；CI 的 `check` 仍会运行单元测试与集成测试。
 
 `npm audit` 在 npmmirror 上没有稳定 audit endpoint，因此 `make frontend-audit` 和 `make hocuspocus-audit` 显式使用 `https://registry.npmjs.org`，安装依赖仍走仓库 `.npmrc` 的国内 registry。
 
