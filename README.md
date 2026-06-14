@@ -242,7 +242,14 @@ docker compose -f docker/docker-compose.yml up -d --build
 make drawio-diagnostics
 ```
 
-该命令会验证仓库内 Draw.io 模板是否仍是 diagrams.net 需要的 raw-deflate base64 格式，并输出当前 `VITE_DRAWIO_URL` 来源。若模板正常，问题通常不是模板源码损坏，而是已保存图示 XML 被截断、被当普通 XML 写入 `<diagram>`，或保存/export 事件没有返回完整 `xml/data`；优先从版本历史恢复，再重新保存图示。内网部署时，浏览器必须能直接访问 `VITE_DRAWIO_URL`，外网镜像下载失败则在 Docker daemon 或 Docker Desktop 配当前可用网卡代理，不要继续使用已经失效的 `127.0.0.1` 代理。
+该命令会验证仓库内 Draw.io 模板是否仍是 diagrams.net 需要的 raw-deflate base64 格式，并输出当前 `VITE_DRAWIO_URL` 来源。
+
+根因和内网排查顺序：
+
+1. `invalid stored block lengths` 的直接含义是 `<diagram>` 内容不是合法 raw-deflate base64，常见来源是模板写错、已保存 XML 被截断，或把普通 `<mxGraphModel>` 直接塞进 `<diagram>`。
+2. 如果模板诊断正常，问题通常在已保存文档数据或 Draw.io iframe 的 `init/save/export` 消息链；优先从版本历史恢复，再重新打开并保存图示。
+3. 保存图示卡住时，先在用户所在网络执行 `curl -I "$VITE_DRAWIO_URL"`，确认浏览器能直接访问该地址，且不会被公司网关跳到登录、审计或拦截页。
+4. 内网部署建议自托管 diagrams.net/drawio，并把前端环境变量 `VITE_DRAWIO_URL` 指向这个内网地址；外网镜像下载失败时在 Docker daemon 或 Docker Desktop 配当前可用网卡代理，不要继续使用已经失效的 `127.0.0.1` 代理，容器访问宿主代理时用 `host.docker.internal:<port>` 或网卡 IP。
 
 ## 部署
 

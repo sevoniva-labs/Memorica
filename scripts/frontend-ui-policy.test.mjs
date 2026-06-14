@@ -77,6 +77,14 @@ test('vite manualChunks contains no legacy UI library buckets', async () => {
   assert.match(source, /return 'vendor-antd'/)
 })
 
+test('application layout menu items use Ant Design buttons', async () => {
+  const source = await readFile('frontend/src/components/AppLayout.tsx', 'utf8')
+
+  assert.match(source, /import \{[^}]*\bButton\b[^}]*\} from 'antd'/s)
+  assert.match(source, /menuItemRender=\{\(item, defaultDom\) => \(\s*<Button\b[\s\S]*className=\{`memorica-pro-menu-button/)
+  assert.doesNotMatch(source, /<button\b/)
+})
+
 test('frontend-check runs the UI stack policy test', async () => {
   const source = await readFile('Makefile', 'utf8')
 

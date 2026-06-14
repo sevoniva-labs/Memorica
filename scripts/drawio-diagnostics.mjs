@@ -97,8 +97,11 @@ export function buildDrawioDiagnostics({ templateSource, envSource = '', env = p
   lines.push('invalid stored block lengths 排查:')
   lines.push('- 如果模板压缩体异常，说明 <diagram> 内的内容不是 diagrams.net 需要的 raw-deflate base64，打开时会直接报错。')
   lines.push('- 如果模板压缩体正常，问题通常来自已保存图示 XML 被截断、被当普通 XML 写入 <diagram>，或保存/export 事件缺少 xml/data。优先从版本历史恢复，再重新保存图示。')
+  lines.push('保存卡住排查:')
+  lines.push('- 当前保存链路依赖 Draw.io iframe 的 init/save/export 消息链；如果卡住，优先确认浏览器能加载 VITE_DRAWIO_URL，且 export 返回 svg data 或 xml。')
   lines.push('内网处理:')
   lines.push('- 浏览器必须能直接访问 VITE_DRAWIO_URL；生产和内网建议自托管 diagrams.net/drawio 并配置可信域名。')
+  lines.push('- 在用户所在网络先执行 curl -I "$VITE_DRAWIO_URL"；如果无响应或跳转到登录/拦截页，前端 iframe 也会加载失败。')
   lines.push('- 外网镜像下载失败时在 Docker daemon 或 Docker Desktop 配当前可用网卡代理；不要继续使用已经失效的 127.0.0.1 代理。')
   lines.push('- 容器内访问宿主机代理时使用 host.docker.internal:<port> 或网卡 IP；可运行 make docker-proxy-check 辅助排查。')
 

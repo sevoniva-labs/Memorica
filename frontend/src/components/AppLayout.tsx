@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ProLayout, type MenuDataItem } from '@ant-design/pro-components'
-import { App as AntdApp, Input } from 'antd'
+import { App as AntdApp, Button, Input } from 'antd'
 import {
   ClockCircleOutlined,
   CloudOutlined,
@@ -111,14 +111,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }}
         menuHeaderRender={(_, title) => title}
         menuItemRender={(item, defaultDom) => (
-          <button
-            type="button"
+          <Button
+            type="text"
+            block
             className={`memorica-pro-menu-button${item.path === location.pathname || (item.path === '/' && location.pathname === '/') ? ' active' : ''}`}
             onClick={() => handleMenuClick(item)}
             title={String(item.name || '')}
           >
             {defaultDom}
-          </button>
+          </Button>
         )}
         menuExtraRender={() =>
           collapsed ? null : (
