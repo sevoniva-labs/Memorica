@@ -102,6 +102,15 @@ async function insertDiagramWithoutPreview(page: Page, title: string) {
   await expect(page.getByTestId('memorica-diagram-node')).toBeVisible();
 }
 
+async function openDrawioFromBlankTemplate(page: Page, title = '临时图示') {
+  await page.locator('button[title="更多"]').click();
+  await page.getByText('插入图示').click();
+  await expect(page.getByTestId('memorica-diagram-template-picker')).toBeVisible();
+  await page.getByTestId('memorica-diagram-title').fill(title);
+  await page.getByTestId('memorica-diagram-template-blank').click();
+  await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
+}
+
 test('diagram svg download falls back to a safe filename when the title is invalid', async ({ page }) => {
   await openEditor(page);
   await insertDiagram(page, '///');
@@ -124,4 +133,35 @@ test('diagram without svg preview still exposes XML edit fallback', async ({ pag
 
   await diagram.getByTestId('memorica-diagram-action-edit').click();
   await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
+});
+
+test('drawio cancel shows canceling state and does not insert a diagram', async ({ page }) => {
+  await openEditor(page);
+  await openDrawioFromBlankTemplate(page);
+
+  await page.getByRole('button', { name: '取消' }).click();
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('正在取消图示');
+  await expect(page.locator('.memorica-drawio-frame')).not.toBeVisible({ timeout: 5_000 });
+  await expect(page.getByTestId('memorica-diagram-node')).toHaveCount(0);
+
+  await openDrawioFromBlankTemplate(page, '再次打开');
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('图示编辑器加载中');
+});
+
+test('drawio exit event closes without inserting a diagram', async ({ page }) => {
+  await openEditor(page);
+  await openDrawioFromBlankTemplate(page);
+
+  await page.evaluate(() => {
+    const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
+    if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
+    window.dispatchEvent(new MessageEvent('message', {
+      data: JSON.stringify({ event: 'exit' }),
+      source: iframe.contentWindow,
+    }));
+  });
+
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('正在取消图示');
+  await expect(page.locator('.memorica-drawio-frame')).not.toBeVisible({ timeout: 5_000 });
+  await expect(page.getByTestId('memorica-diagram-node')).toHaveCount(0);
 });

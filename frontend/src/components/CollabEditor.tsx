@@ -1011,13 +1011,15 @@ export default function CollabEditor({
         onCancel={closeTemplatePicker}
         onSelect={selectDiagramTemplate}
       />
-      <DrawioDialog
-        open={drawioOpen}
-        initialXml={activeDiagram?.attrs.xml || pendingDiagram?.xml}
-        initialTitle={activeDiagram?.attrs.title || pendingDiagram?.title || '图示'}
-        onCancel={closeDrawio}
-        onSave={saveDiagram}
-      />
+      {drawioOpen && (
+        <DrawioDialog
+          open={drawioOpen}
+          initialXml={activeDiagram?.attrs.xml || pendingDiagram?.xml}
+          initialTitle={activeDiagram?.attrs.title || pendingDiagram?.title || '图示'}
+          onCancel={closeDrawio}
+          onSave={saveDiagram}
+        />
+      )}
       {aiOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/20 backdrop-blur-sm">
           <div className="w-full max-w-sm">

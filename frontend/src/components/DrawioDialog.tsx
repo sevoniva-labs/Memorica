@@ -12,7 +12,7 @@ interface Props {
   onSave: (value: DiagramAttrs) => void
 }
 
-type DrawioState = 'loading' | 'ready' | 'saving' | 'timeout' | 'error'
+type DrawioState = 'loading' | 'ready' | 'saving' | 'timeout' | 'error' | 'canceling'
 
 const DRAWIO_STATE_MESSAGES: Record<DrawioState, string> = {
   loading: '图示编辑器加载中',
@@ -20,6 +20,7 @@ const DRAWIO_STATE_MESSAGES: Record<DrawioState, string> = {
   saving: '正在保存图示',
   timeout: '保存没有响应，请重试',
   error: '图示编辑器出现异常，请重试',
+  canceling: '正在取消图示',
 }
 
 function drawioUrl() {
@@ -52,11 +53,13 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const pendingXmlRef = useRef(initialXml || BLANK_DIAGRAM_XML)
   const saveTimerRef = useRef<number | null>(null)
+  const cancelTimerRef = useRef<number | null>(null)
   const [state, setState] = useState<DrawioState>('loading')
   const stateRef = useRef<DrawioState>('loading')
   const src = useMemo(() => drawioUrl(), [])
   const message = DRAWIO_STATE_MESSAGES[state]
   const saving = state === 'saving'
+  const canceling = state === 'canceling'
 
   useEffect(() => {
     stateRef.current = state
@@ -73,6 +76,23 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     }
   }, [])
 
+  const clearCancelTimer = useCallback(() => {
+    if (cancelTimerRef.current) {
+      window.clearTimeout(cancelTimerRef.current)
+      cancelTimerRef.current = null
+    }
+  }, [])
+
+  const cancelDrawio = useCallback(() => {
+    clearSaveTimer()
+    clearCancelTimer()
+    setState('canceling')
+    cancelTimerRef.current = window.setTimeout(() => {
+      cancelTimerRef.current = null
+      onCancel()
+    }, 150)
+  }, [clearCancelTimer, clearSaveTimer, onCancel])
+
   const requestExport = useCallback((xml: string) => {
     pendingXmlRef.current = xml
     postToDrawio({
@@ -87,6 +107,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     if (event.source !== iframeRef.current?.contentWindow) return
     const payload = parseDrawioMessage(event.data)
     if (!payload?.event) return
+    if (stateRef.current === 'canceling') return
 
     if (payload.event === 'init') {
       pendingXmlRef.current = initialXml || BLANK_DIAGRAM_XML
@@ -121,19 +142,18 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     }
 
     if (payload.event === 'exit') {
-      clearSaveTimer()
-      setState('ready')
-      onCancel()
+      cancelDrawio()
     }
-  }, [clearSaveTimer, initialTitle, initialXml, onCancel, onSave, postToDrawio, requestExport])
+  }, [cancelDrawio, clearSaveTimer, initialTitle, initialXml, onSave, postToDrawio, requestExport])
 
   useEffect(() => {
     if (!open) return
     pendingXmlRef.current = initialXml || BLANK_DIAGRAM_XML
     return () => {
       clearSaveTimer()
+      clearCancelTimer()
     }
-  }, [clearSaveTimer, initialXml, open])
+  }, [clearCancelTimer, clearSaveTimer, initialXml, open])
 
   useEffect(() => {
     if (!open) return
@@ -142,6 +162,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
   }, [handleMessage, open])
 
   const handleSave = () => {
+    if (canceling) return
     setState('saving')
     postToDrawio({ action: 'save' })
     clearSaveTimer()
@@ -162,13 +183,14 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
         <div className="memorica-drawio-footer">
           <span data-testid="memorica-drawio-status">{message}</span>
           <div>
-            <Button icon={<CloseOutlined />} onClick={onCancel}>
+            <Button icon={<CloseOutlined />} disabled={canceling} onClick={cancelDrawio}>
               取消
             </Button>
             <Button
               type="primary"
               icon={saving ? <LoadingOutlined spin /> : <CheckOutlined />}
               loading={saving}
+              disabled={canceling}
               onClick={handleSave}
             >
               保存图示
@@ -176,7 +198,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
           </div>
         </div>
       )}
-      onCancel={onCancel}
+      onCancel={cancelDrawio}
     >
       <div className="memorica-drawio-frame-wrap">
         {open && (
