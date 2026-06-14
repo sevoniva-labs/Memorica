@@ -149,6 +149,7 @@ make dockerfile-policy-test # 检查 Docker 构建策略和代理诊断脚本
 make makefile-policy-test # 检查 Makefile 和预发布文档的本地门禁说明
 make cloudflare-pages-policy-test # 检查 Cloudflare Pages 前端部署文档和配置
 make cloudflare-pages-preflight # 检查 Pages 直传部署前的公网 API/WSS 配置
+make cloudflare-pages-build # 使用同一组公网 Vite 变量构建 Pages 直传产物
 make docker-proxy-check # 检查 Docker 外网镜像拉取代理和容器运行时过期代理
 make build         # 构建后端、前端并检查协作服务语法
 make test          # 运行后端快速测试

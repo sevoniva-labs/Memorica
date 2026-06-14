@@ -73,6 +73,7 @@ export function validateCloudflarePagesPreflight({
   envSource = '',
   env = {},
   distExists = true,
+  skipDist = false,
 } = {}) {
   const errors = []
   const warnings = []
@@ -90,7 +91,7 @@ export function validateCloudflarePagesPreflight({
   if (wranglerConfig.pages_build_output_dir !== EXPECTED_OUTPUT_DIR) {
     errors.push(`wrangler pages_build_output_dir must be ${EXPECTED_OUTPUT_DIR}`)
   }
-  if (!distExists) {
+  if (!skipDist && !distExists) {
     errors.push('frontend/dist is missing; run cd frontend && npm run build before direct upload')
   }
 
@@ -144,6 +145,7 @@ function readTextIfExists(path) {
 
 function main() {
   const cwd = process.cwd()
+  const args = new Set(process.argv.slice(2))
   const wranglerPath = join(cwd, 'frontend/wrangler.jsonc')
   const envPath = join(cwd, 'frontend/.env.production')
   const distPath = resolve(cwd, 'frontend/dist')
@@ -152,6 +154,7 @@ function main() {
     envSource: readTextIfExists(envPath),
     env: process.env,
     distExists: existsSync(distPath),
+    skipDist: args.has('--skip-dist'),
   })
 
   console.log('Cloudflare Pages preflight')

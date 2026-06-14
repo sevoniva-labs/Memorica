@@ -48,7 +48,7 @@ Before uploading, run the deployment preflight with the public backend values th
 VITE_API_BASE_URL=https://api.example.com \
 VITE_WS_URL=wss://api.example.com/ws \
 VITE_DRAWIO_URL=https://embed.diagrams.net/ \
-make cloudflare-pages-preflight
+make cloudflare-pages-build
 ```
 
 If `VITE_API_BASE_URL` or `VITE_WS_URL` is empty, the app can still build, but the deployed Pages site will call its own `/api/v1` and `/ws` paths. That is not usable until those paths are backed by a public HTTPS/WSS backend or a Cloudflare Tunnel origin.

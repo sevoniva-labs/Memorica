@@ -73,6 +73,21 @@ test('Cloudflare Pages preflight reads Vite env files', () => {
   )
 })
 
+test('Cloudflare Pages preflight can validate runtime env before dist exists', () => {
+  const result = validateCloudflarePagesPreflight({
+    wranglerSource: '{"name":"memorica-frontend","pages_build_output_dir":"./dist"}',
+    envSource: [
+      'VITE_API_BASE_URL=https://api.memorica.example',
+      'VITE_WS_URL=wss://api.memorica.example/ws',
+    ].join('\n'),
+    distExists: false,
+    skipDist: true,
+  })
+
+  assert.equal(result.ok, true)
+  assert.deepEqual(result.errors, [])
+})
+
 test('Cloudflare deployment docs state backend free-tier boundary and practical path', async () => {
   const source = await readFile('docs/cloudflare-pages.md', 'utf8')
 
@@ -98,6 +113,8 @@ test('Makefile and release docs include the Cloudflare Pages policy check', asyn
 
   assert.match(makefile, /^cloudflare-pages-policy-test: ## Verify Cloudflare Pages deployment docs and config$/m)
   assert.match(makefile, /^cloudflare-pages-preflight: ## Check Cloudflare Pages direct deployment readiness$/m)
+  assert.match(makefile, /^cloudflare-pages-build: ## Build frontend for Cloudflare Pages direct upload$/m)
+  assert.match(makefile, /node scripts\/cloudflare-pages-preflight\.mjs --skip-dist/)
   assert.match(makefile, /^verify-local: .* cloudflare-pages-policy-test .*## Run local checks that do not require browser services$/m)
   assert.match(readme, /docs\/cloudflare-pages\.md/)
   assert.match(checklist, /docs\/cloudflare-pages\.md/)

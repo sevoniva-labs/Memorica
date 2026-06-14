@@ -106,6 +106,7 @@ For the current Cloudflare path, deploy the frontend to Cloudflare Pages and kee
 ```bash
 make cloudflare-pages-policy-test
 VITE_API_BASE_URL=https://api.example.com VITE_WS_URL=wss://api.example.com/ws VITE_DRAWIO_URL=https://embed.diagrams.net/ make cloudflare-pages-preflight
+VITE_API_BASE_URL=https://api.example.com VITE_WS_URL=wss://api.example.com/ws VITE_DRAWIO_URL=https://embed.diagrams.net/ make cloudflare-pages-build
 ```
 
 ## Permission Matrix Checks
