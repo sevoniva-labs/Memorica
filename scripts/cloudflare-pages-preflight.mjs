@@ -66,6 +66,9 @@ function validateUrl({ name, value, required, protocols, errors, warnings }) {
   if (isLocalHost(parsed.hostname)) {
     errors.push(`${name} cannot point to ${parsed.hostname} for a Pages deployment`)
   }
+  if (name === 'VITE_API_BASE_URL' && parsed.pathname.replace(/\/+$/, '').endsWith('/api/v1')) {
+    errors.push('VITE_API_BASE_URL must not include /api/v1 because the frontend API client appends /api/v1')
+  }
 }
 
 export function validateCloudflarePagesPreflight({

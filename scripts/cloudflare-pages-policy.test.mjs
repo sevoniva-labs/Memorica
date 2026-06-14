@@ -79,6 +79,20 @@ test('Cloudflare Pages preflight rejects empty or local backend origins', () => 
   assert.match(local.errors.join('\n'), /wss:\/\//)
 })
 
+test('Cloudflare Pages preflight rejects API base URLs that already include /api/v1', () => {
+  const result = validateCloudflarePagesPreflight({
+    wranglerSource: '{"name":"memorica-frontend","pages_build_output_dir":"./dist"}',
+    envSource: [
+      'VITE_API_BASE_URL=https://api.memorica.example/api/v1',
+      'VITE_WS_URL=wss://api.memorica.example/ws',
+      'VITE_DRAWIO_URL=https://embed.diagrams.net/',
+    ].join('\n'),
+  })
+
+  assert.equal(result.ok, false)
+  assert.match(result.errors.join('\n'), /must not include \/api\/v1/)
+})
+
 test('Cloudflare Pages preflight reads Vite env files', () => {
   assert.deepEqual(
     readViteEnv('VITE_API_BASE_URL=https://api.example.test\n# comment\nVITE_WS_URL="wss://api.example.test/ws"\n'),

@@ -45,7 +45,7 @@ Optional GitHub repository variables:
 ```text
 CLOUDFLARE_PAGES_PROJECT_NAME=memorica-frontend
 CLOUDFLARE_PAGES_BRANCH=main
-VITE_API_BASE_URL=https://api.example.com/api/v1
+VITE_API_BASE_URL=https://api.example.com
 VITE_WS_URL=wss://api.example.com/ws
 VITE_DRAWIO_URL=https://embed.diagrams.net/
 ```
@@ -79,14 +79,14 @@ VITE_DRAWIO_URL=https://embed.diagrams.net/ \
 make cloudflare-pages-build
 ```
 
-If `VITE_API_BASE_URL` or `VITE_WS_URL` is empty, the app can still build, but the deployed Pages site will call its own `/api/v1` and `/ws` paths. That is not usable until those paths are backed by a public HTTPS/WSS backend or a Cloudflare Tunnel origin.
+If `VITE_API_BASE_URL` or `VITE_WS_URL` is empty, the app can still build, but the deployed Pages site will call its own `/api/v1` and `/ws` paths. That is not usable until those paths are backed by a public HTTPS/WSS backend or a Cloudflare Tunnel origin. `VITE_API_BASE_URL` must be the backend origin only, such as `https://api.example.com`; do not include `/api/v1`, because the frontend API client appends that path.
 
 ## Runtime Environment
 
 Set these Cloudflare Pages environment variables in both preview and production:
 
 ```bash
-VITE_API_BASE_URL=https://api.example.com/api/v1
+VITE_API_BASE_URL=https://api.example.com
 VITE_WS_URL=wss://api.example.com/ws
 VITE_DRAWIO_URL=https://embed.diagrams.net/
 ```
