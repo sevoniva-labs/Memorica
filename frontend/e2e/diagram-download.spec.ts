@@ -199,3 +199,33 @@ test('drawio error event shows retry action and remains recoverable', async ({ p
   await page.getByRole('button', { name: '重试保存' }).click();
   await expect(page.getByTestId('memorica-drawio-status')).toContainText('正在保存图示');
 });
+
+test('drawio init timeout offers reload and accepts a later init event', async ({ page }) => {
+  await openEditor(page);
+  await page.route('**/embed.diagrams.net/**', async (route) => {
+    await route.fulfill({
+      contentType: 'text/html',
+      body: '<!doctype html><title>drawio offline</title>',
+    });
+  });
+  await page.clock.install();
+  await openDrawioFromBlankTemplate(page);
+
+  await page.clock.fastForward(15_100);
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('图示编辑器加载超时');
+  await expect(page.getByRole('button', { name: '重新加载' })).toBeVisible();
+
+  await page.getByRole('button', { name: '重新加载' }).click();
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('图示编辑器加载中');
+
+  await page.evaluate(() => {
+    const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
+    if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
+    window.dispatchEvent(new MessageEvent('message', {
+      data: JSON.stringify({ event: 'init' }),
+      source: iframe.contentWindow,
+    }));
+  });
+
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('可以开始编辑图示');
+});

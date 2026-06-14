@@ -12,7 +12,7 @@ interface Props {
   onSave: (value: DiagramAttrs) => void
 }
 
-type DrawioState = 'loading' | 'ready' | 'saving' | 'timeout' | 'error' | 'canceling'
+type DrawioState = 'loading' | 'ready' | 'saving' | 'timeout' | 'error' | 'canceling' | 'initTimeout'
 
 const DRAWIO_STATE_MESSAGES: Record<DrawioState, string> = {
   loading: '图示编辑器加载中',
@@ -21,7 +21,11 @@ const DRAWIO_STATE_MESSAGES: Record<DrawioState, string> = {
   timeout: '保存没有响应，请重试',
   error: '图示编辑器出现异常，请重试',
   canceling: '正在取消图示',
+  initTimeout: '图示编辑器加载超时，请重新加载',
 }
+
+const DRAWIO_INIT_TIMEOUT_MS = 15_000
+const DRAWIO_SAVE_TIMEOUT_MS = 12_000
 
 function drawioUrl() {
   const base = import.meta.env.VITE_DRAWIO_URL || 'https://embed.diagrams.net/'
@@ -52,15 +56,18 @@ function parseDrawioMessage(data: unknown) {
 export default function DrawioDialog({ open, initialXml, initialTitle, onCancel, onSave }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const pendingXmlRef = useRef(initialXml || BLANK_DIAGRAM_XML)
+  const initTimerRef = useRef<number | null>(null)
   const saveTimerRef = useRef<number | null>(null)
   const cancelTimerRef = useRef<number | null>(null)
   const [state, setState] = useState<DrawioState>('loading')
+  const [frameNonce, setFrameNonce] = useState(0)
   const stateRef = useRef<DrawioState>('loading')
   const src = useMemo(() => drawioUrl(), [])
   const message = DRAWIO_STATE_MESSAGES[state]
   const saving = state === 'saving'
   const canceling = state === 'canceling'
   const retryable = state === 'timeout' || state === 'error'
+  const initTimedOut = state === 'initTimeout'
 
   useEffect(() => {
     stateRef.current = state
@@ -77,6 +84,23 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     }
   }, [])
 
+  const clearInitTimer = useCallback(() => {
+    if (initTimerRef.current) {
+      window.clearTimeout(initTimerRef.current)
+      initTimerRef.current = null
+    }
+  }, [])
+
+  const scheduleInitTimeout = useCallback(() => {
+    clearInitTimer()
+    initTimerRef.current = window.setTimeout(() => {
+      initTimerRef.current = null
+      if (stateRef.current === 'loading') {
+        setState('initTimeout')
+      }
+    }, DRAWIO_INIT_TIMEOUT_MS)
+  }, [clearInitTimer])
+
   const clearCancelTimer = useCallback(() => {
     if (cancelTimerRef.current) {
       window.clearTimeout(cancelTimerRef.current)
@@ -85,6 +109,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
   }, [])
 
   const cancelDrawio = useCallback(() => {
+    clearInitTimer()
     clearSaveTimer()
     clearCancelTimer()
     setState('canceling')
@@ -92,7 +117,15 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
       cancelTimerRef.current = null
       onCancel()
     }, 150)
-  }, [clearCancelTimer, clearSaveTimer, onCancel])
+  }, [clearCancelTimer, clearInitTimer, clearSaveTimer, onCancel])
+
+  const reloadDrawio = useCallback(() => {
+    clearSaveTimer()
+    clearCancelTimer()
+    setState('loading')
+    setFrameNonce((value) => value + 1)
+    scheduleInitTimeout()
+  }, [clearCancelTimer, clearSaveTimer, scheduleInitTimeout])
 
   const requestExport = useCallback((xml: string) => {
     pendingXmlRef.current = xml
@@ -111,6 +144,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     if (stateRef.current === 'canceling') return
 
     if (payload.event === 'init') {
+      clearInitTimer()
       pendingXmlRef.current = initialXml || BLANK_DIAGRAM_XML
       postToDrawio({
         action: 'load',
@@ -143,6 +177,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     }
 
     if (payload.event === 'error') {
+      clearInitTimer()
       clearSaveTimer()
       setState('error')
       return
@@ -151,16 +186,18 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     if (payload.event === 'exit') {
       cancelDrawio()
     }
-  }, [cancelDrawio, clearSaveTimer, initialTitle, initialXml, onSave, postToDrawio, requestExport])
+  }, [cancelDrawio, clearInitTimer, clearSaveTimer, initialTitle, initialXml, onSave, postToDrawio, requestExport])
 
   useEffect(() => {
     if (!open) return
     pendingXmlRef.current = initialXml || BLANK_DIAGRAM_XML
+    scheduleInitTimeout()
     return () => {
+      clearInitTimer()
       clearSaveTimer()
       clearCancelTimer()
     }
-  }, [clearCancelTimer, clearSaveTimer, initialXml, open])
+  }, [clearCancelTimer, clearInitTimer, clearSaveTimer, initialXml, open, scheduleInitTimeout])
 
   useEffect(() => {
     if (!open) return
@@ -175,7 +212,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     clearSaveTimer()
     saveTimerRef.current = window.setTimeout(() => {
       setState('timeout')
-    }, 12000)
+    }, DRAWIO_SAVE_TIMEOUT_MS)
   }
 
   return (
@@ -195,12 +232,12 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
             </Button>
             <Button
               type="primary"
-              icon={saving ? <LoadingOutlined spin /> : retryable ? <ReloadOutlined /> : <CheckOutlined />}
+              icon={saving ? <LoadingOutlined spin /> : (retryable || initTimedOut) ? <ReloadOutlined /> : <CheckOutlined />}
               loading={saving}
               disabled={canceling}
-              onClick={handleSave}
+              onClick={initTimedOut ? reloadDrawio : handleSave}
             >
-              {retryable ? '重试保存' : '保存图示'}
+              {initTimedOut ? '重新加载' : retryable ? '重试保存' : '保存图示'}
             </Button>
           </div>
         </div>
@@ -211,7 +248,7 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
         {open && (
           <iframe
             ref={iframeRef}
-            key={`${initialTitle || 'diagram'}-${initialXml?.length || 0}`}
+            key={`${initialTitle || 'diagram'}-${initialXml?.length || 0}-${frameNonce}`}
             src={src}
             title="图示编辑器"
             className="memorica-drawio-frame"
