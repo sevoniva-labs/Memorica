@@ -185,7 +185,7 @@ E2E_BACKEND_HEALTH_URL=http://127.0.0.1:8080/actuator/health \
 npm run test:e2e -- editor-regression.spec.ts --workers=2
 ```
 
-如果要在完整本地栈上先刷新演示数据再跑主回归，可在前端、API、协作服务和基础设施均已启动后运行：
+如果要在完整本地栈上先刷新演示数据，再验证 demo/demo_viewer 演示文档和主回归，可在前端、API、协作服务和基础设施均已启动后运行：
 
 ```bash
 make demo-e2e-local

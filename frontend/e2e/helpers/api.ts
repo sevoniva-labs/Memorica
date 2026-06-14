@@ -52,6 +52,18 @@ export async function registerTestUser(request: APIRequestContext, prefix: strin
   return (await response.json()).data as TestAuth;
 }
 
+export async function loginExistingUser(
+  request: APIRequestContext,
+  username: string,
+  password: string
+): Promise<TestAuth> {
+  const response = await request.post(`${API_BASE}/auth/login`, {
+    data: { username, password },
+  });
+  await expectOk(response, `Log in as ${username}`);
+  return (await response.json()).data as TestAuth;
+}
+
 export async function loginByStorage(page: Page, auth: TestAuth) {
   await page.addInitScript(({ accessToken, refreshToken }) => {
     window.localStorage.setItem('accessToken', accessToken);
@@ -66,6 +78,24 @@ export async function createDocument(request: APIRequestContext, auth: TestAuth,
   });
   await expectOk(response, 'Create document');
   return (await response.json()).data as { id: string; title: string; canWrite: boolean; canManage: boolean };
+}
+
+export async function findMyDocumentByTitle(request: APIRequestContext, auth: TestAuth, title: string) {
+  const response = await request.get(`${API_BASE}/documents/my?q=${encodeURIComponent(title)}&size=50`, {
+    headers: { Authorization: `Bearer ${auth.accessToken}` },
+  });
+  await expectOk(response, 'Find document by title');
+  const documents = ((await response.json()).data.content || []) as Array<{
+    id: string;
+    title: string;
+    itemType?: 'document' | 'folder';
+    deletedAt?: string;
+    canWrite: boolean;
+    canManage: boolean;
+  }>;
+  const match = documents.find((item) => item.title === title && item.itemType !== 'folder' && !item.deletedAt);
+  expect(match, `Expected to find seeded document titled ${title}`).toBeTruthy();
+  return match!;
 }
 
 export async function grantDocumentAccess(

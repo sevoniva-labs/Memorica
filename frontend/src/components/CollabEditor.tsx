@@ -192,8 +192,18 @@ const markdownBlockPattern =
   /(^|\n)\s{0,3}(#{1,6}\s+\S|[-*+]\s+\S|\d+\.\s+\S|>\s+\S|```[a-zA-Z0-9_-]*|~~~[a-zA-Z0-9_-]*|\|.+\|)\s*/
 const markdownInlinePattern =
   /(^|[\s([{])(\*\*[^*\n]+?\*\*|__[^_\n]+?__|`[^`\n]+?`|\[[^\]\n]+?\]\([^)]+\))/
+const markdownTableSeparatorPattern =
+  /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/
 const mermaidStartPattern =
   /^\s*((graph|flowchart)\s+(TB|TD|BT|RL|LR)\b|sequenceDiagram\b|classDiagram(?:-v2)?\b|stateDiagram(?:-v2)?\b|erDiagram\b|journey\b|gantt\b|pie\b|gitGraph\b|mindmap\b|timeline\b|quadrantChart\b|requirementDiagram\b|C4Context\b|block-beta\b|packet-beta\b|xychart-beta\b|sankey-beta\b)/
+
+function looksLikeMarkdownTable(text: string) {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n')
+  return lines.some((line, index) => {
+    if (index === 0 || !markdownTableSeparatorPattern.test(line.trim())) return false
+    return lines[index - 1]?.includes('|') ?? false
+  })
+}
 
 function looksLikeRawMermaidPaste(text: string) {
   const trimmed = text.trim()
@@ -210,7 +220,12 @@ function normalizeMarkdownPaste(text: string) {
 function looksLikeMarkdownPaste(text: string) {
   const trimmed = text.trim()
   if (!trimmed) return false
-  return looksLikeRawMermaidPaste(trimmed) || markdownBlockPattern.test(trimmed) || markdownInlinePattern.test(trimmed)
+  return (
+    looksLikeRawMermaidPaste(trimmed)
+    || looksLikeMarkdownTable(trimmed)
+    || markdownBlockPattern.test(trimmed)
+    || markdownInlinePattern.test(trimmed)
+  )
 }
 
 function insertMarkdownPaste(editor: Editor, view: EditorView, text: string) {

@@ -1079,10 +1079,7 @@ body {
 }
 
 .notion-editor .memorica-mermaid-source {
-  margin: 0;
-  border-top: 1px solid #eef0f3;
-  border-radius: 0;
-  background: #fafbfc;
+  display: none;
 }
 
 .notion-editor .memorica-mermaid-error {

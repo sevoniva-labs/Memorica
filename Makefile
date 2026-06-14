@@ -134,7 +134,12 @@ e2e-local: ## Run local E2E against already-running frontend, API, and collabora
 		E2E_BACKEND_HEALTH_URL=http://127.0.0.1:8080/actuator/health \
 		npm run test:e2e -- editor-regression.spec.ts --workers=2
 
-demo-e2e-local: demo-seed e2e-local ## Seed demo data and run the main local E2E gate
+demo-e2e-local: demo-seed ## Seed demo data and run the demo-specific plus main local E2E gates
+	cd frontend && E2E_SKIP_WEB_SERVER=true \
+		E2E_BASE_URL=http://localhost:5173 \
+		E2E_API_BASE_URL=http://127.0.0.1:8080/api/v1 \
+		E2E_BACKEND_HEALTH_URL=http://127.0.0.1:8080/actuator/health \
+		npm run test:e2e -- demo-seed.spec.ts editor-regression.spec.ts --workers=2
 
 # --- Collaboration ---
 

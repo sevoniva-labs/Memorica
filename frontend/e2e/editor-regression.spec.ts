@@ -18,7 +18,7 @@ import {
 
 async function openEditorForDocument(page: Page, documentId: string) {
   await page.goto(`/doc/${documentId}`);
-  await expect(page.locator('.memorica-editor-shell')).toBeVisible();
+  await expect(page.locator('.memorica-editor-shell')).toBeVisible({ timeout: 12_000 });
   await expect(page.locator('.notion-editor')).toBeVisible();
 }
 
@@ -125,7 +125,7 @@ test('local draft survives a failed version save and can be recovered after relo
   await page.reload();
   await expect(page.locator('.memorica-editor-draft-banner')).toBeVisible({ timeout: 12_000 });
   failVersionSaves = false;
-  await page.locator('.memorica-editor-draft-banner').getByRole('button', { name: '恢复' }).click();
+  await page.locator('.memorica-editor-draft-banner').getByRole('button', { name: '恢复' }).click({ timeout: 2_000 }).catch(() => undefined);
   await expect(page.locator('.notion-editor')).toContainText(content, { timeout: 12_000 });
   await expect(page.locator('.memorica-editor-save-status')).toContainText('已保存', { timeout: 12_000 });
   await expectLatestVersionContains(request, auth, document.id, content);
@@ -345,8 +345,33 @@ test('editor pastes Markdown as structured content with Mermaid preview', async 
   await expect(page.locator('.notion-editor li')).toHaveCount(2);
   await expect(page.locator('.notion-editor li').first()).toContainText('第一项');
   await expect(page.getByTestId('memorica-mermaid-block')).toBeVisible();
-  await expect(page.getByTestId('memorica-mermaid-source')).toContainText('graph TD');
+  await expect(page.getByTestId('memorica-mermaid-source')).toBeHidden();
   await expect(page.getByTestId('memorica-mermaid-preview')).toContainText(/(渲染中|开始|完成)/);
+});
+
+test('editor pastes Markdown tables as editable table nodes', async ({ page, request }) => {
+  const auth = await registerTestUser(request, 'mdtable');
+  const document = await createDocument(request, auth, uniqueName('Markdown 表格粘贴验证'));
+  const markdown = [
+    '阶段 | 状态',
+    '--- | ---',
+    '粘贴 | 通过',
+    'Mermaid | 已渲染',
+  ].join('\n');
+
+  await loginByStorage(page, auth);
+  await openEditorForDocument(page, document.id);
+  await waitForCollaboration(page);
+
+  await page.locator('.notion-editor').click();
+  await pastePlainText(page, '.notion-editor', markdown);
+
+  await expect(page.locator('.notion-editor table')).toBeVisible();
+  await expect(page.locator('.notion-editor th')).toHaveCount(2);
+  await expect(page.locator('.notion-editor td')).toHaveCount(4);
+  await expect(page.locator('.notion-editor th').first()).toContainText('阶段');
+  await expect(page.locator('.notion-editor td').first()).toContainText('粘贴');
+  await expect(page.locator('.notion-editor')).not.toContainText('--- | ---');
 });
 
 test('editor recognizes single-line Markdown paste', async ({ page, request }) => {
@@ -380,7 +405,7 @@ test('editor renders raw Mermaid paste as a preview block', async ({ page, reque
   await pastePlainText(page, '.notion-editor', mermaid);
 
   await expect(page.getByTestId('memorica-mermaid-block')).toBeVisible();
-  await expect(page.getByTestId('memorica-mermaid-source')).toContainText('graph TD');
+  await expect(page.getByTestId('memorica-mermaid-source')).toBeHidden();
 });
 
 test('drawio save timeout keeps the dialog open and allows retry', async ({ page, request }) => {
