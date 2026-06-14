@@ -3,7 +3,7 @@
 	dev dev-down dev-logs setup clean demo-seed demo-seed-dry-run demo-seed-test dockerfile-policy-test docker-proxy-check makefile-policy-test \
 	build ci lint test verify-local audit \
 	backend-build backend-test backend-unit-test backend-integration-test backend-check backend-lint testcontainers-check \
-	frontend-install frontend-dev frontend-build frontend-lint frontend-check frontend-audit e2e-local demo-e2e-local \
+	frontend-install frontend-dev frontend-build frontend-lint frontend-check frontend-antd-compat-test frontend-audit e2e-local demo-e2e-local \
 	hocuspocus-install hocuspocus-check hocuspocus-audit \
 	db-migrate db-new-migration db-backup db-restore \
 	docker-build docker-push
@@ -76,7 +76,10 @@ frontend-build: ## Build frontend for production
 frontend-lint: ## Lint frontend
 	cd frontend && npm run lint
 
-frontend-check: ## Run frontend lint, Ant Design checks, and production build
+frontend-antd-compat-test: ## Verify Ant Design React 19 compatibility patch wiring
+	node --test scripts/frontend-antd-compat.test.mjs
+
+frontend-check: frontend-antd-compat-test ## Run frontend lint, Ant Design checks, and production build
 	cd frontend && npm run lint && npm run antd:doctor && npm run antd:lint && npm run build
 
 frontend-audit: ## Audit frontend production dependencies
