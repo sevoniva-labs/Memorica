@@ -176,6 +176,11 @@ export default function DrawioDialog({ open, initialXml, initialTitle, onCancel,
     }
 
     if (payload.event === 'export') {
+      if (payload.error) {
+        clearSaveTimer()
+        setState('error')
+        return
+      }
       clearSaveTimer()
       setState('ready')
       onSave({
