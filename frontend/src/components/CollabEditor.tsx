@@ -70,6 +70,7 @@ interface Props {
   userColor?: string
   initialTitle?: string
   initialCanWrite?: boolean
+  initialCanManage?: boolean
 }
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
@@ -187,6 +188,7 @@ export default function CollabEditor({
   userColor = '#2563eb',
   initialTitle,
   initialCanWrite = true,
+  initialCanManage = true,
 }: Props) {
   const navigate = useNavigate()
   const { message } = AntdApp.useApp()
@@ -217,6 +219,7 @@ export default function CollabEditor({
   const [saveIssue, setSaveIssue] = useState('')
   const [contentRevision, setContentRevision] = useState(0)
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+  const canManage = initialCanManage
   const { updateDocTitle } = useSidebar()
   const draftKey = useMemo(() => draftStorageKey(docId), [docId])
   const [recoverableDraft, setRecoverableDraft] = useState<LocalDraft | null>(() => readLocalDraft(draftStorageKey(docId)))
@@ -874,14 +877,16 @@ export default function CollabEditor({
 
           {/* 右侧：分享 + AI + 更多 */}
           <div className="memorica-editor-right">
-            <button
-              type="button"
-              className="memorica-editor-btn-primary"
-              onClick={() => setShareOpen(true)}
-            >
-              <ShareAltOutlined style={{ fontSize: 16 }} />
-              <span>分享</span>
-            </button>
+            {canManage && (
+              <button
+                type="button"
+                className="memorica-editor-btn-primary"
+                onClick={() => setShareOpen(true)}
+              >
+                <ShareAltOutlined style={{ fontSize: 16 }} />
+                <span>分享</span>
+              </button>
+            )}
             <button
               type="button"
               className={aiOpen ? 'memorica-editor-btn active' : 'memorica-editor-btn'}
@@ -948,7 +953,7 @@ export default function CollabEditor({
           uploading={uploadingFile}
         />
       )}
-      <ShareSettingsPanel docId={docId} open={shareOpen} onClose={() => setShareOpen(false)} />
+      {canManage && <ShareSettingsPanel docId={docId} open={shareOpen} onClose={() => setShareOpen(false)} />}
       <FindReplace editor={editor} open={findOpen} onClose={() => setFindOpen(false)} />
       <Modal
         title="重命名图示"

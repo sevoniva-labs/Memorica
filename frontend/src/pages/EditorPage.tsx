@@ -52,6 +52,7 @@ export default function EditorPage() {
       userColor={user?.color || '#2563eb'}
       initialTitle={doc.title}
       initialCanWrite={doc.canWrite !== false}
+      initialCanManage={doc.canManage === true}
     />
   )
 }
