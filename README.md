@@ -167,6 +167,8 @@ npm run test:e2e -- editor-regression.spec.ts --workers=2
 
 `npm audit` 在 npmmirror 上没有稳定 audit endpoint，因此 `make frontend-audit` 和 `make hocuspocus-audit` 显式使用 `https://registry.npmjs.org`，安装依赖仍走仓库 `.npmrc` 的国内 registry。
 
+预发布前请按 [docs/release-checklist.md](docs/release-checklist.md) 逐项确认本地 demo 账号、主路径演示脚本、权限矩阵、E2E、后端测试和 audit 结果。
+
 ### 图示服务
 
 默认使用 `https://embed.diagrams.net/`。如果需要本地或私有化部署，可以启用可选 drawio 服务：
