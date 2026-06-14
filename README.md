@@ -172,6 +172,31 @@ npm run test:e2e -- editor-regression.spec.ts --workers=2
 
 预发布前请按 [docs/release-checklist.md](docs/release-checklist.md) 逐项确认本地 demo 账号、主路径演示脚本、权限矩阵、E2E、后端测试和 audit 结果。
 
+### AI 助手配置
+
+AI 助手默认使用 DeepSeek，但核心开发和主回归不依赖真实 API Key。本地开发如果不需要真实 AI，保持 `.env` 中 `DEEPSEEK_API_KEY=` 为空即可；用户触发 AI 时后端会返回“DeepSeek API Key 未配置”，前端会显示为 AI 服务暂时不可用，不影响登录、文档、协作、Draw.io、附件和版本历史主路径。
+
+需要验证真实供应商时，在本机环境或未提交的 `.env` 中配置：
+
+```bash
+AI_PROVIDER=deepseek
+DEEPSEEK_API_KEY=sk-...
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-v4-flash
+DEEPSEEK_THINKING=disabled
+DEEPSEEK_TIMEOUT=45s
+DEEPSEEK_TEMPERATURE=0.4
+```
+
+真实 AI E2E 默认跳过，避免无 key、额度不足或网络波动影响主回归。需要显式打开时运行：
+
+```bash
+cd frontend
+E2E_RUN_AI=true npm run test:e2e -- --grep "AI provider"
+```
+
+不要把真实 `DEEPSEEK_API_KEY`、代理密钥或供应商 token 提交到仓库；生产环境通过部署平台的 Secret/环境变量注入。国内网络不稳定时，可把 `DEEPSEEK_BASE_URL` 指向团队可信的网关或内网代理。
+
 ### 图示服务
 
 默认使用 `https://embed.diagrams.net/`。如果需要本地或私有化部署，可以启用可选 drawio 服务：
