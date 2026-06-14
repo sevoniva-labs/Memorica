@@ -1,6 +1,6 @@
 .PHONY: \
 	help \
-	dev dev-down dev-logs setup clean demo-seed demo-seed-dry-run demo-seed-test dockerfile-policy-test docker-proxy-check makefile-policy-test \
+	dev dev-down dev-logs setup clean demo-seed demo-seed-dry-run demo-seed-test dockerfile-policy-test docker-proxy-check makefile-policy-test cloudflare-pages-policy-test \
 	build ci lint test verify-local audit \
 	backend-build backend-test backend-unit-test backend-integration-test backend-check backend-lint testcontainers-check \
 	frontend-install frontend-dev frontend-build frontend-lint frontend-check frontend-antd-compat-test frontend-ui-policy-test frontend-login-policy-test frontend-version-history-policy-test frontend-document-list-policy-test frontend-share-panel-policy-test frontend-toolbar-policy-test frontend-find-replace-policy-test frontend-collab-editor-policy-test frontend-bubble-menu-policy-test frontend-diagram-template-format-test frontend-diagram-template-picker-policy-test frontend-diagram-node-policy-test frontend-markdown-mermaid-policy-test frontend-audit e2e-local demo-e2e-local \
@@ -36,6 +36,9 @@ dockerfile-policy-test: ## Verify Docker build policy and proxy diagnostics
 
 makefile-policy-test: ## Verify Makefile and pre-release docs expose local gates
 	node --test scripts/makefile-policy.test.mjs
+
+cloudflare-pages-policy-test: ## Verify Cloudflare Pages deployment docs and config
+	node --test scripts/cloudflare-pages-policy.test.mjs
 
 # --- Backend ---
 
@@ -178,7 +181,7 @@ lint: backend-lint frontend-lint hocuspocus-check ## Run all linters and syntax 
 
 test: backend-unit-test ## Run fast backend tests
 
-verify-local: backend-unit-test frontend-check hocuspocus-check demo-seed-test dockerfile-policy-test makefile-policy-test audit ## Run local checks that do not require browser services
+verify-local: backend-unit-test frontend-check hocuspocus-check demo-seed-test dockerfile-policy-test makefile-policy-test cloudflare-pages-policy-test audit ## Run local checks that do not require browser services
 
 # --- Database ---
 

@@ -101,6 +101,12 @@ make testcontainers-check
 make backend-integration-test
 ```
 
+For the current Cloudflare path, deploy the frontend to Cloudflare Pages and keep the API/WebSocket services on an external HTTPS origin or Cloudflare Tunnel. See [docs/cloudflare-pages.md](cloudflare-pages.md), then run:
+
+```bash
+make cloudflare-pages-policy-test
+```
+
 ## Permission Matrix Checks
 
 - Owner can rename, edit content, upload, use AI, insert/edit Draw.io, share, revoke access, publish, delete, restore, and restore versions.
