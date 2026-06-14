@@ -35,6 +35,21 @@ async function openDrawioDialog(page: Page) {
   await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
 }
 
+async function mockDrawioFrameWithoutExport(page: Page) {
+  await page.route('**/embed.diagrams.net/**', async (route) => {
+    await route.fulfill({
+      contentType: 'text/html',
+      body: `<!doctype html>
+        <script>
+          window.addEventListener('message', function() {});
+          window.setTimeout(function() {
+            parent.postMessage(JSON.stringify({ event: 'init' }), '*');
+          }, 0);
+        </script>`,
+    });
+  });
+}
+
 async function simulateDrawioExport(page: Page, marker: string) {
   await page.evaluate((value) => {
     const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
@@ -414,6 +429,7 @@ test('drawio save timeout keeps the dialog open and allows retry', async ({ page
   const document = await createDocument(request, auth, uniqueName('图示超时验证'));
   const marker = uniqueName('retry-marker');
 
+  await mockDrawioFrameWithoutExport(page);
   await loginByStorage(page, auth);
   await openEditorForDocument(page, document.id);
   await waitForCollaboration(page);
@@ -422,12 +438,16 @@ test('drawio save timeout keeps the dialog open and allows retry', async ({ page
   await page.getByText('插入图示').click();
   await page.getByTestId('memorica-diagram-template-blank').click();
   await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('可以开始编辑图示');
 
+  await page.clock.install();
   await page.getByRole('button', { name: '保存图示' }).click();
-  await expect(page.getByTestId('memorica-drawio-status')).toContainText('保存没有响应', { timeout: 13_000 });
+  await page.clock.fastForward(12_100);
+  await expect(page.getByTestId('memorica-drawio-status')).toContainText('保存没有响应');
   await expect(page.locator('.memorica-drawio-frame')).toBeVisible();
 
   await simulateDrawioExport(page, marker);
+  await page.clock.fastForward(500);
   await expect(page.getByTestId('memorica-diagram-node')).toBeVisible();
   await expectLatestVersionContains(request, auth, document.id, marker);
 });
