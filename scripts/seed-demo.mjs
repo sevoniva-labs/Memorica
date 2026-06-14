@@ -208,6 +208,13 @@ export function buildVersionTwoContent(attachment) {
     paragraph('这是一篇用于三分钟演示的协作文档，覆盖正文编辑、版本历史、Draw.io 图示、附件和只读分享。'),
     diagram(now),
     paragraph('第二版加入了系统架构图和 PDF 附件，可用于展示保存状态、版本变化和 viewer 只读访问。'),
+    bulletList([
+      '登录 demo，打开这篇演示文档并观察协作状态与保存状态。',
+      '插入或编辑 Draw.io 图示，再重命名图示块。',
+      '上传 PDF 附件，确认附件在正文和版本历史中都可见。',
+      '分享给 demo_viewer，以 viewer 身份打开并确认只读限制。',
+      '回到 owner 身份恢复旧版本，确认恢复后会生成新的保存版本。',
+    ]),
     {
       type: 'attachment',
       attrs: {
@@ -232,6 +239,16 @@ function heading(text) {
 
 function paragraph(text) {
   return { type: 'paragraph', content: [{ type: 'text', text }] }
+}
+
+function bulletList(items) {
+  return {
+    type: 'bulletList',
+    content: items.map((item) => ({
+      type: 'listItem',
+      content: [paragraph(item)],
+    })),
+  }
 }
 
 function diagram(updatedAt) {
@@ -271,6 +288,12 @@ function renderSnapshotNode(node) {
   if (node.type === 'paragraph') {
     return `<p>${renderInlineContent(node)}</p>`
   }
+  if (node.type === 'bulletList') {
+    return `<ul>${renderListItems(node)}</ul>`
+  }
+  if (node.type === 'listItem') {
+    return `<li>${renderInlineContent(node)}</li>`
+  }
   if (node.type === 'diagram') {
     return renderDiagramSnapshot(node.attrs || {})
   }
@@ -284,6 +307,14 @@ function renderInlineContent(node) {
   if (node?.text) return escapeHtml(node.text)
   if (!Array.isArray(node?.content)) return ''
   return node.content.map(renderInlineContent).join('')
+}
+
+function renderListItems(node) {
+  if (!Array.isArray(node?.content)) return ''
+  return node.content
+    .filter((child) => child?.type === 'listItem')
+    .map((child) => `<li>${renderInlineContent(child)}</li>`)
+    .join('')
 }
 
 function renderDiagramSnapshot(attrs) {

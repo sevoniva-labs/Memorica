@@ -25,7 +25,9 @@ test('demo final version contains editable diagram and attachment nodes', () => 
   assert.ok(diagram)
   assert.match(decodeDiagramXml(diagram.attrs.xml), /Memorica demo architecture/)
   assert.ok(content.content.some((node) => node.type === 'attachment' && node.attrs.objectName === 'demo-file.pdf'))
+  assert.ok(content.content.some((node) => node.type === 'bulletList'))
   assert.match(extractPlainText(content), /三分钟演示/)
+  assert.match(extractPlainText(content), /分享给 demo_viewer/)
 })
 
 test('demo final snapshot renders diagram and attachment summaries', () => {
@@ -44,6 +46,8 @@ test('demo final snapshot renders diagram and attachment summaries', () => {
   assert.match(html, /演示系统架构图/)
   assert.match(html, /memorica-attachment-static/)
   assert.match(html, /memorica-demo-brief\.pdf/)
+  assert.match(html, /<ul>/)
+  assert.match(html, /分享给 demo_viewer/)
 })
 
 test('demo PDF bytes are a syntactically complete single-page PDF', () => {
