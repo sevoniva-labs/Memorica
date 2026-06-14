@@ -62,4 +62,13 @@ class AuthControllerSecurityTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("Access-Control-Allow-Origin", "http://127.0.0.1:5174"));
     }
+
+    @Test
+    void corsShouldAllowConfiguredCloudflarePagesPreviewOriginPattern() throws Exception {
+        mockMvc.perform(options("/api/v1/auth/me")
+                        .header("Origin", "https://memorica-frontend.pages.dev")
+                        .header("Access-Control-Request-Method", "GET"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "https://memorica-frontend.pages.dev"));
+    }
 }

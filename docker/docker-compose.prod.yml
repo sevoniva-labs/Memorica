@@ -2,6 +2,7 @@
 # Run with:
 #   DB_PASSWORD=... JWT_SECRET=... MINIO_ACCESS_KEY=... MINIO_SECRET_KEY=... \
 #   REDIS_PASSWORD=... CORS_ALLOWED_ORIGINS=https://memorica.example.com \
+#   CORS_ALLOWED_ORIGIN_PATTERNS=https://*.pages.dev MINIO_IMAGE_TAG=RELEASE.2026-01-01T00-00-00Z \
 #   TLS_CERT_PATH=/etc/letsencrypt/live/memorica.example.com/fullchain.pem \
 #   TLS_KEY_PATH=/etc/letsencrypt/live/memorica.example.com/privkey.pem \
 #   docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d
@@ -62,6 +63,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required}
+      CORS_ALLOWED_ORIGIN_PATTERNS: ${CORS_ALLOWED_ORIGIN_PATTERNS:-}
 
   hocuspocus-1:
     restart: always

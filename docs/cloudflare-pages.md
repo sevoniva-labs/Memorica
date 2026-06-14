@@ -38,6 +38,15 @@ For domestic networks or production demos, prefer a self-hosted diagrams.net end
 
 Keep the frontend on `https://<project>.pages.dev` or your custom domain, and make the API/WebSocket endpoint a separate HTTPS origin. The backend CORS configuration must explicitly allow the Pages production and preview origins.
 
+For the Spring Boot API, keep exact production domains in `CORS_ALLOWED_ORIGINS` and use `CORS_ALLOWED_ORIGIN_PATTERNS` only for controlled wildcard preview domains:
+
+```bash
+CORS_ALLOWED_ORIGINS=https://memorica.example.com
+CORS_ALLOWED_ORIGIN_PATTERNS=https://*.pages.dev
+```
+
+Do not use `*` with credentialed requests. The frontend stores JWTs in browser storage and sends authenticated API calls, so the API should echo only trusted origins.
+
 ## SPA Routing
 
 Do not add a top-level `frontend/public/404.html` unless you also add an explicit fallback strategy. Cloudflare Pages treats a project without a top-level `404.html` as a single-page application and serves the root app for routes such as `/doc/:id` and `/doc/:id/versions`.
