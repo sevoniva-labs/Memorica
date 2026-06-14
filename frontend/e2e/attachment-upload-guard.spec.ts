@@ -185,6 +185,43 @@ test('image upload shows success status and inserts an image node', async ({ pag
   expect(uploadRequests).toBe(1);
 });
 
+test('image load refresh permission failure shows inline status', async ({ page }) => {
+  let viewRequests = 0;
+  await openEditor(page);
+  await page.route('**/api/v1/files/upload', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          objectName: 'broken.png',
+          url: 'https://example.test/broken.png',
+          originalName: 'broken.png',
+          contentType: 'image/png',
+          sizeBytes: 96,
+          documentId: document.id,
+        },
+      }),
+    });
+  });
+  await page.route('**/api/v1/files/view/broken.png', async (route) => {
+    viewRequests += 1;
+    await route.fulfill({
+      status: 403,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: '无权访问该图片' }),
+    });
+  });
+
+  await page.setInputFiles('[data-testid="memorica-image-upload"]', {
+    name: 'broken.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+  });
+
+  await expect(page.getByTestId('memorica-document-image-status')).toContainText('权限不足：无权访问该图片');
+  expect(viewRequests).toBe(1);
+});
+
 test('permission failure shows a stable upload failure status', async ({ page }) => {
   let uploadRequests = 0;
   await openEditor(page);
