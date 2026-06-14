@@ -10,6 +10,7 @@ test('Cloudflare demo smoke script validates runtime URLs and login payloads', a
     apiV1Endpoint,
     extractLoginSession,
     validateCloudflareDemoConfig,
+    webSocketSmokeUrl,
   } = await import('./cloudflare-demo-smoke.mjs')
 
   const valid = validateCloudflareDemoConfig({
@@ -22,6 +23,7 @@ test('Cloudflare demo smoke script validates runtime URLs and login payloads', a
   assert.deepEqual(valid.errors, [])
   assert.equal(valid.pagesOrigin, 'https://memorica-frontend-5ut.pages.dev')
   assert.equal(apiV1Endpoint('https://api.memorica.example/', '/auth/login'), 'https://api.memorica.example/api/v1/auth/login')
+  assert.equal(webSocketSmokeUrl('wss://ws.memorica.example/collab', 'smoke-session'), 'wss://ws.memorica.example/collab?sessionId=smoke-session')
 
   const invalid = validateCloudflareDemoConfig({
     pagesUrl: 'http://localhost:5173',

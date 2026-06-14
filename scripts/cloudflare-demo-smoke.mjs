@@ -87,6 +87,12 @@ export function apiV1Endpoint(apiBaseUrl, path) {
   return `${base}/api/v1/${cleanPath}`
 }
 
+export function webSocketSmokeUrl(wsUrl, sessionId = `smoke-${Date.now()}`) {
+  const url = new URL(wsUrl)
+  url.searchParams.set('sessionId', sessionId)
+  return url.href
+}
+
 export function extractLoginSession(payload) {
   const data = payload?.data || payload || {}
   return {
@@ -131,6 +137,42 @@ async function checkPages({ pagesUrl }) {
     throw new Error('Pages root did not look like the Memorica SPA')
   }
   return { status: response.status }
+}
+
+async function checkWebSocket({ wsUrl }) {
+  if (typeof WebSocket !== 'function') {
+    throw new Error('This script requires a Node.js runtime with global WebSocket support')
+  }
+
+  const smokeUrl = webSocketSmokeUrl(wsUrl)
+  return new Promise((resolve, reject) => {
+    const socket = new WebSocket(smokeUrl)
+    const timeout = setTimeout(() => {
+      cleanup()
+      socket.close()
+      reject(new Error(`WebSocket did not open within 5s: ${smokeUrl}`))
+    }, 5000)
+
+    function cleanup() {
+      clearTimeout(timeout)
+      socket.removeEventListener('open', handleOpen)
+      socket.removeEventListener('error', handleError)
+    }
+
+    function handleOpen() {
+      cleanup()
+      socket.close()
+      resolve({ url: smokeUrl, opened: true })
+    }
+
+    function handleError() {
+      cleanup()
+      reject(new Error(`WebSocket failed to open: ${smokeUrl}`))
+    }
+
+    socket.addEventListener('open', handleOpen)
+    socket.addEventListener('error', handleError)
+  })
 }
 
 async function checkApi({ config, username, password, demoDocTitle }) {
@@ -201,8 +243,9 @@ export async function runCloudflareDemoSmoke({
 
   const pages = await checkPages({ pagesUrl: config.pagesUrl })
   const api = await checkApi({ config, username, password, demoDocTitle })
+  const webSocket = await checkWebSocket({ wsUrl: config.wsUrl })
 
-  return { config, pages, api }
+  return { config, pages, api, webSocket }
 }
 
 async function main() {
@@ -218,6 +261,7 @@ async function main() {
     console.log(`GET workspaces: ${result.api.workspaceCount}`)
     console.log(`GET recent documents: ${result.api.recentDocumentCount}`)
     console.log(`Demo document: ${result.api.demoDocumentTitle} (${result.api.demoDocumentId})`)
+    console.log(`WebSocket open: ${result.webSocket.opened ? 'ok' : 'no'}`)
     console.log('Cloudflare demo smoke passed')
   } catch (error) {
     console.error(error instanceof Error ? error.message : error)
