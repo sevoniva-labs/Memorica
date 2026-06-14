@@ -157,3 +157,46 @@ test('permission failure shows a stable upload failure status', async ({ page })
   await expect(page.locator('.memorica-attachment-node')).toHaveCount(0);
   expect(uploadRequests).toBe(1);
 });
+
+test('attachment open permission failure shows inline status', async ({ page }) => {
+  let viewRequests = 0;
+  await openEditor(page);
+  await page.route('**/api/v1/files/upload', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          objectName: 'private.pdf',
+          url: 'https://example.test/private.pdf',
+          originalName: 'private.pdf',
+          contentType: 'application/pdf',
+          sizeBytes: 128,
+          documentId: document.id,
+        },
+      }),
+    });
+  });
+  await page.route('**/api/v1/files/view/private.pdf', async (route) => {
+    viewRequests += 1;
+    await route.fulfill({
+      status: 403,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: '无权访问该文件' }),
+    });
+  });
+
+  await page.setInputFiles('[data-testid="memorica-attachment-upload"]', {
+    name: 'private.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\nprivate\n%%EOF\n'),
+  });
+
+  const attachment = page.locator('.memorica-attachment-node');
+  await expect(attachment).toContainText('private.pdf');
+  const openButton = attachment.getByRole('button', { name: '打开' });
+  await openButton.click();
+
+  await expect(page.getByTestId('memorica-attachment-status')).toContainText('权限不足：无权访问该文件');
+  await expect(openButton).toBeEnabled();
+  expect(viewRequests).toBe(1);
+});

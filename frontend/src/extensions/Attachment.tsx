@@ -8,7 +8,7 @@ import {
 } from '@tiptap/react'
 import { DownloadOutlined, FileTextOutlined, LoadingOutlined } from '@ant-design/icons'
 import { useState } from 'react'
-import { getFileUrl } from '../api/client'
+import { apiErrorMessage, getFileUrl } from '../api/client'
 
 export interface AttachmentAttrs {
   objectName: string
@@ -26,23 +26,45 @@ function formatSize(size?: number) {
   return `${(size / 1024 / 1024).toFixed(1)} MB`
 }
 
+type AttachmentStatus = {
+  state: 'error'
+  text: string
+}
+
+function formatOpenFailureMessage(message: string) {
+  if (message.includes('权限') || message.includes('无权')) {
+    return `权限不足：${message}`
+  }
+  return `打开失败：${message}`
+}
+
 function AttachmentView({ node }: NodeViewProps) {
   const attrs = node.attrs as AttachmentAttrs
   const [loading, setLoading] = useState(false)
   const [url, setUrl] = useState(attrs.url || '')
+  const [status, setStatus] = useState<AttachmentStatus | null>(null)
   const title = attrs.name || attrs.objectName || '附件'
   const meta = [attrs.contentType, formatSize(attrs.sizeBytes)].filter(Boolean).join(' · ')
 
   const openFile = async () => {
-    if (!attrs.objectName) return
+    if (!attrs.objectName) {
+      setStatus({ state: 'error', text: '打开失败：附件信息不完整' })
+      return
+    }
     setLoading(true)
+    setStatus(null)
     try {
       const fresh = await getFileUrl(attrs.objectName)
       const nextUrl = fresh.url || url
       setUrl(nextUrl)
       if (nextUrl) {
         window.open(nextUrl, '_blank', 'noopener,noreferrer')
+      } else {
+        setStatus({ state: 'error', text: '打开失败：文件链接为空' })
       }
+    } catch (error) {
+      const message = apiErrorMessage(error, '附件打开失败，请稍后重试')
+      setStatus({ state: 'error', text: formatOpenFailureMessage(message) })
     } finally {
       setLoading(false)
     }
@@ -56,8 +78,24 @@ function AttachmentView({ node }: NodeViewProps) {
       <div className="memorica-attachment-copy">
         <div className="memorica-attachment-title">{title}</div>
         {meta && <div className="memorica-attachment-meta">{meta}</div>}
+        {status && (
+          <div
+            className="memorica-attachment-status"
+            data-state={status.state}
+            data-testid="memorica-attachment-status"
+            aria-live="polite"
+          >
+            {status.text}
+          </div>
+        )}
       </div>
-      <button type="button" className="memorica-attachment-action" onClick={openFile} disabled={loading}>
+      <button
+        type="button"
+        className="memorica-attachment-action"
+        onClick={openFile}
+        disabled={loading}
+        data-testid="memorica-attachment-open"
+      >
         {loading ? <LoadingOutlined spin style={{ fontSize: 15 }} /> : <DownloadOutlined style={{ fontSize: 15 }} />}
         <span>打开</span>
       </button>

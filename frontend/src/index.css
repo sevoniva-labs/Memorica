@@ -1237,6 +1237,14 @@ body {
   white-space: nowrap;
 }
 
+.memorica-attachment-status {
+  margin-top: 3px;
+  color: #b42318;
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
 .memorica-attachment-action {
   display: inline-flex;
   align-items: center;
