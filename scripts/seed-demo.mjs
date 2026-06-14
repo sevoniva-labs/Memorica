@@ -137,7 +137,7 @@ async function saveVersion(token, documentId, content, source) {
     token,
     body: {
       contentJson: JSON.stringify(content),
-      snapshotHtml: snapshotHtml(content),
+      snapshotHtml: buildVersionSnapshotHtml(content),
       wordCount: plainText.split(/\s+/).filter(Boolean).length,
       charCount: plainText.length,
       source,
@@ -255,16 +255,77 @@ export function extractPlainText(node) {
   return node.content.map(extractPlainText).filter(Boolean).join(' ')
 }
 
-function snapshotHtml(content) {
-  return `<article><h1>Memorica 预发布演示</h1><p>${escapeHtml(extractPlainText(content))}</p></article>`
+export function buildVersionSnapshotHtml(content) {
+  const body = Array.isArray(content?.content)
+    ? content.content.map(renderSnapshotNode).filter(Boolean).join('')
+    : `<p>${escapeHtml(extractPlainText(content))}</p>`
+  return `<article>${body}</article>`
+}
+
+function renderSnapshotNode(node) {
+  if (!node) return ''
+  if (node.type === 'heading') {
+    const level = Math.min(Math.max(Number(node.attrs?.level || 1), 1), 6)
+    return `<h${level}>${renderInlineContent(node)}</h${level}>`
+  }
+  if (node.type === 'paragraph') {
+    return `<p>${renderInlineContent(node)}</p>`
+  }
+  if (node.type === 'diagram') {
+    return renderDiagramSnapshot(node.attrs || {})
+  }
+  if (node.type === 'attachment') {
+    return renderAttachmentSnapshot(node.attrs || {})
+  }
+  return renderInlineContent(node)
+}
+
+function renderInlineContent(node) {
+  if (node?.text) return escapeHtml(node.text)
+  if (!Array.isArray(node?.content)) return ''
+  return node.content.map(renderInlineContent).join('')
+}
+
+function renderDiagramSnapshot(attrs) {
+  const title = escapeHtml(attrs.title || '图示')
+  const src = diagramPreviewSrc(attrs.svg || '')
+  const canvas = src
+    ? `<img src="${escapeAttr(src)}" alt="${escapeAttr(attrs.title || '图示')}">`
+    : `<div class="memorica-diagram-empty"><span class="memorica-diagram-empty-copy"><strong>预览不可用</strong><em>${attrs.xml ? 'XML 已保留，可在编辑器中重新生成预览' : '图示数据为空'}</em></span></div>`
+  return `<div data-type="diagram" class="memorica-diagram-static"><div class="memorica-diagram-head"><span class="memorica-diagram-title"><span class="memorica-diagram-static-icon" aria-hidden="true">图示</span>${title}</span><span class="memorica-diagram-static-badge">历史快照</span></div><div class="memorica-diagram-canvas">${canvas}</div></div>`
+}
+
+function renderAttachmentSnapshot(attrs) {
+  const title = escapeHtml(attrs.name || attrs.objectName || '附件')
+  const meta = escapeHtml([attrs.contentType, formatSize(Number(attrs.sizeBytes || 0))].filter(Boolean).join(' · ') || '历史版本附件')
+  return `<div data-type="attachment" class="memorica-attachment-static"><div class="memorica-attachment-icon" aria-hidden="true">FILE</div><div class="memorica-attachment-copy"><div class="memorica-attachment-title">${title}</div><div class="memorica-attachment-meta">${meta}</div></div><span class="memorica-attachment-static-badge">历史快照</span></div>`
+}
+
+function diagramPreviewSrc(svg) {
+  const value = String(svg || '').trim()
+  if (!value) return ''
+  if (value.startsWith('data:image/')) return value
+  if (value.startsWith('<svg')) return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(value)}`
+  return value
+}
+
+function formatSize(size) {
+  if (!size) return ''
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+  return `${(size / 1024 / 1024).toFixed(1)} MB`
 }
 
 function escapeHtml(value) {
-  return value
+  return String(value || '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value)
 }
 
 export function demoPdfBytes() {
