@@ -54,6 +54,17 @@ async function currentDocumentId(page: Page) {
   return match![1];
 }
 
+function findAttachmentObjectName(node: unknown): string {
+  if (!node || typeof node !== 'object') return '';
+  const current = node as { type?: string; attrs?: { objectName?: string }; content?: unknown[] };
+  if (current.type === 'attachment' && current.attrs?.objectName) return current.attrs.objectName;
+  for (const child of current.content || []) {
+    const found = findAttachmentObjectName(child);
+    if (found) return found;
+  }
+  return '';
+}
+
 async function pastePlainText(page: Page, selector: string, text: string) {
   const origin = new URL(page.url()).origin;
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
@@ -549,15 +560,72 @@ test('uploaded attachment persists and follows document sharing permissions', as
   await expectLatestVersionContains(request, owner, document.id, fileName);
 
   const latest = await getLatestVersionContent(request, owner, document.id);
-  const objectName = JSON.parse(latest).content
-    .flatMap((node: { type?: string; attrs?: { objectName?: string } }) => node.type === 'attachment' ? [node.attrs?.objectName] : [])
-    .find(Boolean);
+  const objectName = findAttachmentObjectName(JSON.parse(latest));
   expect(objectName).toBeTruthy();
 
   await grantDocumentAccess(request, owner, document.id, viewer.user.username, 'viewer');
   const fileInfo = await getFileInfo(request, viewer, objectName);
   expect(fileInfo.originalName).toBe(fileName);
   expect(fileInfo.url).toContain(objectName);
+});
+
+test('restored attachment version remains openable', async ({ page, request }) => {
+  const owner = await registerTestUser(request, 'filerestore');
+  const document = await createDocument(request, owner, uniqueName('附件恢复验证'));
+  const fileName = `${uniqueName('restorefile')}.pdf`;
+  const laterText = `后续正文 ${uniqueName('later')}`;
+
+  await loginByStorage(page, owner);
+  await openEditorForDocument(page, document.id);
+  await waitForCollaboration(page);
+
+  await page.setInputFiles('[data-testid="memorica-attachment-upload"]', {
+    name: fileName,
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\nrestore attachment\n%%EOF\n'),
+  });
+  await expect(page.locator('.memorica-attachment-node')).toContainText(fileName, { timeout: 15_000 });
+  await expect(page.locator('.memorica-editor-save-status')).toContainText('已保存', { timeout: 12_000 });
+  await expectLatestVersionContains(request, owner, document.id, fileName);
+
+  const versionsWithAttachment = await listVersions(request, owner, document.id);
+  let attachmentVersion: Awaited<ReturnType<typeof listVersions>>[number] | undefined;
+  let objectName = '';
+  for (const version of versionsWithAttachment) {
+    const detail = await getVersion(request, owner, version.id);
+    if (detail.contentJson.includes(fileName)) {
+      attachmentVersion = version;
+      objectName = findAttachmentObjectName(JSON.parse(detail.contentJson));
+      break;
+    }
+  }
+  expect(attachmentVersion, 'Expected to find the version containing the attachment').toBeTruthy();
+  expect(objectName, 'Expected restored attachment version to keep objectName').toBeTruthy();
+
+  await page.locator('.notion-editor').click();
+  await page.keyboard.type(` ${laterText}`);
+  await expect(page.locator('.memorica-editor-save-status')).toContainText('已保存', { timeout: 12_000 });
+  await expectLatestVersionContains(request, owner, document.id, laterText);
+
+  await page.goto(`/doc/${document.id}/versions`);
+  await page.getByRole('button', { name: new RegExp(`版本 ${attachmentVersion!.versionNumber}\\b`) }).click();
+  await page.getByRole('button', { name: '恢复此版本' }).click();
+  await expect(page.locator('.memorica-attachment-node')).toContainText(fileName, { timeout: 15_000 });
+  await expect(page.locator('.notion-editor')).not.toContainText(laterText);
+  await expectLatestVersionContains(request, owner, document.id, fileName);
+  await expectLatestVersionNotContains(request, owner, document.id, laterText);
+
+  const restoredFileResponse = page.waitForResponse((response) =>
+    response.url().includes(`/api/v1/files/view/${encodeURIComponent(objectName)}`)
+    && response.request().method() === 'GET'
+  );
+  const popup = page.waitForEvent('popup', { timeout: 5_000 }).catch(() => null);
+  await page.getByTestId('memorica-attachment-open').click();
+  await expect((await restoredFileResponse).ok(), 'Expected restored attachment open request to succeed').toBeTruthy();
+  await (await popup)?.close();
+
+  const fileInfo = await getFileInfo(request, owner, objectName);
+  expect(fileInfo.originalName).toBe(fileName);
 });
 
 test('AI provider can generate real content when enabled', async ({ request }) => {
