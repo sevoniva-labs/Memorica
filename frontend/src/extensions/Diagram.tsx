@@ -53,6 +53,7 @@ function DiagramView({ node, selected, updateAttributes, editor, getPos }: NodeV
   const src = previewSrc(attrs.svg)
   const title = attrs.title || '图示'
   const canEdit = editor.isEditable
+  const hasXml = Boolean(attrs.xml?.trim())
 
   const dispatchAction = (action: DiagramAction) => {
     window.dispatchEvent(new CustomEvent<DiagramActionPayload>('memorica:diagram-action', {
@@ -160,9 +161,16 @@ function DiagramView({ node, selected, updateAttributes, editor, getPos }: NodeV
         {src ? (
           <img src={src} alt={title} />
         ) : (
-          <div className="memorica-diagram-empty">
+          <div className="memorica-diagram-empty" data-testid="memorica-diagram-preview-fallback">
             <PartitionOutlined style={{ fontSize: 22 }} />
-            <span>打开图示编辑器</span>
+            <span className="memorica-diagram-empty-copy">
+              <strong>预览不可用</strong>
+              <em>
+                {hasXml
+                  ? (canEdit ? 'XML 已保留，可重新编辑生成预览' : 'XML 已保留，请联系可编辑成员重新生成预览')
+                  : '图示数据为空'}
+              </em>
+            </span>
           </div>
         )}
       </div>

@@ -80,6 +80,28 @@ async function insertDiagram(page: Page, title: string) {
   await expect(page.getByTestId('memorica-diagram-node')).toBeVisible();
 }
 
+async function insertDiagramWithoutPreview(page: Page, title: string) {
+  await page.locator('button[title="更多"]').click();
+  await page.getByText('插入图示').click();
+  await expect(page.getByTestId('memorica-diagram-template-picker')).toBeVisible();
+  await page.getByTestId('memorica-diagram-title').fill(title);
+  await page.getByTestId('memorica-diagram-template-blank').click();
+  await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
+  await page.evaluate(() => {
+    const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
+    if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
+    window.dispatchEvent(new MessageEvent('message', {
+      data: JSON.stringify({
+        event: 'export',
+        xml: '<mxfile><diagram name="Page-1">recoverable xml</diagram></mxfile>',
+        data: '',
+      }),
+      source: iframe.contentWindow,
+    }));
+  });
+  await expect(page.getByTestId('memorica-diagram-node')).toBeVisible();
+}
+
 test('diagram svg download falls back to a safe filename when the title is invalid', async ({ page }) => {
   await openEditor(page);
   await insertDiagram(page, '///');
@@ -90,4 +112,16 @@ test('diagram svg download falls back to a safe filename when the title is inval
   ]);
 
   expect(download.suggestedFilename()).toBe('diagram.svg');
+});
+
+test('diagram without svg preview still exposes XML edit fallback', async ({ page }) => {
+  await openEditor(page);
+  await insertDiagramWithoutPreview(page, '可恢复图示');
+
+  const diagram = page.getByTestId('memorica-diagram-node');
+  await expect(diagram.getByTestId('memorica-diagram-preview-fallback')).toContainText('预览不可用');
+  await expect(diagram.getByTestId('memorica-diagram-action-download')).toBeDisabled();
+
+  await diagram.getByTestId('memorica-diagram-action-edit').click();
+  await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
 });

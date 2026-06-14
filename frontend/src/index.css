@@ -1389,6 +1389,24 @@ body {
   font-size: 13px;
 }
 
+.memorica-diagram-empty-copy {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.memorica-diagram-empty-copy strong {
+  color: #1f2329;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.memorica-diagram-empty-copy em {
+  color: #86909c;
+  font-size: 12px;
+  font-style: normal;
+}
+
 .memorica-diagram-picker {
   display: flex;
   flex-direction: column;
