@@ -187,9 +187,13 @@ export async function generateAI(request: APIRequestContext, auth: TestAuth, doc
 }
 
 export async function getFileInfo(request: APIRequestContext, auth: TestAuth, objectName: string) {
-  const response = await request.get(`${API_BASE}/files/view/${encodeURIComponent(objectName)}`, {
-    headers: { Authorization: `Bearer ${auth.accessToken}` },
-  });
+  const response = await getFileInfoResponse(request, auth, objectName);
   await expectOk(response, 'Get file URL');
   return (await response.json()).data as { objectName: string; url: string; originalName: string };
+}
+
+export async function getFileInfoResponse(request: APIRequestContext, auth: TestAuth, objectName: string) {
+  return request.get(`${API_BASE}/files/view/${encodeURIComponent(objectName)}`, {
+    headers: { Authorization: `Bearer ${auth.accessToken}` },
+  });
 }

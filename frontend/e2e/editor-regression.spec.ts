@@ -7,6 +7,7 @@ import {
   generateAI,
   getDocument,
   getFileInfo,
+  getFileInfoResponse,
   getVersion,
   getLatestVersionContent,
   grantDocumentAccess,
@@ -613,6 +614,7 @@ test('version history preview shows attachment and diagram summaries', async ({ 
 test('uploaded attachment persists and follows document sharing permissions', async ({ page, request }) => {
   const owner = await registerTestUser(request, 'fileowner');
   const viewer = await registerTestUser(request, 'fileviewer');
+  const outsider = await registerTestUser(request, 'fileout');
   const document = await createDocument(request, owner, uniqueName('附件验证'));
   const fileName = `${uniqueName('sample')}.pdf`;
 
@@ -632,6 +634,9 @@ test('uploaded attachment persists and follows document sharing permissions', as
   const latest = await getLatestVersionContent(request, owner, document.id);
   const objectName = findAttachmentObjectName(JSON.parse(latest));
   expect(objectName).toBeTruthy();
+
+  const deniedFileInfo = await getFileInfoResponse(request, outsider, objectName);
+  expect(deniedFileInfo.status()).toBe(403);
 
   await grantDocumentAccess(request, owner, document.id, viewer.user.username, 'viewer');
   const fileInfo = await getFileInfo(request, viewer, objectName);
