@@ -37,6 +37,20 @@ function versionWordDelta(version: DocumentVersion, versions: DocumentVersion[])
   return { text: '无变化', color: 'default' }
 }
 
+function formatVersionContentJson(contentJson: string) {
+  try {
+    return {
+      formatted: JSON.stringify(JSON.parse(contentJson || '{}'), null, 2),
+      invalid: false,
+    }
+  } catch {
+    return {
+      formatted: contentJson || '',
+      invalid: true,
+    }
+  }
+}
+
 export default function VersionHistoryPage() {
   const { docId } = useParams<{ docId: string }>()
   const navigate = useNavigate()
@@ -306,11 +320,25 @@ export default function VersionHistoryPage() {
                       className="prose prose-sm max-w-none prose-headings:font-semibold prose-p:my-2"
                       dangerouslySetInnerHTML={{ __html: selectedVersion.snapshotHtml }}
                     />
-                  ) : (
-                    <pre className="text-xs text-gray-600 bg-gray-50 rounded-lg p-4 overflow-auto max-h-[600px]">
-                      {JSON.stringify(JSON.parse(selectedVersion.contentJson || '{}'), null, 2)}
-                    </pre>
-                  )}
+                  ) : (() => {
+                    const contentPreview = formatVersionContentJson(selectedVersion.contentJson)
+                    return (
+                      <Space direction="vertical" size={12} className="w-full">
+                        {contentPreview.invalid && (
+                          <Alert
+                            showIcon
+                            type="warning"
+                            data-testid="memorica-version-content-invalid"
+                            message="版本内容格式异常"
+                            description="无法按结构化 JSON 预览此版本，下面显示原始内容。"
+                          />
+                        )}
+                        <pre className="text-xs text-gray-600 bg-gray-50 rounded-lg p-4 overflow-auto max-h-[600px]">
+                          {contentPreview.formatted}
+                        </pre>
+                      </Space>
+                    )
+                  })()}
                 </Card>
               ) : (
                 <Card className="border-gray-100 text-center" styles={{ body: { padding: 48 } }}>

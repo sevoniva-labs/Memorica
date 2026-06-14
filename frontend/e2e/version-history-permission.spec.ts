@@ -37,6 +37,8 @@ type VersionDetailRoute = {
   body?: unknown;
   delayMs?: number;
   text?: string;
+  contentJson?: string;
+  snapshotHtml?: string | null;
 };
 
 async function openVersionHistory(
@@ -103,11 +105,11 @@ async function openVersionHistory(
       body: JSON.stringify({
         data: {
           ...routeVersion,
-          contentJson: JSON.stringify({
+          contentJson: routeOptions.contentJson ?? JSON.stringify({
             type: 'doc',
             content: [{ type: 'paragraph', content: [{ type: 'text', text: bodyText }] }],
           }),
-          snapshotHtml: `<p>${bodyText}</p>`,
+          snapshotHtml: routeOptions.snapshotHtml === undefined ? `<p>${bodyText}</p>` : routeOptions.snapshotHtml,
         },
       }),
     });
@@ -177,6 +179,22 @@ test('version detail load failure shows an inline error', async ({ page }) => {
 
   await expect(page.getByTestId('memorica-version-detail-error')).toContainText('版本详情暂时不可用');
   await expect(page.getByRole('button', { name: '恢复此版本' })).not.toBeVisible();
+});
+
+test('invalid raw version content shows a preview fallback instead of crashing', async ({ page }) => {
+  await openVersionHistory(page, true, [version], {
+    versionDetails: {
+      [version.id]: {
+        contentJson: '{not-json',
+        snapshotHtml: null,
+      },
+    },
+  });
+
+  await page.getByRole('button', { name: /版本 1/ }).click();
+
+  await expect(page.getByTestId('memorica-version-content-invalid')).toContainText('版本内容格式异常');
+  await expect(page.getByRole('button', { name: '恢复此版本' })).toBeVisible();
 });
 
 test('version list shows word count changes between versions', async ({ page }) => {
