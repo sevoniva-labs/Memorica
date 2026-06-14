@@ -118,6 +118,8 @@ Spring Boot + PostgreSQL + Redis + MinIO + Hocuspocus
 
 That stack cannot be deployed unchanged to Workers free tier. Workers can run edge JavaScript/TypeScript, but this backend currently needs a JVM service, Postgres, Redis pub/sub, S3-compatible object storage, and a long-lived Hocuspocus WebSocket process.
 
+Cloudflare Pages should not expose MinIO credentials or talk directly to object storage. File upload and attachment viewing must continue to go through `VITE_API_BASE_URL`, where the Spring Boot backend checks document permissions and returns short-lived MinIO presigned URLs. If the backend is exposed through Cloudflare Tunnel, the tunneled origin still needs network access to `MINIO_ENDPOINT`. A later R2 migration is possible, but it should preserve the same backend permission checks and presigned URL behavior.
+
 Practical paths:
 
 - Short term: deploy only `frontend` to Cloudflare Pages and keep the backend on Docker Compose, a VPS, Kubernetes, or another managed host.

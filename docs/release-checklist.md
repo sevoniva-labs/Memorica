@@ -125,6 +125,8 @@ VITE_API_BASE_URL=https://api.example.com VITE_WS_URL=wss://api.example.com/ws V
 - If Draw.io reports `invalid stored block lengths`, run `make drawio-diagnostics` first to separate committed template corruption from saved-document XML/export corruption or intranet access issues.
 - DeepSeek AI is optional for core tests. Leaving `DEEPSEEK_API_KEY` empty is the local disabled state; provider-backed checks should stay opt-in with `E2E_RUN_AI=true`.
 - Never commit real AI keys. Production should inject `DEEPSEEK_API_KEY` through deployment secrets, and domestic-network deployments may point `DEEPSEEK_BASE_URL` at a trusted gateway.
+- MinIO local defaults are `MINIO_ENDPOINT=http://localhost:9000`, `MINIO_ACCESS_KEY=minioadmin`, `MINIO_SECRET_KEY=minioadmin`, and `MINIO_BUCKET=memorica`; never reuse `minioadmin` credentials in production.
+- Production must inject independent `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, and a backend-reachable `MINIO_ENDPOINT` through secrets or deployment environment variables.
 - MinIO presigned file URLs should stay short-lived. `FILE_URL_EXPIRY_MINUTES` is clamped to 1-60 minutes by the backend; keep production values near the 15 minute default unless there is a documented operational need.
 
 ## Pre-Release Sign-Off

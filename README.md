@@ -197,7 +197,21 @@ make demo-e2e-local
 
 `npm audit` 在 npmmirror 上没有稳定 audit endpoint，因此 `make frontend-audit` 和 `make hocuspocus-audit` 显式使用 `https://registry.npmjs.org`，安装依赖仍走仓库 `.npmrc` 的国内 registry。
 
-文件临时访问链接由 `FILE_URL_EXPIRY_MINUTES` 控制，后端会限制在 1-60 分钟之间；生产环境建议保持接近默认的 15 分钟，避免附件链接长期有效。
+### 文件存储配置
+
+本地 Docker Compose 会启动 MinIO，默认后端配置为：
+
+```text
+MINIO_ENDPOINT=http://localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET=memorica
+FILE_URL_EXPIRY_MINUTES=15
+```
+
+`minioadmin` 只适合本地开发。生产环境必须通过 Secret 或部署平台环境变量设置独立的 `MINIO_ACCESS_KEY`、`MINIO_SECRET_KEY` 和 `MINIO_BUCKET`，并把 `MINIO_ENDPOINT` 指向后端服务可访问的对象存储地址。`FILE_URL_EXPIRY_MINUTES` 控制文件临时访问链接，后端会限制在 1-60 分钟之间；生产环境建议保持接近默认的 15 分钟，避免附件链接长期有效。
+
+Cloudflare Pages 只托管前端静态资源，附件仍通过后端 API 鉴权后返回 MinIO presigned URL。后端如果通过 Cloudflare Tunnel 暴露，必须同时保证该后端能访问 `MINIO_ENDPOINT`；后续若把文件迁移到 R2，需要保留同样的文档权限校验和短时 presigned 链接策略。
 
 预发布前请按 [docs/release-checklist.md](docs/release-checklist.md) 逐项确认本地 demo 账号、主路径演示脚本、权限矩阵、E2E、后端测试和 audit 结果。
 
