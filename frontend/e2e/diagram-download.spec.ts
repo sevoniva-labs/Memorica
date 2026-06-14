@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { BLANK_DIAGRAM_XML } from '../src/diagram/templates';
 
 const user = {
   id: 2101,
@@ -67,18 +68,18 @@ async function insertDiagram(page: Page, title: string) {
   await page.getByTestId('memorica-diagram-title').fill(title);
   await page.getByTestId('memorica-diagram-template-blank').click();
   await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
-  await page.evaluate(() => {
+  await page.evaluate((xml) => {
     const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
     if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
     window.dispatchEvent(new MessageEvent('message', {
       data: JSON.stringify({
         event: 'export',
-        xml: '<mxfile><diagram name="Page-1">download</diagram></mxfile>',
+        xml,
         data: '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="160"><text x="20" y="80">download</text></svg>',
       }),
       source: iframe.contentWindow,
     }));
-  });
+  }, BLANK_DIAGRAM_XML);
   await expect(page.getByTestId('memorica-diagram-node')).toBeVisible();
 }
 
@@ -89,18 +90,44 @@ async function insertDiagramWithoutPreview(page: Page, title: string) {
   await page.getByTestId('memorica-diagram-title').fill(title);
   await page.getByTestId('memorica-diagram-template-blank').click();
   await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
-  await page.evaluate(() => {
+  await page.evaluate((xml) => {
     const iframe = document.querySelector<HTMLIFrameElement>('.memorica-drawio-frame');
     if (!iframe?.contentWindow) throw new Error('drawio iframe not found');
     window.dispatchEvent(new MessageEvent('message', {
       data: JSON.stringify({
         event: 'export',
-        xml: '<mxfile><diagram name="Page-1">recoverable xml</diagram></mxfile>',
+        xml,
         data: '',
       }),
       source: iframe.contentWindow,
     }));
-  });
+  }, BLANK_DIAGRAM_XML);
+  await expect(page.getByTestId('memorica-diagram-node')).toBeVisible();
+}
+
+async function pasteDiagramHtml(page: Page, title: string, xml: string) {
+  await openEditor(page);
+  await page.locator('.notion-editor').click();
+  await page.evaluate(({ diagramTitle, diagramXml }) => {
+    const editor = document.querySelector('.notion-editor');
+    if (!editor) throw new Error('editor not found');
+    const data = new DataTransfer();
+    const escapedTitle = diagramTitle.replace(/"/g, '&quot;');
+    const escapedXml = diagramXml
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    data.setData(
+      'text/html',
+      `<div data-type="diagram" data-title="${escapedTitle}" data-xml="${escapedXml}" data-svg=""></div>`
+    );
+    editor.dispatchEvent(new ClipboardEvent('paste', {
+      clipboardData: data,
+      bubbles: true,
+      cancelable: true,
+    }));
+  }, { diagramTitle: title, diagramXml: xml });
   await expect(page.getByTestId('memorica-diagram-node')).toBeVisible();
 }
 
@@ -170,6 +197,19 @@ test('diagram without svg preview still exposes XML edit fallback', async ({ pag
 
   await diagram.getByTestId('memorica-diagram-action-edit').click();
   await expect(page.locator('.memorica-drawio-frame')).toBeVisible({ timeout: 10_000 });
+});
+
+test('diagram with corrupted drawio xml does not open the embedded editor', async ({ page }) => {
+  await pasteDiagramHtml(
+    page,
+    '损坏图示',
+    '<mxfile><diagram name="Page-1"><mxGraphModel></mxGraphModel></diagram></mxfile>'
+  );
+
+  const diagram = page.getByTestId('memorica-diagram-node');
+  await expect(diagram.getByTestId('memorica-diagram-preview-fallback')).toContainText('图示数据可能损坏');
+  await expect(diagram.getByTestId('memorica-diagram-action-edit')).toBeDisabled();
+  await expect(page.locator('.memorica-drawio-frame')).toHaveCount(0);
 });
 
 test('drawio save requests a direct svg export from the embedded editor', async ({ page }) => {

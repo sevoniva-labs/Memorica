@@ -17,6 +17,7 @@ import {
 } from '@ant-design/icons'
 import { Button, Tooltip } from 'antd'
 import { safeDiagramDownloadName } from '../diagram/files'
+import { drawioXmlIssueText, isEditableDrawioXml } from '../diagram/xml'
 
 export interface DiagramAttrs {
   xml: string
@@ -61,8 +62,11 @@ function DiagramView({ node, selected, updateAttributes, editor, getPos }: NodeV
   const title = attrs.title || '图示'
   const canEdit = editor.isEditable
   const hasXml = Boolean(attrs.xml?.trim())
+  const canEditXml = isEditableDrawioXml(attrs.xml)
+  const xmlIssueText = drawioXmlIssueText(attrs.xml)
 
   const dispatchAction = (action: DiagramAction) => {
+    if (action === 'edit' && !canEditXml) return
     window.dispatchEvent(new CustomEvent<DiagramActionPayload>('memorica:diagram-action', {
       detail: {
         action,
@@ -143,7 +147,7 @@ function DiagramView({ node, selected, updateAttributes, editor, getPos }: NodeV
         <div className="memorica-diagram-actions">
           {canEdit && (
             <>
-              {renderActionButton('编辑', <EditOutlined style={{ fontSize: 13 }} />, 'memorica-diagram-action-edit', () => dispatchAction('edit'))}
+              {renderActionButton('编辑', <EditOutlined style={{ fontSize: 13 }} />, 'memorica-diagram-action-edit', () => dispatchAction('edit'), !canEditXml)}
               {renderActionButton('重命名', <FormOutlined style={{ fontSize: 13 }} />, 'memorica-diagram-action-rename', () => dispatchAction('rename'))}
               {renderActionButton('复制', <CopyOutlined style={{ fontSize: 13 }} />, 'memorica-diagram-action-duplicate', () => dispatchAction('duplicate'))}
               {renderActionButton('删除', <DeleteOutlined style={{ fontSize: 13 }} />, 'memorica-diagram-action-delete', () => dispatchAction('delete'), false, true)}
@@ -162,7 +166,11 @@ function DiagramView({ node, selected, updateAttributes, editor, getPos }: NodeV
               <strong>预览不可用</strong>
               <em>
                 {hasXml
-                  ? (canEdit ? 'XML 已保留，可重新编辑生成预览' : 'XML 已保留，请联系可编辑成员重新生成预览')
+                  ? (canEdit
+                      ? xmlIssueText
+                      : (canEditXml
+                          ? 'XML 已保留，请联系可编辑成员重新生成预览'
+                          : '图示数据可能损坏，请联系可编辑成员从历史版本恢复或重新插入图示'))
                   : '图示数据为空'}
               </em>
             </span>
@@ -214,6 +222,7 @@ export const Diagram = Node.create({
     const xml = staticAttr(HTMLAttributes, 'data-xml')
     const svg = staticAttr(HTMLAttributes, 'data-svg')
     const src = previewSrc(svg)
+    const fallbackText = drawioXmlIssueText(xml)
 
     return [
       'div',
@@ -239,7 +248,7 @@ export const Diagram = Node.create({
               { class: 'memorica-diagram-empty' },
               ['span', { class: 'memorica-diagram-empty-copy' },
                 ['strong', {}, '预览不可用'],
-                ['em', {}, xml ? 'XML 已保留，可在编辑器中重新生成预览' : '图示数据为空'],
+                ['em', {}, fallbackText],
               ],
             ],
       ],
