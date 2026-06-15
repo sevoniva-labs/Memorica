@@ -68,6 +68,14 @@ Cloudflare Pages project `memorica-frontend` has been created on the connected a
 https://memorica-frontend-5ut.pages.dev
 ```
 
+The custom domain is:
+
+```text
+https://memorica.sevoniva.com
+```
+
+Use a CNAME from `memorica.sevoniva.com` to `memorica-frontend-5ut.pages.dev`. After the DNS record is created, Cloudflare Pages may stay in `initializing` or `pending` while DNS validation and certificate issuance finish.
+
 GitHub Actions deploys this project from the repository workflow. Direct upload still requires a local Wrangler session (`npx wrangler login`) or a scoped API token, then:
 
 ```bash
@@ -127,7 +135,7 @@ Keep the frontend on `https://<project>.pages.dev` or your custom domain, and ma
 For the Spring Boot API, keep exact production domains in `CORS_ALLOWED_ORIGINS` and use `CORS_ALLOWED_ORIGIN_PATTERNS` only for controlled wildcard preview domains:
 
 ```bash
-CORS_ALLOWED_ORIGINS=https://memorica.example.com
+CORS_ALLOWED_ORIGINS=https://memorica-frontend-5ut.pages.dev,https://memorica.sevoniva.com
 CORS_ALLOWED_ORIGIN_PATTERNS=https://*.pages.dev
 ```
 
