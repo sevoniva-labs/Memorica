@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type Key } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Alert,
@@ -7,6 +7,7 @@ import {
   Breadcrumb,
   Button,
   Dropdown,
+  Empty,
   Input,
   Modal,
   Popconfirm,
@@ -17,14 +18,16 @@ import {
   Typography,
 } from 'antd'
 import type { MenuProps } from 'antd'
-import { ProTable, type ProColumns } from '@ant-design/pro-components'
+import { PageContainer } from '@ant-design/pro-layout'
+import { ProCard, ProTable, type ProColumns } from '@ant-design/pro-components'
 import {
   BellOutlined,
   CloudUploadOutlined,
   DeleteOutlined,
-  DownOutlined,
   EditOutlined,
+  EllipsisOutlined,
   FileOutlined,
+  FolderAddOutlined,
   FolderOpenOutlined,
   PlusOutlined,
   SearchOutlined,
@@ -34,8 +37,8 @@ import {
   UndoOutlined,
 } from '@ant-design/icons'
 import {
-  createFolder,
   createDocument,
+  createFolder,
   deleteDocument,
   listFavoriteDocuments,
   listMyDocuments,
@@ -63,6 +66,16 @@ interface WorkspaceRow extends DocumentItem {
   key: string
 }
 
+const tabDefinitions: Array<{ key: TabKey; label: string }> = [
+  { key: 'workspace', label: '全部文档' },
+  { key: 'my', label: '我拥有的' },
+  { key: 'recent', label: '最近访问' },
+  { key: 'favorite', label: '收藏' },
+  { key: 'shared', label: '与我共享' },
+  { key: 'public', label: '公开文档' },
+  { key: 'trash', label: '回收站' },
+]
+
 function formatDate(value: string) {
   if (!value) return ''
   const date = new Date(value)
@@ -87,6 +100,14 @@ function formatDate(value: string) {
 function initials(name?: string) {
   const value = name?.trim() || 'U'
   return value.slice(0, 1).toUpperCase()
+}
+
+function tabTitle(tab: TabKey) {
+  return tabDefinitions.find((item) => item.key === tab)?.label || '全部文档'
+}
+
+function itemTypeLabel(itemType?: DocumentItem['itemType']) {
+  return itemType === 'folder' ? '文件夹' : '文档'
 }
 
 async function loadDocuments(tab: TabKey, workspaceId?: string, query = '', parentId?: string) {
@@ -126,15 +147,34 @@ export default function DocumentListPage() {
   const [favoriteId, setFavoriteId] = useState<string>()
   const [deletingId, setDeletingId] = useState<string>()
   const [restoringId, setRestoringId] = useState<string>()
+  const [batching, setBatching] = useState(false)
+  const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([])
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
-  const { message } = AntdApp.useApp()
+  const { message, modal } = AntdApp.useApp()
 
   const displayName = user?.displayName || user?.username || '用户'
   const currentFolder = folderStack[folderStack.length - 1]
   const currentParentId = currentFolder?.id
   const canUseFolders = tab === 'workspace' || tab === 'my'
+
+  const rows = useMemo<WorkspaceRow[]>(() => {
+    const normalized = query.trim().toLowerCase()
+    return docs
+      .filter((doc) => !normalized || doc.title.toLowerCase().includes(normalized))
+      .map((doc) => ({ ...doc, key: doc.id }))
+  }, [docs, query])
+
+  const visibleRowIds = useMemo(() => new Set(rows.map((row) => row.id)), [rows])
+  const visibleSelectedRowKeys = useMemo(
+    () => selectedRowKeys.filter((key) => visibleRowIds.has(String(key))),
+    [selectedRowKeys, visibleRowIds]
+  )
+  const selectedRows = useMemo(
+    () => rows.filter((row) => visibleSelectedRowKeys.includes(row.id)),
+    [rows, visibleSelectedRowKeys]
+  )
 
   const fetchDocuments = async (
     nextTab = tab,
@@ -218,13 +258,6 @@ export default function DocumentListPage() {
     }
   }, [message])
 
-  const rows = useMemo<WorkspaceRow[]>(() => {
-    const normalized = query.trim().toLowerCase()
-    return docs
-      .filter((doc) => !normalized || doc.title.toLowerCase().includes(normalized))
-      .map((doc) => ({ ...doc, key: doc.id }))
-  }, [docs, query])
-
   const handleCreate = async (title = '未命名文档') => {
     if (creatingDocument) return
     setCreatingDocument(true)
@@ -259,6 +292,7 @@ export default function DocumentListPage() {
     setDeletingId(id)
     try {
       await deleteDocument(id)
+      setSelectedRowKeys((keys) => keys.filter((key) => key !== id))
       message.success('文档已删除')
       fetchDocuments()
     } catch {
@@ -273,12 +307,43 @@ export default function DocumentListPage() {
     setRestoringId(id)
     try {
       await restoreDocument(id)
+      setSelectedRowKeys((keys) => keys.filter((key) => key !== id))
       message.success('文档已恢复')
       fetchDocuments()
     } catch {
       message.error('恢复失败')
     } finally {
       setRestoringId(undefined)
+    }
+  }
+
+  const handleBatchDelete = async () => {
+    if (batching || selectedRows.length === 0) return
+    setBatching(true)
+    try {
+      await Promise.all(selectedRows.map((row) => deleteDocument(row.id)))
+      setSelectedRowKeys([])
+      message.success('已删除所选项目')
+      fetchDocuments()
+    } catch {
+      message.error('批量删除失败')
+    } finally {
+      setBatching(false)
+    }
+  }
+
+  const handleBatchRestore = async () => {
+    if (batching || selectedRows.length === 0) return
+    setBatching(true)
+    try {
+      await Promise.all(selectedRows.map((row) => restoreDocument(row.id)))
+      setSelectedRowKeys([])
+      message.success('已恢复所选项目')
+      fetchDocuments()
+    } catch {
+      message.error('批量恢复失败')
+    } finally {
+      setBatching(false)
     }
   }
 
@@ -358,32 +423,78 @@ export default function DocumentListPage() {
   const switchTab = (nextTab: TabKey) => {
     if (nextTab === tab) return
     setFolderStack([])
+    setSelectedRowKeys([])
     setQuery('')
     setTab(nextTab)
   }
 
   const enterFolder = (folder: DocumentItem) => {
     setFolderStack((items) => [...items, folder])
+    setSelectedRowKeys([])
     setQuery('')
     setLoading(true)
   }
 
   const jumpToFolder = (index: number) => {
     setFolderStack((items) => items.slice(0, index + 1))
+    setSelectedRowKeys([])
     setQuery('')
     setLoading(true)
   }
 
   const jumpToRoot = () => {
     setFolderStack([])
+    setSelectedRowKeys([])
     setQuery('')
     setLoading(true)
   }
+
+  const confirmDelete = (record: DocumentItem) => {
+    modal.confirm({
+      title: `删除${itemTypeLabel(record.itemType)}？`,
+      content: '删除后会进入回收站，可从回收站恢复。',
+      okText: '删除',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: () => handleDelete(record.id),
+    })
+  }
+
+  const handleRowMenuClick = (record: DocumentItem): MenuProps['onClick'] => ({ key, domEvent }) => {
+    domEvent.stopPropagation()
+    if (key === 'rename') openRename(record)
+    if (key === 'move') openMove(record)
+    if (key === 'delete') confirmDelete(record)
+  }
+
+  const rowActionItems = (): MenuProps['items'] => [
+    {
+      key: 'rename',
+      icon: <EditOutlined />,
+      label: '重命名',
+      disabled: tab !== 'my' && tab !== 'workspace',
+    },
+    {
+      key: 'move',
+      icon: <FolderOpenOutlined />,
+      label: '移动到',
+      disabled: tab !== 'my' && tab !== 'workspace',
+    },
+    { type: 'divider' },
+    {
+      key: 'delete',
+      danger: true,
+      icon: <DeleteOutlined />,
+      label: '删除',
+      disabled: Boolean(deletingId) || (tab !== 'my' && tab !== 'workspace'),
+    },
+  ]
 
   const columns: ProColumns<WorkspaceRow>[] = [
     {
       title: '名称',
       dataIndex: 'title',
+      ellipsis: true,
       render: (_, record) => (
         <Space align="center" size={10} className="memorica-doc-title">
           <span className={`memorica-file-icon ${record.itemType === 'folder' ? 'folder' : 'doc'}`}>
@@ -404,10 +515,10 @@ export default function DocumentListPage() {
       title: '创建人',
       dataIndex: 'ownerName',
       className: 'memorica-owner-column',
-      width: 140,
+      width: 160,
       render: (_, record) => (
-        <Space align="center" size={6}>
-          <Avatar size={22}>{initials(record.ownerName || displayName)}</Avatar>
+        <Space align="center" size={8}>
+          <Avatar size={24}>{initials(record.ownerName || displayName)}</Avatar>
           <Text type="secondary" ellipsis={{ tooltip: record.ownerName || displayName }}>
             {record.ownerName || displayName}
           </Text>
@@ -418,7 +529,10 @@ export default function DocumentListPage() {
       title: '最近更新',
       dataIndex: 'updatedAt',
       className: 'memorica-date-column',
-      width: 120,
+      width: 140,
+      sorter: (a, b) =>
+        new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime(),
+      defaultSortOrder: 'descend',
       render: (_, record) => (
         <Text type="secondary">{formatDate(record.updatedAt || record.createdAt)}</Text>
       ),
@@ -427,143 +541,67 @@ export default function DocumentListPage() {
       title: '',
       dataIndex: 'operate',
       className: 'memorica-action-column',
-      width: 148,
+      width: 104,
       align: 'right',
-      render: (_, record) =>
-        tab === 'trash' ? (
-          <Button
-            aria-label="恢复文档"
-            icon={<UndoOutlined />}
-            type="text"
-            size="small"
-            loading={restoringId === record.id}
-            disabled={Boolean(restoringId)}
-            onClick={(event) => {
-              event.stopPropagation()
-              handleRestore(record.id)
-            }}
-          />
-        ) : (
-          <Space size={2}>
-            {record.itemType !== 'folder' && (
-              <Button
-                aria-label={record.isFavorite ? '取消收藏' : '收藏文档'}
-                icon={record.isFavorite ? <StarFilled /> : <StarOutlined />}
-                type="text"
-                size="small"
-                loading={favoriteId === record.id}
-                disabled={Boolean(favoriteId)}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  handleFavorite(record)
-                }}
-              />
-            )}
-            {(tab === 'my' || tab === 'workspace') && (
-              <>
+      render: (_, record) => (
+        <Space size={2} onClick={(event) => event.stopPropagation()}>
+          {tab === 'trash' ? (
+            <Button
+              aria-label="恢复文档"
+              icon={<UndoOutlined />}
+              type="text"
+              size="small"
+              loading={restoringId === record.id}
+              disabled={Boolean(restoringId)}
+              onClick={() => handleRestore(record.id)}
+            />
+          ) : (
+            <>
+              {record.itemType !== 'folder' && (
                 <Button
-                  aria-label="重命名"
-                  icon={<EditOutlined />}
+                  aria-label={record.isFavorite ? '取消收藏' : '收藏文档'}
+                  icon={record.isFavorite ? <StarFilled /> : <StarOutlined />}
                   type="text"
                   size="small"
-                  disabled={renaming || moving || deletingId === record.id}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    openRename(record)
-                  }}
+                  loading={favoriteId === record.id}
+                  disabled={Boolean(favoriteId)}
+                  onClick={() => handleFavorite(record)}
                 />
-                <Button
-                  aria-label="移动"
-                  icon={<FolderOpenOutlined />}
-                  type="text"
-                  size="small"
-                  disabled={renaming || moving || deletingId === record.id}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    openMove(record)
-                  }}
-                />
-                <Popconfirm
-                  title="确定删除这个文档？"
-                  description="删除后文档会进入回收站，可从回收站恢复。"
-                  okText="删除"
-                  okButtonProps={{ danger: true, loading: deletingId === record.id }}
-                  cancelText="取消"
-                  onConfirm={() => handleDelete(record.id)}
-                >
-                  <Button
-                    aria-label="删除文档"
-                    icon={<DeleteOutlined />}
-                    type="text"
-                    danger
-                    size="small"
-                    loading={deletingId === record.id}
-                    disabled={Boolean(deletingId)}
-                    onClick={(event) => event.stopPropagation()}
-                  />
-                </Popconfirm>
-              </>
-            )}
-          </Space>
+              )}
+              <Dropdown
+                trigger={['click']}
+                placement="bottomRight"
+                menu={{ items: rowActionItems(), onClick: handleRowMenuClick(record) }}
+              >
+                <Button aria-label="更多操作" icon={<EllipsisOutlined />} type="text" size="small" />
+              </Dropdown>
+            </>
+          )}
+        </Space>
+      ),
+    },
+  ]
+
+  const activeTitle = tab === 'workspace' ? currentFolder?.title || '全部文档' : tabTitle(tab)
+  const pageDescription = query.trim()
+    ? `搜索：${query.trim()}`
+    : currentFolder
+      ? '当前文件夹'
+      : tabTitle(tab)
+
+  const documentTabs = useMemo(
+    () =>
+      tabDefinitions.map((item) => ({
+        key: item.key,
+        label: (
+          <span className="memorica-tab-label">
+            <span>{item.label}</span>
+            {item.key === tab && <span className="memorica-tab-count">{rows.length}</span>}
+          </span>
         ),
-    },
-  ]
-
-  const activeTitle =
-    tab === 'workspace'
-      ? currentFolder?.title || '全部文档'
-      : tab === 'my'
-        ? '归我所有'
-        : tab === 'recent'
-          ? '最近访问'
-          : tab === 'favorite'
-            ? '收藏'
-            : tab === 'trash'
-              ? '回收站'
-              : tab === 'public'
-                ? '公开文档'
-                : '与我共享'
-
-  const topTitle = tab === 'workspace' ? '文档库' : activeTitle
-
-  const quickActions = [
-    {
-      title: '新建',
-      description: '空白文档',
-      icon: <PlusOutlined />,
-      color: '#3b82f6',
-      bg: '#eff6ff',
-      onClick: () => handleCreate(),
-      disabled: creatingDocument,
-    },
-    {
-      title: '导入',
-      description: '本地文件',
-      icon: <CloudUploadOutlined />,
-      color: '#f59e0b',
-      bg: '#fffbeb',
-      onClick: () => message.info('导入暂未开放'),
-    },
-    {
-      title: '模板',
-      description: '常用格式',
-      icon: <SnippetsOutlined />,
-      color: '#8b5cf6',
-      bg: '#f5f3ff',
-      onClick: () => handleCreate('模板文档'),
-      disabled: creatingDocument,
-    },
-  ]
-
-  const documentTabs = [
-    { key: 'workspace', label: '全部文档' },
-    { key: 'my', label: '归我所有' },
-    { key: 'recent', label: '最近访问' },
-    { key: 'favorite', label: '收藏' },
-    { key: 'shared', label: '与我共享' },
-    { key: 'public', label: '公开文档' },
-    { key: 'trash', label: '回收站' },
-  ]
+      })),
+    [rows.length, tab]
+  )
 
   const breadcrumbItems = [
     {
@@ -588,14 +626,14 @@ export default function DocumentListPage() {
   ]
 
   const emptyConfig = query.trim()
-    ? { title: '没有匹配的文档', desc: '换个关键词再试试。', showBtn: false }
+    ? { title: '没有匹配的文档', desc: '换个关键词再试试。' }
     : tab === 'trash'
-      ? { title: '回收站为空', desc: '删除的文档会显示在这里。', showBtn: false }
+      ? { title: '回收站为空', desc: '删除的文档会显示在这里。' }
       : tab === 'shared'
-        ? { title: '暂无共享文档', desc: '别人分享给你的文档会显示在这里。', showBtn: false }
+        ? { title: '暂无共享文档', desc: '别人分享给你的文档会显示在这里。' }
         : tab === 'public'
-          ? { title: '暂无公开文档', desc: '公开文档会显示在这里。', showBtn: false }
-          : { title: '还没有文档', desc: '创建你的第一个文档，开始记录想法。', showBtn: true }
+          ? { title: '暂无公开文档', desc: '公开文档会显示在这里。' }
+          : { title: '还没有文档', desc: '使用上方操作创建文档、文件夹，或从模板开始。' }
 
   const accountMenu: MenuProps = {
     items: [
@@ -609,233 +647,288 @@ export default function DocumentListPage() {
   }
 
   const emptyNode = (
-    <div className="memorica-empty">
-      <div className="memorica-empty-icon">
-        <FileOutlined />
-      </div>
-      <div className="memorica-empty-title">{emptyConfig.title}</div>
-      <div className="memorica-empty-desc">{emptyConfig.desc}</div>
-      {emptyConfig.showBtn && (
-        <Button
-          disabled={creatingDocument}
-          icon={<PlusOutlined />}
-          loading={creatingDocument}
-          type="primary"
-          onClick={() => handleCreate()}
-        >
-          新建文档
-        </Button>
-      )}
-    </div>
+    <Empty
+      className="memorica-empty"
+      image={Empty.PRESENTED_IMAGE_SIMPLE}
+      description={
+        <Space direction="vertical" size={4}>
+          <Text strong>{emptyConfig.title}</Text>
+          <Text type="secondary">{emptyConfig.desc}</Text>
+        </Space>
+      }
+    />
   )
+
+  const actionTiles = [
+    {
+      key: 'create',
+      title: '新建文档',
+      description: '创建空白协作文档',
+      icon: <PlusOutlined />,
+      disabled: creatingDocument,
+      loading: creatingDocument,
+      type: 'primary' as const,
+      onClick: () => handleCreate(),
+      testId: 'memorica-create-document',
+    },
+    {
+      key: 'folder',
+      title: '新建文件夹',
+      description: '整理当前目录内容',
+      icon: <FolderAddOutlined />,
+      disabled: !canUseFolders || creatingFolder,
+      onClick: () => setFolderModalVisible(true),
+    },
+    {
+      key: 'import',
+      title: '导入',
+      description: '从本地文件导入',
+      icon: <CloudUploadOutlined />,
+      onClick: () => message.info('导入暂未开放'),
+    },
+    {
+      key: 'template',
+      title: '从模板开始',
+      description: '生成常用格式文档',
+      icon: <SnippetsOutlined />,
+      disabled: creatingDocument,
+      loading: creatingDocument,
+      onClick: () => handleCreate('模板文档'),
+    },
+  ]
 
   return (
     <div className="memorica-workspace">
-      <header className="memorica-header">
-        <Title level={3} className="memorica-header-title">
-          {topTitle}
-        </Title>
-        <Space size={6} className="memorica-header-actions">
-          <Button
-            aria-label="搜索"
-            icon={<SearchOutlined />}
-            type="text"
-            onClick={() => {
-              const input = document.querySelector<HTMLInputElement>('.memorica-pro-search input')
-              if (input) input.focus()
-            }}
-          />
+      <PageContainer
+        title={<Title level={2} className="memorica-page-title">文档库</Title>}
+        className="memorica-page-container"
+        breadcrumbRender={false}
+        content={
+          <Space size={8} wrap className="memorica-page-meta">
+            <Text strong>{activeTitle}</Text>
+            <Text type="secondary">{pageDescription}</Text>
+            <Text type="secondary">{rows.length} 项</Text>
+          </Space>
+        }
+        extra={[
+          <Input
+            allowClear
+            className="memorica-library-search"
+            key="search"
+            prefix={<SearchOutlined />}
+            placeholder="搜索当前文档"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />,
           <Button
             aria-label="通知"
             icon={<BellOutlined />}
+            key="notice"
             type="text"
             onClick={() => message.info('暂无通知')}
-          />
-          <Dropdown trigger={['click']} placement="bottomRight" menu={accountMenu}>
-            <span className="memorica-header-avatar-wrap">
+          />,
+          <Dropdown key="account" trigger={['click']} placement="bottomRight" menu={accountMenu}>
+            <Button className="memorica-account-button" type="text">
               <Avatar size={24}>{initials(displayName)}</Avatar>
-            </span>
-          </Dropdown>
-        </Space>
-      </header>
-
-      <main className="memorica-content">
-        <div className="memorica-quick-grid">
-          {quickActions.map((action) => (
-            <Button
-              block
-              className="memorica-quick-button"
-              disabled={action.disabled}
-              key={action.title}
-              type="text"
-              onClick={action.onClick}
-            >
-              <span className="memorica-quick-card">
-                <span className="memorica-quick-icon" style={{ color: action.color, background: action.bg }}>
-                  {action.icon}
-                </span>
-                <span className="memorica-quick-copy">
-                  <span className="memorica-quick-title">{action.title}</span>
-                  <span className="memorica-quick-desc">{action.description}</span>
-                </span>
-                <DownOutlined className="memorica-quick-chevron" />
-              </span>
+              <span>{displayName}</span>
             </Button>
-          ))}
-        </div>
+          </Dropdown>,
+        ]}
+      >
+        <ProCard
+          bordered={false}
+          className="memorica-library-surface"
+          data-testid="memorica-library-surface"
+          boxShadow
+        >
+          <ProCard.Group className="memorica-action-grid" gutter={[12, 12]} ghost>
+            {actionTiles.map((action) => (
+              <ProCard bordered={false} className="memorica-action-card" colSpan={{ xs: 24, sm: 12, lg: 6 }} key={action.key}>
+                <Button
+                  block
+                  className="memorica-action-tile"
+                  data-testid={action.testId}
+                  disabled={action.disabled}
+                  icon={action.icon}
+                  loading={action.loading}
+                  type={action.type || 'default'}
+                  onClick={action.onClick}
+                >
+                  <span className="memorica-action-copy">
+                    <span className="memorica-action-title">{action.title}</span>
+                    <span className="memorica-action-desc">{action.description}</span>
+                  </span>
+                </Button>
+              </ProCard>
+            ))}
+          </ProCard.Group>
 
-        <div className="memorica-toolbar">
-          <div className="memorica-toolbar-left">
-            {canUseFolders && folderStack.length > 0 && (
-              <Breadcrumb className="memorica-breadcrumb" items={breadcrumbItems} />
-            )}
+          <div className="memorica-library-toolbar">
+            <div className="memorica-toolbar-left">
+              {canUseFolders && folderStack.length > 0 ? (
+                <Breadcrumb className="memorica-breadcrumb" items={breadcrumbItems} />
+              ) : (
+                <Text type="secondary">当前视图：{activeTitle}</Text>
+              )}
+            </div>
+            <div className="memorica-toolbar-right">
+              <Text type="secondary">{rows.length} 项</Text>
+            </div>
           </div>
-          <div className="memorica-toolbar-right">
-            {canUseFolders && (
-              <Button
-                icon={<FolderOpenOutlined />}
-                type="text"
-                size="small"
-                disabled={creatingFolder}
-                onClick={() => setFolderModalVisible(true)}
-              >
-                文件夹
-              </Button>
-            )}
-            <Button
-              data-testid="memorica-create-document"
-              icon={<PlusOutlined />}
-              type="primary"
-              size="small"
-              disabled={creatingDocument}
-              loading={creatingDocument}
-              onClick={() => handleCreate()}
-            >
-              新建
-            </Button>
-            <span className="memorica-count-pill">{rows.length} 项</span>
-          </div>
-        </div>
 
-        <div className="memorica-tabs-bar">
           <Tabs
             activeKey={tab}
             className="memorica-fly-tabs"
             items={documentTabs}
             onChange={(key) => switchTab(key as TabKey)}
-            size="small"
+            size="middle"
           />
-        </div>
 
-        {listError && (
-          <Alert
-            data-testid="memorica-list-error"
-            className="memorica-list-error"
-            type="error"
-            showIcon
-            message={listError}
-            action={
-              <Button data-testid="memorica-list-retry" size="small" onClick={() => fetchDocuments()}>
-                重试
-              </Button>
-            }
+          {listError && (
+            <Alert
+              data-testid="memorica-list-error"
+              className="memorica-list-error"
+              type="error"
+              showIcon
+              message={listError}
+              action={
+                <Button data-testid="memorica-list-retry" size="small" onClick={() => fetchDocuments()}>
+                  重试
+                </Button>
+              }
+            />
+          )}
+
+          <Skeleton loading={loading && rows.length === 0} active paragraph={{ rows: 4 }} className="memorica-skeleton">
+            <ProTable<WorkspaceRow>
+              cardProps={false}
+              className="memorica-table"
+              columns={columns}
+              dataSource={rows}
+              locale={{ emptyText: emptyNode }}
+              loading={loading && rows.length > 0}
+              onRow={(record) => ({
+                onClick: () => {
+                  if (!record || tab === 'trash') return
+                  if (record.itemType === 'folder') {
+                    enterFolder(record)
+                    return
+                  }
+                  navigate(`/doc/${record.id}`)
+                },
+              })}
+              pagination={false}
+              rowKey="id"
+              rowSelection={{
+                selectedRowKeys: visibleSelectedRowKeys,
+                onChange: (keys) => setSelectedRowKeys(keys),
+                preserveSelectedRowKeys: true,
+              }}
+              search={false}
+              options={false}
+              toolBarRender={false}
+              tableAlertRender={({ selectedRowKeys }) => (
+                <Space size={8}>
+                  <Text>已选 {selectedRowKeys.length} 项</Text>
+                  <Button type="link" size="small" onClick={() => setSelectedRowKeys([])}>
+                    取消选择
+                  </Button>
+                </Space>
+              )}
+              tableAlertOptionRender={() =>
+                tab === 'trash' ? (
+                  <Button size="small" loading={batching} onClick={handleBatchRestore}>
+                    恢复所选
+                  </Button>
+                ) : (
+                  <Popconfirm
+                    title="删除所选项目？"
+                    description="删除后项目会进入回收站，可从回收站恢复。"
+                    okText="删除"
+                    okButtonProps={{ danger: true, loading: batching }}
+                    cancelText="取消"
+                    onConfirm={handleBatchDelete}
+                  >
+                    <Button danger size="small" loading={batching}>
+                      删除所选
+                    </Button>
+                  </Popconfirm>
+                )
+              }
+              size="middle"
+            />
+          </Skeleton>
+        </ProCard>
+
+        <Modal
+          title="新建文件夹"
+          open={folderModalVisible}
+          okText="创建"
+          cancelText="取消"
+          confirmLoading={creatingFolder}
+          onCancel={() => {
+            if (creatingFolder) return
+            setFolderModalVisible(false)
+            setFolderName('')
+          }}
+          onOk={handleCreateFolder}
+        >
+          <Input
+            autoFocus
+            placeholder="文件夹名称"
+            value={folderName}
+            disabled={creatingFolder}
+            onChange={(event) => setFolderName(event.target.value)}
+            onPressEnter={handleCreateFolder}
           />
-        )}
-
-        <Skeleton loading={loading} active paragraph={{ rows: 4 }} className="memorica-skeleton">
-          <ProTable<WorkspaceRow>
-            className={`memorica-table${loading ? ' loading' : ''}`}
-            columns={columns}
-            dataSource={rows}
-            locale={{ emptyText: emptyNode }}
-            onRow={(record) => ({
-              onClick: () => {
-                if (!record || tab === 'trash') return
-                if (record.itemType === 'folder') {
-                  enterFolder(record)
-                  return
-                }
-                navigate(`/doc/${record.id}`)
-              },
-            })}
-            pagination={false}
-            rowKey="id"
-            search={false}
-            options={false}
-            toolBarRender={false}
-            size="small"
+        </Modal>
+        <Modal
+          title="重命名"
+          open={renameVisible}
+          okText="保存"
+          cancelText="取消"
+          confirmLoading={renaming}
+          onCancel={() => {
+            if (renaming) return
+            setRenameVisible(false)
+            setActiveRecord(undefined)
+          }}
+          onOk={handleRename}
+        >
+          <Input
+            autoFocus
+            placeholder="名称"
+            value={renameValue}
+            disabled={renaming}
+            onChange={(event) => setRenameValue(event.target.value)}
+            onPressEnter={handleRename}
           />
-        </Skeleton>
-      </main>
-
-      <Modal
-        title="新建文件夹"
-        open={folderModalVisible}
-        okText="创建"
-        cancelText="取消"
-        confirmLoading={creatingFolder}
-        onCancel={() => {
-          if (creatingFolder) return
-          setFolderModalVisible(false)
-          setFolderName('')
-        }}
-        onOk={handleCreateFolder}
-      >
-        <Input
-          autoFocus
-          placeholder="文件夹名称"
-          value={folderName}
-          disabled={creatingFolder}
-          onChange={(event) => setFolderName(event.target.value)}
-          onPressEnter={handleCreateFolder}
-        />
-      </Modal>
-      <Modal
-        title="重命名"
-        open={renameVisible}
-        okText="保存"
-        cancelText="取消"
-        confirmLoading={renaming}
-        onCancel={() => {
-          if (renaming) return
-          setRenameVisible(false)
-          setActiveRecord(undefined)
-        }}
-        onOk={handleRename}
-      >
-        <Input
-          autoFocus
-          placeholder="名称"
-          value={renameValue}
-          disabled={renaming}
-          onChange={(event) => setRenameValue(event.target.value)}
-          onPressEnter={handleRename}
-        />
-      </Modal>
-      <Modal
-        title="移动到"
-        open={moveVisible}
-        okText="移动"
-        cancelText="取消"
-        confirmLoading={moving}
-        onCancel={() => {
-          if (moving) return
-          setMoveVisible(false)
-          setActiveRecord(undefined)
-        }}
-        onOk={handleMove}
-      >
-        <Select
-          value={moveTargetId}
-          onChange={setMoveTargetId}
-          disabled={moving}
-          style={{ width: '100%' }}
-          options={[
-            { value: '', label: '根目录' },
-            ...folderOptions.map((folder) => ({ value: folder.id, label: folder.title })),
-          ]}
-        />
-      </Modal>
+        </Modal>
+        <Modal
+          title="移动到"
+          open={moveVisible}
+          okText="移动"
+          cancelText="取消"
+          confirmLoading={moving}
+          onCancel={() => {
+            if (moving) return
+            setMoveVisible(false)
+            setActiveRecord(undefined)
+          }}
+          onOk={handleMove}
+        >
+          <Select
+            value={moveTargetId}
+            onChange={setMoveTargetId}
+            disabled={moving}
+            style={{ width: '100%' }}
+            options={[
+              { value: '', label: '根目录' },
+              ...folderOptions.map((folder) => ({ value: folder.id, label: folder.title })),
+            ]}
+          />
+        </Modal>
+      </PageContainer>
     </div>
   )
 }

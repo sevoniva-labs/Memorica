@@ -93,6 +93,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         logo={<FileTextOutlined />}
         layout="side"
         navTheme="light"
+        siderWidth={236}
         fixedHeader={false}
         fixSiderbar
         collapsed={collapsed}
@@ -127,7 +128,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Input
                 allowClear
                 prefix={<SearchOutlined />}
-                placeholder="搜索文档..."
+                placeholder="搜索文档"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onPressEnter={() => {

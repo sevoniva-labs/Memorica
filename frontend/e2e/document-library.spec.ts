@@ -34,7 +34,16 @@ function documentItem(id: string, title = '未命名文档') {
   };
 }
 
-async function loginWithMockApi(page: Page) {
+async function loginWithMockApi(
+  page: Page,
+  options: {
+    workspaceDocuments?: ReturnType<typeof documentItem>[];
+    recentDocuments?: ReturnType<typeof documentItem>[];
+  } = {}
+) {
+  const workspaceDocuments = options.workspaceDocuments || [];
+  const recentDocuments = options.recentDocuments || [];
+
   await page.addInitScript(() => {
     window.localStorage.setItem('accessToken', 'mock-access-token');
     window.localStorage.setItem('refreshToken', 'mock-refresh-token');
@@ -55,13 +64,13 @@ async function loginWithMockApi(page: Page) {
   await page.route('**/api/v1/documents/recent**', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
-      body: JSON.stringify({ data: { content: [] } }),
+      body: JSON.stringify({ data: { content: recentDocuments } }),
     });
   });
   await page.route(`**/api/v1/documents/workspace/${workspace.id}**`, async (route) => {
     await route.fulfill({
       contentType: 'application/json',
-      body: JSON.stringify({ data: { content: [] } }),
+      body: JSON.stringify({ data: { content: workspaceDocuments } }),
     });
   });
 }
@@ -127,4 +136,62 @@ test('document list load failure shows inline retry', async ({ page }) => {
 
   await expect(page.getByTestId('memorica-list-error')).not.toBeVisible({ timeout: 12_000 });
   expect(sharedRequests).toBe(2);
+});
+
+test('document library shows Pro-style empty state actions', async ({ page }) => {
+  await loginWithMockApi(page);
+
+  await page.goto('/');
+
+  await expect(page.getByRole('heading', { name: '文档库' })).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByRole('tab', { name: /我拥有的/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: '新建文档' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '新建文件夹' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '从模板开始' })).toBeVisible();
+  await expect(page.getByTestId('memorica-library-surface')).toBeVisible();
+});
+
+test('document library desktop layout keeps Pro sections separated', async ({ page }) => {
+  const rowDocument = documentItem('doc-layout', '布局验收文档');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await loginWithMockApi(page, { workspaceDocuments: [rowDocument], recentDocuments: [rowDocument] });
+
+  await page.goto('/');
+
+  const titleBox = await page.getByRole('heading', { name: '文档库' }).boundingBox();
+  const surfaceBox = await page.getByTestId('memorica-library-surface').boundingBox();
+  const actionBox = await page.locator('.memorica-action-grid').boundingBox();
+  const tabsBox = await page.locator('.memorica-fly-tabs').boundingBox();
+  const tableBox = await page.locator('.memorica-table').boundingBox();
+  const screenshot = await page.screenshot({ fullPage: true });
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+  );
+
+  expect(titleBox).toBeTruthy();
+  expect(surfaceBox).toBeTruthy();
+  expect(actionBox).toBeTruthy();
+  expect(tabsBox).toBeTruthy();
+  expect(tableBox).toBeTruthy();
+  expect(screenshot.byteLength).toBeGreaterThan(10_000);
+  expect(hasHorizontalOverflow).toBe(false);
+  expect(surfaceBox!.y).toBeGreaterThan(titleBox!.y + titleBox!.height);
+  expect(tabsBox!.y).toBeGreaterThan(actionBox!.y + actionBox!.height);
+  expect(tableBox!.y).toBeGreaterThan(tabsBox!.y);
+});
+
+test('delete action is hidden until row more menu opens', async ({ page }) => {
+  const rowDocument = documentItem('doc-row-actions', '项目复盘');
+
+  await loginWithMockApi(page, { workspaceDocuments: [rowDocument], recentDocuments: [rowDocument] });
+
+  await page.goto('/');
+
+  await expect(page.getByTestId('memorica-library-surface').getByText('项目复盘')).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByRole('button', { name: '删除文档' })).not.toBeVisible();
+
+  await page.getByRole('button', { name: '更多操作' }).click();
+
+  await expect(page.getByRole('menuitem', { name: '删除' })).toBeVisible();
 });

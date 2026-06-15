@@ -8,6 +8,7 @@ const requiredAntdComponents = [
   'Breadcrumb',
   'Button',
   'Dropdown',
+  'Empty',
   'Input',
   'Modal',
   'Popconfirm',
@@ -22,14 +23,19 @@ test('document list page uses Ant Design navigation and action controls', async 
   const source = await readFile(documentListPagePath, 'utf8')
 
   assert.match(source, /from 'antd'/)
+  assert.match(source, /from '@ant-design\/pro-layout'/)
+  assert.match(source, /PageContainer/)
+  assert.match(source, /ProCard/)
   assert.match(source, /ProTable/)
   for (const component of requiredAntdComponents) {
     assert.match(source, new RegExp(`\\b${component}\\b`))
   }
 
-  assert.match(source, /<Button\b[\s\S]*className="memorica-quick-button"[\s\S]*className="memorica-quick-card"/)
+  assert.doesNotMatch(source, /memorica-quick-card/)
   assert.match(source, /<Breadcrumb\b[\s\S]*items=\{breadcrumbItems\}/)
   assert.match(source, /<Tabs\b[\s\S]*activeKey=\{tab\}[\s\S]*items=\{documentTabs\}[\s\S]*onChange=/)
+  assert.match(source, /rowSelection=\{/)
+  assert.match(source, /tableAlertRender=\{/)
 })
 
 test('document list page does not render native button elements directly', async () => {
