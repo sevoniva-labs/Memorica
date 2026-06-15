@@ -21,11 +21,12 @@ interface Props {
   editor: Editor | null
   documentId: string
   open: boolean
+  canEdit: boolean
   onClose: () => void
   initialAction?: AIAction | null
 }
 
-export default function AIAssistant({ editor, documentId, open, onClose, initialAction }: Props) {
+export default function AIAssistant({ editor, documentId, open, canEdit, onClose, initialAction }: Props) {
   const [streaming, setStreaming] = useState(false)
   const [result, setResult] = useState('')
   const [customPrompt, setCustomPrompt] = useState('')
@@ -43,7 +44,7 @@ export default function AIAssistant({ editor, documentId, open, onClose, initial
   const selectedText = getSelectedText()
 
   const runAI = useCallback(async (action: AIAction) => {
-    if (!editor || streaming) return
+    if (!canEdit || !editor || streaming) return
 
     const text = getSelectedText() || editor.getText().slice(0, 500)
     if (!text.trim()) return
@@ -69,7 +70,7 @@ export default function AIAssistant({ editor, documentId, open, onClose, initial
     } finally {
       setStreaming(false)
     }
-  }, [customPrompt, documentId, editor, getSelectedText, streaming])
+  }, [canEdit, customPrompt, documentId, editor, getSelectedText, streaming])
 
   // 监听 initialAction，自动执行
   useEffect(() => {
@@ -83,7 +84,7 @@ export default function AIAssistant({ editor, documentId, open, onClose, initial
   }, [initialAction, open, runAI])
 
   const handleReplace = () => {
-    if (!editor || !result) return
+    if (!canEdit || !editor || !result) return
     const { from, to } = editor.state.selection
     if (from !== to) {
       editor.chain().focus().deleteRange({ from, to }).insertContent(result).run()
@@ -95,7 +96,7 @@ export default function AIAssistant({ editor, documentId, open, onClose, initial
   }
 
   const handleInsert = () => {
-    if (!editor || !result) return
+    if (!canEdit || !editor || !result) return
     editor.chain().focus().insertContent(result).run()
     reset()
     onClose()
@@ -123,7 +124,7 @@ export default function AIAssistant({ editor, documentId, open, onClose, initial
     onClose()
   }
 
-  if (!open) return null
+  if (!open || !canEdit) return null
 
   const quickActions: AIAction[] = [
     'continue',

@@ -327,6 +327,24 @@ export default function CollabEditor({
     setTemplatePickerOpen(true)
   }, [canEdit])
 
+  const closeAIAssistant = useCallback(() => {
+    setAiOpen(false)
+    setAiInitialAction(null)
+  }, [])
+
+  const openAIAssistant = useCallback((action: AIAction | null = null) => {
+    if (!canEdit) return
+    setAiInitialAction(action)
+    setAiOpen(true)
+  }, [canEdit])
+
+  const applyEditPermission = useCallback((nextCanEdit: boolean) => {
+    setCanEdit(nextCanEdit)
+    if (!nextCanEdit) {
+      closeAIAssistant()
+    }
+  }, [closeAIAssistant])
+
   // 创建 Yjs Doc 和 Hocuspocus Provider
   const [yDoc] = useState(() => new Y.Doc())
   const [sessionId] = useState(() => crypto.randomUUID().slice(0, 8))
@@ -341,7 +359,7 @@ export default function CollabEditor({
       onAuthenticated: ({ scope }: { scope?: string }) => {
         setConnectionStatus('connected')
         setConnectionIssue('')
-        setCanEdit(scope !== 'readonly')
+        applyEditPermission(scope !== 'readonly')
       },
     })
   })
@@ -526,7 +544,7 @@ export default function CollabEditor({
     }
     const handleAuthenticated = ({ scope }: { scope?: string }) => {
       setConnectionIssue('')
-      setCanEdit(scope !== 'readonly')
+      applyEditPermission(scope !== 'readonly')
     }
     provider.on('status', handleStatus)
     provider.on('awarenessChange', handleAwareness)
@@ -542,7 +560,7 @@ export default function CollabEditor({
       provider.off('authenticationFailed', handleAuthenticationFailed)
       provider.off('authenticated', handleAuthenticated)
     }
-  }, [provider])
+  }, [applyEditPermission, provider])
 
   useEffect(() => {
     return () => {
@@ -1042,7 +1060,14 @@ export default function CollabEditor({
                 className={aiOpen ? 'memorica-editor-btn active' : 'memorica-editor-btn'}
                 disabled={!canEdit}
                 icon={<ThunderboltOutlined style={{ fontSize: 16 }} />}
-                onClick={() => setAiOpen(!aiOpen)}
+                onClick={() => {
+                  if (!canEdit) return
+                  if (aiOpen) {
+                    closeAIAssistant()
+                    return
+                  }
+                  openAIAssistant()
+                }}
                 title="AI 助手"
                 type="text"
               >
@@ -1174,18 +1199,18 @@ export default function CollabEditor({
           onSave={saveDiagram}
         />
       )}
-      {aiOpen && (
+      {aiOpen && canEdit && (
         <div className="lg:hidden fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/20 backdrop-blur-sm">
           <div className="w-full max-w-sm">
-            <AIAssistant editor={editor} documentId={docId} open={aiOpen} onClose={() => { setAiOpen(false); setAiInitialAction(null) }} initialAction={aiInitialAction} />
+            <AIAssistant editor={editor} documentId={docId} open={aiOpen} canEdit={canEdit} onClose={closeAIAssistant} initialAction={aiInitialAction} />
           </div>
         </div>
       )}
 
       {/* AI 助手 - 桌面端浮动面板 */}
-      {aiOpen && (
+      {aiOpen && canEdit && (
         <div className="fixed right-6 top-24 z-30 hidden lg:block">
-          <AIAssistant editor={editor} documentId={docId} open={aiOpen} onClose={() => { setAiOpen(false); setAiInitialAction(null) }} initialAction={aiInitialAction} />
+          <AIAssistant editor={editor} documentId={docId} open={aiOpen} canEdit={canEdit} onClose={closeAIAssistant} initialAction={aiInitialAction} />
         </div>
       )}
 
@@ -1198,11 +1223,11 @@ export default function CollabEditor({
               </div>
             </DragHandle>
           )}
-          {mode === 'notion' && <BubbleMenuBar editor={editor} onAskAI={canEdit ? () => setAiOpen(true) : undefined} />}
+          {mode === 'notion' && <BubbleMenuBar editor={editor} onAskAI={canEdit ? () => openAIAssistant() : undefined} />}
           <EditorContent editor={editor} />
           <SlashMenu
             editor={editor}
-            onAskAI={canEdit ? (action) => { setAiInitialAction(action); setAiOpen(true) } : undefined}
+            onAskAI={canEdit ? (action) => openAIAssistant(action) : undefined}
             onCreateDiagram={canEdit ? openCreateDiagram : undefined}
             onUploadImage={canEdit ? () => imageInputRef.current?.click() : undefined}
             onUploadAttachment={canEdit ? () => attachmentInputRef.current?.click() : undefined}
