@@ -27,6 +27,17 @@ test('AI assistant refuses generation or editor mutation while readonly', async 
   assert.match(source, /if \(!canEdit \|\| !editor \|\| !result\) return/)
 })
 
+test('AI assistant shows generation failures as a non-insertable Ant Design alert', async () => {
+  const source = await readFile(aiAssistantPath, 'utf8')
+
+  assert.match(source, /import \{ apiErrorMessage, generateAI \} from '..\/api\/client'/)
+  assert.match(source, /import \{ Alert, Button, Input \} from 'antd'/)
+  assert.match(source, /const \[error, setError\] = useState\(''\)/)
+  assert.match(source, /setError\(apiErrorMessage\(err, 'AI 服务暂时不可用，请稍后重试'\)\)/)
+  assert.doesNotMatch(source, /setResult\(err instanceof Error/)
+  assert.match(source, /\{error && \([\s\S]*<Alert\b[\s\S]*data-testid="memorica-ai-error"[\s\S]*type="error"[\s\S]*showIcon[\s\S]*message=\{error\}/)
+})
+
 test('frontend-check runs the AI permission policy test', async () => {
   const source = await readFile('Makefile', 'utf8')
 

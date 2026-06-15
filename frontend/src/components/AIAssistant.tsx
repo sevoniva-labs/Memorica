@@ -5,7 +5,7 @@ import {
   aiActionIcons,
   type AIAction,
 } from '../ai/aiActions'
-import { generateAI } from '../api/client'
+import { apiErrorMessage, generateAI } from '../api/client'
 import {
   CheckOutlined,
   CloseOutlined,
@@ -15,7 +15,7 @@ import {
   SwapOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons'
-import { Button, Input } from 'antd'
+import { Alert, Button, Input } from 'antd'
 
 interface Props {
   editor: Editor | null
@@ -29,6 +29,7 @@ interface Props {
 export default function AIAssistant({ editor, documentId, open, canEdit, onClose, initialAction }: Props) {
   const [streaming, setStreaming] = useState(false)
   const [result, setResult] = useState('')
+  const [error, setError] = useState('')
   const [customPrompt, setCustomPrompt] = useState('')
   const [showInput, setShowInput] = useState(false)
   const abortRef = useRef(false)
@@ -51,6 +52,7 @@ export default function AIAssistant({ editor, documentId, open, canEdit, onClose
 
     setStreaming(true)
     setResult('')
+    setError('')
     abortRef.current = false
 
     try {
@@ -62,10 +64,11 @@ export default function AIAssistant({ editor, documentId, open, canEdit, onClose
       })
       if (!abortRef.current) {
         setResult(response.text)
+        setError('')
       }
     } catch (err) {
       if (!abortRef.current) {
-        setResult(err instanceof Error ? err.message : 'AI 服务暂时不可用')
+        setError(apiErrorMessage(err, 'AI 服务暂时不可用，请稍后重试'))
       }
     } finally {
       setStreaming(false)
@@ -113,6 +116,7 @@ export default function AIAssistant({ editor, documentId, open, canEdit, onClose
 
   const reset = () => {
     setResult('')
+    setError('')
     setCustomPrompt('')
     setShowInput(false)
     abortRef.current = false
@@ -166,6 +170,15 @@ export default function AIAssistant({ editor, documentId, open, canEdit, onClose
               {selectedText}
             </div>
           </div>
+        )}
+
+        {error && (
+          <Alert
+            data-testid="memorica-ai-error"
+            type="error"
+            showIcon
+            message={error}
+          />
         )}
 
         {/* 快捷操作 */}
