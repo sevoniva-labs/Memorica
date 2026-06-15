@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 
 const documentListPagePath = 'frontend/src/pages/DocumentListPage.tsx'
+const documentListCssPath = 'frontend/src/index.css'
 const requiredAntdComponents = [
   'Alert',
   'Breadcrumb',
@@ -10,6 +11,7 @@ const requiredAntdComponents = [
   'Dropdown',
   'Empty',
   'Input',
+  'List',
   'Modal',
   'Popconfirm',
   'Select',
@@ -25,13 +27,16 @@ test('document list page uses Ant Design navigation and action controls', async 
   assert.match(source, /from 'antd'/)
   assert.match(source, /from '@ant-design\/pro-layout'/)
   assert.match(source, /PageContainer/)
-  assert.match(source, /ProCard/)
   assert.match(source, /ProTable/)
   for (const component of requiredAntdComponents) {
     assert.match(source, new RegExp(`\\b${component}\\b`))
   }
 
   assert.doesNotMatch(source, /memorica-quick-card/)
+  assert.doesNotMatch(source, /memorica-action-grid/)
+  assert.doesNotMatch(source, /memorica-action-tile/)
+  assert.match(source, /className="memorica-library-actions"/)
+  assert.match(source, /className="memorica-mobile-list"/)
   assert.match(source, /<Breadcrumb\b[\s\S]*items=\{breadcrumbItems\}/)
   assert.match(source, /<Tabs\b[\s\S]*activeKey=\{tab\}[\s\S]*items=\{documentTabs\}[\s\S]*onChange=/)
   assert.match(source, /rowSelection=\{/)
@@ -42,6 +47,14 @@ test('document list page does not render native button elements directly', async
   const source = await readFile(documentListPagePath, 'utf8')
 
   assert.doesNotMatch(source, /<button\b/)
+})
+
+test('document list page css has no legacy quick action selectors', async () => {
+  const source = await readFile(documentListCssPath, 'utf8')
+
+  assert.doesNotMatch(source, /\.memorica-quick-/)
+  assert.doesNotMatch(source, /\.memorica-action-grid/)
+  assert.doesNotMatch(source, /\.memorica-action-tile/)
 })
 
 test('frontend-check runs the document list Ant Design policy test', async () => {

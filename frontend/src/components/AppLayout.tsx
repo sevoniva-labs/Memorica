@@ -35,6 +35,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   })
   const [recentDocs, setRecentDocs] = useState<DocumentItem[]>([])
   const [query, setQuery] = useState('')
+  const [isRailViewport, setIsRailViewport] = useState(false)
 
   const refreshRecentDocs = useCallback(() => {
     listRecentDocuments(0, 25)
@@ -51,6 +52,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refreshRecentDocs()
   }, [refreshRecentDocs])
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 1024px)')
+    const update = () => setIsRailViewport(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
 
   const routes = useMemo<MenuDataItem[]>(() => {
     const recentRoutes: MenuDataItem[] = recentDocs.map((doc) => ({
@@ -83,21 +92,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     message.info('功能暂未开放')
   }
 
+  const effectiveCollapsed = collapsed || isRailViewport
+
   return (
     <SidebarContext.Provider
       value={{ recentDocs, refreshRecentDocs, updateDocTitle, collapsed, setCollapsed, query, setQuery }}
     >
       <ProLayout
-        className="memorica-pro-layout"
+        className={`memorica-pro-layout${effectiveCollapsed ? ' memorica-pro-layout-collapsed' : ''}`}
         title="Memorica"
         logo={<FileTextOutlined />}
         layout="side"
         navTheme="light"
-        siderWidth={236}
+        siderWidth={248}
         fixedHeader={false}
         fixSiderbar
-        collapsed={collapsed}
+        collapsed={effectiveCollapsed}
         onCollapse={(next) => {
+          if (isRailViewport) return
           setCollapsed(next)
           try {
             localStorage.setItem('memorica-sidebar-collapsed', String(next))
@@ -123,7 +135,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </Button>
         )}
         menuExtraRender={() =>
-          collapsed ? null : (
+          effectiveCollapsed ? null : (
             <div className="memorica-pro-search">
               <Input
                 allowClear

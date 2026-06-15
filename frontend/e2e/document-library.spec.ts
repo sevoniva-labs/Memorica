@@ -147,11 +147,14 @@ test('document library shows Pro-style empty state actions', async ({ page }) =>
   await expect(page.getByRole('tab', { name: /我拥有的/ })).toBeVisible();
   await expect(page.getByRole('button', { name: '新建文档' })).toBeVisible();
   await expect(page.getByRole('button', { name: '新建文件夹' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '从模板开始' })).toBeVisible();
+  const moreButton = page.locator('.memorica-library-actions').getByRole('button', { name: '更多', exact: true });
+  await expect(moreButton).toBeVisible();
+  await moreButton.click();
+  await expect(page.getByRole('menuitem', { name: '从模板开始' })).toBeVisible();
   await expect(page.getByTestId('memorica-library-surface')).toBeVisible();
 });
 
-test('document library desktop layout keeps Pro sections separated', async ({ page }) => {
+test('document library desktop layout keeps Pro workbench sections separated', async ({ page }) => {
   const rowDocument = documentItem('doc-layout', '布局验收文档');
 
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -161,9 +164,9 @@ test('document library desktop layout keeps Pro sections separated', async ({ pa
 
   const titleBox = await page.getByRole('heading', { name: '文档库' }).boundingBox();
   const surfaceBox = await page.getByTestId('memorica-library-surface').boundingBox();
-  const actionBox = await page.locator('.memorica-action-grid').boundingBox();
+  const actionBox = await page.locator('.memorica-library-actions').boundingBox();
   const tabsBox = await page.locator('.memorica-fly-tabs').boundingBox();
-  const tableBox = await page.locator('.memorica-table').boundingBox();
+  const tableBox = await page.locator('.memorica-desktop-table').boundingBox();
   const screenshot = await page.screenshot({ fullPage: true });
   const hasHorizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth
@@ -176,9 +179,76 @@ test('document library desktop layout keeps Pro sections separated', async ({ pa
   expect(tableBox).toBeTruthy();
   expect(screenshot.byteLength).toBeGreaterThan(10_000);
   expect(hasHorizontalOverflow).toBe(false);
+  await expect(page.locator('.memorica-action-tile')).toHaveCount(0);
   expect(surfaceBox!.y).toBeGreaterThan(titleBox!.y + titleBox!.height);
-  expect(tabsBox!.y).toBeGreaterThan(actionBox!.y + actionBox!.height);
+  expect(actionBox!.height).toBeLessThan(48);
+  expect(tabsBox!.y).toBeGreaterThan(actionBox!.y);
   expect(tableBox!.y).toBeGreaterThan(tabsBox!.y);
+});
+
+test('document library wide layout uses the available workspace width', async ({ page }) => {
+  const rowDocument = documentItem('doc-wide-layout', '宽屏验收文档');
+
+  await page.setViewportSize({ width: 1920, height: 1000 });
+  await loginWithMockApi(page, { workspaceDocuments: [rowDocument], recentDocuments: [rowDocument] });
+
+  await page.goto('/');
+
+  const surfaceBox = await page.getByTestId('memorica-library-surface').boundingBox();
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+  );
+
+  expect(surfaceBox).toBeTruthy();
+  expect(surfaceBox!.width).toBeGreaterThan(1550);
+  expect(hasHorizontalOverflow).toBe(false);
+});
+
+test('document library tablet layout keeps toolbar and table readable', async ({ page }) => {
+  const rowDocument = documentItem('doc-tablet-layout', '平板验收文档');
+
+  await page.setViewportSize({ width: 768, height: 900 });
+  await loginWithMockApi(page, { workspaceDocuments: [rowDocument], recentDocuments: [rowDocument] });
+
+  await page.goto('/');
+
+  await expect(page.getByRole('heading', { name: '文档库' })).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByRole('button', { name: '新建文档' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '新建文件夹' })).toBeVisible();
+  await expect(page.locator('.memorica-library-actions').getByRole('button', { name: '更多', exact: true })).toBeVisible();
+  await expect(page.locator('.memorica-desktop-table').getByText('平板验收文档')).toBeVisible();
+  await expect(page.locator('.memorica-desktop-table')).toBeVisible();
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+  );
+
+  expect(hasHorizontalOverflow).toBe(false);
+});
+
+test('document library mobile layout uses readable document list rows', async ({ page }) => {
+  const rowDocument = documentItem('doc-mobile-layout', '手机验收文档');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await loginWithMockApi(page, { workspaceDocuments: [rowDocument], recentDocuments: [rowDocument] });
+
+  await page.goto('/');
+
+  await expect(page.getByRole('heading', { name: '文档库' })).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByRole('button', { name: '新建文档' })).toBeVisible();
+  await expect(page.locator('.memorica-mobile-list')).toBeVisible();
+  await expect(page.locator('.memorica-desktop-table')).not.toBeVisible();
+  await expect(page.locator('.memorica-mobile-list').getByText('手机验收文档')).toBeVisible();
+  await expect(page.locator('.memorica-mobile-list').getByText('Library User')).toBeVisible();
+  await expect(page.getByRole('button', { name: '更多操作' })).toBeVisible();
+
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+  );
+  const accountBox = await page.locator('.memorica-account-button').boundingBox();
+
+  expect(hasHorizontalOverflow).toBe(false);
+  expect(accountBox).toBeTruthy();
+  expect(accountBox!.x + accountBox!.width).toBeLessThanOrEqual(390);
 });
 
 test('delete action is hidden until row more menu opens', async ({ page }) => {
@@ -188,7 +258,7 @@ test('delete action is hidden until row more menu opens', async ({ page }) => {
 
   await page.goto('/');
 
-  await expect(page.getByTestId('memorica-library-surface').getByText('项目复盘')).toBeVisible({ timeout: 12_000 });
+  await expect(page.locator('.memorica-desktop-table').getByText('项目复盘')).toBeVisible({ timeout: 12_000 });
   await expect(page.getByRole('button', { name: '删除文档' })).not.toBeVisible();
 
   await page.getByRole('button', { name: '更多操作' }).click();

@@ -9,6 +9,7 @@ import {
   Dropdown,
   Empty,
   Input,
+  List,
   Modal,
   Popconfirm,
   Select,
@@ -19,7 +20,7 @@ import {
 } from 'antd'
 import type { MenuProps } from 'antd'
 import { PageContainer } from '@ant-design/pro-layout'
-import { ProCard, ProTable, type ProColumns } from '@ant-design/pro-components'
+import { ProTable, type ProColumns } from '@ant-design/pro-components'
 import {
   BellOutlined,
   CloudUploadOutlined,
@@ -449,6 +450,15 @@ export default function DocumentListPage() {
     setLoading(true)
   }
 
+  const openWorkspaceItem = (record: DocumentItem) => {
+    if (tab === 'trash') return
+    if (record.itemType === 'folder') {
+      enterFolder(record)
+      return
+    }
+    navigate(`/doc/${record.id}`)
+  }
+
   const confirmDelete = (record: DocumentItem) => {
     modal.confirm({
       title: `删除${itemTypeLabel(record.itemType)}？`,
@@ -489,6 +499,43 @@ export default function DocumentListPage() {
       disabled: Boolean(deletingId) || (tab !== 'my' && tab !== 'workspace'),
     },
   ]
+
+  const renderRecordActions = (record: DocumentItem, className?: string) => (
+    <Space className={className} size={2} onClick={(event) => event.stopPropagation()}>
+      {tab === 'trash' ? (
+        <Button
+          aria-label="恢复文档"
+          icon={<UndoOutlined />}
+          type="text"
+          size="small"
+          loading={restoringId === record.id}
+          disabled={Boolean(restoringId)}
+          onClick={() => handleRestore(record.id)}
+        />
+      ) : (
+        <>
+          {record.itemType !== 'folder' && (
+            <Button
+              aria-label={record.isFavorite ? '取消收藏' : '收藏文档'}
+              icon={record.isFavorite ? <StarFilled /> : <StarOutlined />}
+              type="text"
+              size="small"
+              loading={favoriteId === record.id}
+              disabled={Boolean(favoriteId)}
+              onClick={() => handleFavorite(record)}
+            />
+          )}
+          <Dropdown
+            trigger={['click']}
+            placement="bottomRight"
+            menu={{ items: rowActionItems(), onClick: handleRowMenuClick(record) }}
+          >
+            <Button aria-label="更多操作" icon={<EllipsisOutlined />} type="text" size="small" />
+          </Dropdown>
+        </>
+      )}
+    </Space>
+  )
 
   const columns: ProColumns<WorkspaceRow>[] = [
     {
@@ -543,42 +590,7 @@ export default function DocumentListPage() {
       className: 'memorica-action-column',
       width: 104,
       align: 'right',
-      render: (_, record) => (
-        <Space size={2} onClick={(event) => event.stopPropagation()}>
-          {tab === 'trash' ? (
-            <Button
-              aria-label="恢复文档"
-              icon={<UndoOutlined />}
-              type="text"
-              size="small"
-              loading={restoringId === record.id}
-              disabled={Boolean(restoringId)}
-              onClick={() => handleRestore(record.id)}
-            />
-          ) : (
-            <>
-              {record.itemType !== 'folder' && (
-                <Button
-                  aria-label={record.isFavorite ? '取消收藏' : '收藏文档'}
-                  icon={record.isFavorite ? <StarFilled /> : <StarOutlined />}
-                  type="text"
-                  size="small"
-                  loading={favoriteId === record.id}
-                  disabled={Boolean(favoriteId)}
-                  onClick={() => handleFavorite(record)}
-                />
-              )}
-              <Dropdown
-                trigger={['click']}
-                placement="bottomRight"
-                menu={{ items: rowActionItems(), onClick: handleRowMenuClick(record) }}
-              >
-                <Button aria-label="更多操作" icon={<EllipsisOutlined />} type="text" size="small" />
-              </Dropdown>
-            </>
-          )}
-        </Space>
-      ),
+      render: (_, record) => renderRecordActions(record),
     },
   ]
 
@@ -659,43 +671,25 @@ export default function DocumentListPage() {
     />
   )
 
-  const actionTiles = [
-    {
-      key: 'create',
-      title: '新建文档',
-      description: '创建空白协作文档',
-      icon: <PlusOutlined />,
-      disabled: creatingDocument,
-      loading: creatingDocument,
-      type: 'primary' as const,
-      onClick: () => handleCreate(),
-      testId: 'memorica-create-document',
-    },
-    {
-      key: 'folder',
-      title: '新建文件夹',
-      description: '整理当前目录内容',
-      icon: <FolderAddOutlined />,
-      disabled: !canUseFolders || creatingFolder,
-      onClick: () => setFolderModalVisible(true),
-    },
+  const libraryMoreItems: MenuProps['items'] = [
     {
       key: 'import',
-      title: '导入',
-      description: '从本地文件导入',
       icon: <CloudUploadOutlined />,
-      onClick: () => message.info('导入暂未开放'),
+      label: '导入',
     },
     {
       key: 'template',
-      title: '从模板开始',
-      description: '生成常用格式文档',
       icon: <SnippetsOutlined />,
+      label: '从模板开始',
       disabled: creatingDocument,
-      loading: creatingDocument,
-      onClick: () => handleCreate('模板文档'),
     },
   ]
+
+  const handleLibraryMoreClick: MenuProps['onClick'] = ({ key, domEvent }) => {
+    domEvent.stopPropagation()
+    if (key === 'import') message.info('导入暂未开放')
+    if (key === 'template') handleCreate('模板文档')
+  }
 
   return (
     <div className="memorica-workspace">
@@ -735,35 +729,11 @@ export default function DocumentListPage() {
           </Dropdown>,
         ]}
       >
-        <ProCard
-          bordered={false}
+        <section
           className="memorica-library-surface"
           data-testid="memorica-library-surface"
-          boxShadow
         >
-          <ProCard.Group className="memorica-action-grid" gutter={[12, 12]} ghost>
-            {actionTiles.map((action) => (
-              <ProCard bordered={false} className="memorica-action-card" colSpan={{ xs: 24, sm: 12, lg: 6 }} key={action.key}>
-                <Button
-                  block
-                  className="memorica-action-tile"
-                  data-testid={action.testId}
-                  disabled={action.disabled}
-                  icon={action.icon}
-                  loading={action.loading}
-                  type={action.type || 'default'}
-                  onClick={action.onClick}
-                >
-                  <span className="memorica-action-copy">
-                    <span className="memorica-action-title">{action.title}</span>
-                    <span className="memorica-action-desc">{action.description}</span>
-                  </span>
-                </Button>
-              </ProCard>
-            ))}
-          </ProCard.Group>
-
-          <div className="memorica-library-toolbar">
+          <div className="memorica-library-commandbar">
             <div className="memorica-toolbar-left">
               {canUseFolders && folderStack.length > 0 ? (
                 <Breadcrumb className="memorica-breadcrumb" items={breadcrumbItems} />
@@ -771,6 +741,32 @@ export default function DocumentListPage() {
                 <Text type="secondary">当前视图：{activeTitle}</Text>
               )}
             </div>
+            <Space className="memorica-library-actions" size={8} wrap>
+              <Button
+                data-testid="memorica-create-document"
+                icon={<PlusOutlined />}
+                loading={creatingDocument}
+                type="primary"
+                onClick={() => handleCreate()}
+              >
+                新建文档
+              </Button>
+              <Button
+                disabled={!canUseFolders || creatingFolder}
+                icon={<FolderAddOutlined />}
+                loading={creatingFolder}
+                onClick={() => setFolderModalVisible(true)}
+              >
+                新建文件夹
+              </Button>
+              <Dropdown
+                trigger={['click']}
+                placement="bottomRight"
+                menu={{ items: libraryMoreItems, onClick: handleLibraryMoreClick }}
+              >
+                <Button aria-label="更多" icon={<EllipsisOutlined />}>更多</Button>
+              </Dropdown>
+            </Space>
             <div className="memorica-toolbar-right">
               <Text type="secondary">{rows.length} 项</Text>
             </div>
@@ -800,65 +796,84 @@ export default function DocumentListPage() {
           )}
 
           <Skeleton loading={loading && rows.length === 0} active paragraph={{ rows: 4 }} className="memorica-skeleton">
-            <ProTable<WorkspaceRow>
-              cardProps={false}
-              className="memorica-table"
-              columns={columns}
+            <div className="memorica-desktop-table">
+              <ProTable<WorkspaceRow>
+                cardProps={false}
+                className="memorica-table"
+                columns={columns}
+                dataSource={rows}
+                locale={{ emptyText: emptyNode }}
+                loading={loading && rows.length > 0}
+                onRow={(record) => ({
+                  onClick: () => openWorkspaceItem(record),
+                })}
+                pagination={false}
+                rowKey="id"
+                rowSelection={{
+                  selectedRowKeys: visibleSelectedRowKeys,
+                  onChange: (keys) => setSelectedRowKeys(keys),
+                  preserveSelectedRowKeys: true,
+                }}
+                search={false}
+                options={false}
+                toolBarRender={false}
+                tableAlertRender={({ selectedRowKeys }) => (
+                  <Space size={8}>
+                    <Text>已选 {selectedRowKeys.length} 项</Text>
+                    <Button type="link" size="small" onClick={() => setSelectedRowKeys([])}>
+                      取消选择
+                    </Button>
+                  </Space>
+                )}
+                tableAlertOptionRender={() =>
+                  tab === 'trash' ? (
+                    <Button size="small" loading={batching} onClick={handleBatchRestore}>
+                      恢复所选
+                    </Button>
+                  ) : (
+                    <Popconfirm
+                      title="删除所选项目？"
+                      description="删除后项目会进入回收站，可从回收站恢复。"
+                      okText="删除"
+                      okButtonProps={{ danger: true, loading: batching }}
+                      cancelText="取消"
+                      onConfirm={handleBatchDelete}
+                    >
+                      <Button danger size="small" loading={batching}>
+                        删除所选
+                      </Button>
+                    </Popconfirm>
+                  )
+                }
+                size="middle"
+              />
+            </div>
+            <List<WorkspaceRow>
+              className="memorica-mobile-list"
               dataSource={rows}
               locale={{ emptyText: emptyNode }}
-              loading={loading && rows.length > 0}
-              onRow={(record) => ({
-                onClick: () => {
-                  if (!record || tab === 'trash') return
-                  if (record.itemType === 'folder') {
-                    enterFolder(record)
-                    return
-                  }
-                  navigate(`/doc/${record.id}`)
-                },
-              })}
-              pagination={false}
-              rowKey="id"
-              rowSelection={{
-                selectedRowKeys: visibleSelectedRowKeys,
-                onChange: (keys) => setSelectedRowKeys(keys),
-                preserveSelectedRowKeys: true,
-              }}
-              search={false}
-              options={false}
-              toolBarRender={false}
-              tableAlertRender={({ selectedRowKeys }) => (
-                <Space size={8}>
-                  <Text>已选 {selectedRowKeys.length} 项</Text>
-                  <Button type="link" size="small" onClick={() => setSelectedRowKeys([])}>
-                    取消选择
-                  </Button>
-                </Space>
+              renderItem={(record) => (
+                <List.Item className="memorica-mobile-row" onClick={() => openWorkspaceItem(record)}>
+                  <div className="memorica-mobile-row-main">
+                    <span className={`memorica-file-icon ${record.itemType === 'folder' ? 'folder' : 'doc'}`}>
+                      {record.itemType === 'folder' ? <FolderOpenOutlined /> : <FileOutlined />}
+                    </span>
+                    <div className="memorica-mobile-row-copy">
+                      <Text strong ellipsis={{ tooltip: record.title }} className="memorica-mobile-row-title">
+                        {record.title}
+                      </Text>
+                      <Space size={6} wrap className="memorica-mobile-row-meta">
+                        <Text type="secondary">{record.ownerName || displayName}</Text>
+                        <Text type="secondary">{formatDate(record.updatedAt || record.createdAt)}</Text>
+                      </Space>
+                    </div>
+                  </div>
+                  {renderRecordActions(record, 'memorica-mobile-row-actions')}
+                </List.Item>
               )}
-              tableAlertOptionRender={() =>
-                tab === 'trash' ? (
-                  <Button size="small" loading={batching} onClick={handleBatchRestore}>
-                    恢复所选
-                  </Button>
-                ) : (
-                  <Popconfirm
-                    title="删除所选项目？"
-                    description="删除后项目会进入回收站，可从回收站恢复。"
-                    okText="删除"
-                    okButtonProps={{ danger: true, loading: batching }}
-                    cancelText="取消"
-                    onConfirm={handleBatchDelete}
-                  >
-                    <Button danger size="small" loading={batching}>
-                      删除所选
-                    </Button>
-                  </Popconfirm>
-                )
-              }
-              size="middle"
             />
           </Skeleton>
-        </ProCard>
+        </section>
 
         <Modal
           title="新建文件夹"
